@@ -1,283 +1,281 @@
 # 【拆解DeepSeek Harness】DeepSeek Harness 是怎么做到插件化的
 
-| 项 | 内容 |
-|---|---|
-| 焦点 | **前台（浏览器 Client）** 与 **后台（Host / agent 运行时）** 如何各自插件化、又如何对上 |
-| 对象 | [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)（Cordis 插件树） |
-| 证据 | `docs/cordis-primer`、`architecture`、`client-modules`、`web-server`、`extensions`、`bundle/{base,web-app}`、cookbook |
-| 日期 | 2026-08-20 |
-| 关联 | [拆解调查](./2026-08-20-dsh-disassembly-investigation.md) · [白话图文](./2026-08-20-dsh-plain-illustrated.md) · [借鉴报告](./dsh-analysis-report.md) |
+> **调研报告 · 白话图文版**（2026-08-20）  
+> 对象：[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)  
+> 想看技术原文细节：见文末「还想深挖」；机制借鉴总表见 [dsh-analysis-report.md](./dsh-analysis-report.md)
 
 ---
 
-## 0. 一句话
+## 开篇：我们在调研什么？
 
-dsh 的插件化不是「前端写个 plugin 市场」那么简单，而是 **同一套 Cordis 思想在两条运行时上落地**：
+很多人听到「插件化」，会想到：
 
-1. **后台（Host）**：Node 进程里挂服务、事件、工具、模型适配器——靠 `inject` / `apply(ctx)` / 可逆 `effect`。  
-2. **前台（Client）**：浏览器里另有一套「client 半」包，靠 `package.json` 的 `dsh.client` 声明进启动图，经 Host 注入 `window.__DSH_BOOT__`，再按需拉 `/plugins/<id>/client.js`。
+- Chrome 扩展商店  
+- VS Code 装个主题  
+- 网页里塞一个第三方小组件  
 
-产品面（`web` / `headless`）只是 **Profile + Bundle 补丁栈** 组装出来的不同插件树，不是两套框架。
+**DeepSeek Harness（下面简称 dsh）说的插件化，比这更大一号。**  
+它不只是「页面上能插按钮」，而是：
 
-```mermaid
-flowchart TB
-  subgraph compose [组装层]
-    PF[Profile]
-    BD[Bundle 如 dsh-base / dsh-web-app]
-    PATCH[cordis.patch.yml]
-  end
+> **智能体干活的整条流水线——记日志、拼提示词、调工具、接模型、画聊天界面——几乎每一块都能插拔、能替换、拔掉还能收拾干净。**
 
-  subgraph host [后台 Host · Node Cordis]
-    SVC[ctx.sessions / tools / llm / agents …]
-    EVT[类型化事件 emit/waterfall/…]
-    HTTP[ctx.webServer 傻 HTTP 载体]
-    CMR[ctx.clientModules 扫 dsh.client]
-  end
+本报告用人话讲清两件事：
 
-  subgraph client [前台 Client · 浏览器]
-    BOOT["window.__DSH_BOOT__ 启动图"]
-    BUNDLE["/plugins/id/client.js"]
-    UI[ConversationNode / UI 槽位 …]
-  end
-
-  PF --> BD --> PATCH --> host
-  CMR -->|tapIndex 注入 manifest| BOOT
-  CMR -->|注册路由| BUNDLE
-  BOOT --> BUNDLE --> UI
-  HTTP --> CMR
-```
+1. **后台**（真正跑智能体的那台「引擎」）怎么插件化？  
+2. **前台**（浏览器里你看到的界面）怎么插件化？  
+3. 这两边又是怎么对上号的？
 
 ---
 
-## 1. 插件化的「宪法」：Cordis 五条
+## 一、先建立直觉：像装修，不像装 App
 
-后台几乎所有能力都遵守同一套 Cordis 规则（vendor 引入）：
+![后台 Host 与前台浏览器用「启动清单」桥接](./assets/dsh-plugin-host-client.png)
 
-| 概念 | 含义 |
-|---|---|
-| **插件 = 实现 Service 的对象** | 函数（`inject` + `apply(ctx)`）或 `Service` 子类 |
-| **上下文 `ctx` = 服务容器** | 别人找的是 `ctx.tools`，不是某个具体 npm 实现路径 |
-| **`inject` 声明依赖** | 等依赖就绪再启动；顺序靠依赖图，不靠手写启动脚本 |
-| **类型化事件通信** | `emit` / `waterfall` / `parallel` / `serial`；扩展点往往是事件 |
-| **注册是可逆副作用** | `ctx.effect()` / `ctx.on()`；插件卸载时撤消提示词、工具、监听器 |
+可以把它想成装修一栋房子：
 
-实践口诀（官方 primer）：
+| 角色 | 像什么 | 在 dsh 里 |
+|---|---|---|
+| **后台 Host** | 水电结构、开关回路、安防主机 | Node 进程：会话、工具、模型、审批…… |
+| **前台浏览器** | 墙面、灯具、开关面板外观 | 网页：聊天区、工具展示、设置页…… |
+| **插件** | 可换的模块（灯、门锁、温控） | 一个个小包，插上就工作，拔下就撤消 |
+| **配置档案 Profile** | 装修方案图纸 | 决定这次启动装哪些包、什么顺序 |
+| **启动清单** | 房间门口贴的「本层有哪些灯具说明」 | 后台告诉浏览器：该去下载哪些界面插件 |
 
-- 工具流水线事件 → `ctx.tools`  
-- 模型流式 → `ctx.llm`  
-- 实时协调 → `ctx.agents`  
-- **拦截用事件，直接能力用服务方法**
-
-这就是「Everything is a Plugin」能落地的原因：**没有特权内核要打补丁，只有并排挂载与可逆注册。**
+**关键认知：**  
+网页漂亮不漂亮，是前台插件的事；  
+智能体聪不聪明、记不记得住、敢不敢跑命令，是后台插件的事。  
+两边用同一套「积木规矩」，但跑在两个地方。
 
 ---
 
-## 2. 后台（Host）怎么插件化？
-
-### 2.1 组装：Profile → Bundle → Patch
-
-运行中的 `dsh` 是一棵 **按序叠加的插件配置树**：
-
-```text
-空根
-  → profile.bundles 里每个 Bundle 的 cordis.patch（如 dsh-base，再 dsh-web-app）
-  → profile 自己的 cordis.patch.yml
-  → $DSH_HOME 级 patch
-  → CLI --patch overlay
-```
-
-- **`dsh-base`**：第一层；插入模型适配、工具、持久化、策略、凭据、遥测、默认 subagent 等「每个 profile 都要的」行。  
-- **`dsh-web-app`**：叠在 base 上；插入 webserver、API gateway、client 插件名册、HMR、`web-runtime` 胶水等。  
-- **`dsh-headless`**：兄弟面，**同一 base**，不装 Web 那一层。
-
-补丁语义关键点：**按 id 整行替换 config**（不是深合并字段）。模式相关默认值放在 mode bundle，不塞进 base。
+## 二、调研结论（先看结论再看展开）
 
 ```mermaid
 flowchart LR
-  A[dsh-base<br/>agent 内核行] --> B[dsh-web-app<br/>HTTP + client 名册]
-  A --> C[dsh-headless<br/>一次性 runner]
-  B --> D[用户 patch]
-  C --> D
+  A[同一套积木规矩<br/>Cordis] --> B[后台：能力插件]
+  A --> C[前台：界面插件]
+  B -->|流水账事件 + 接口| D[两边对齐]
+  C -->|按清单加载 JS| D
+  E[配置档案叠组合包] --> B
+  E --> C
 ```
 
-### 2.2 单个后台插件长什么样？
-
-Cookbook 约定一个 `@deepseek-ai/dsh-*` 包大致是：
-
-```text
-packages/<group>/<pkg>/
-  package.json   # peer: @deepseek-ai/cordis
-  src/index.ts   # 默认导出服务或 { name, inject, apply, Config }
-  README.md      # 服务 API、事件、扩展点
-```
-
-挂进树后，典型动作包括：
-
-1. **贡献服务**：占据 `ctx.<key>`（如 `ctx.compaction`）  
-2. **注册提供方**：挂到已有 seam（如 `ctx.llm` 上注册 `deepseek-official`）  
-3. **注册消费方**：工具 schema 进 `ctx.tools`，提示词片段进 `ctx.systemPrompt`  
-4. **监听瀑布事件**：如 `tools/pre-execute`、`agent/pre-step`，可 `next()` 或短路  
-5. **扩展会话事件类型**：declaration merging 扩 `SessionEventMap`（compaction/goal 等）
-
-**Capability Seam** = Definition + Provider + Consumer 一起设计——所以换沙箱提供方时，Bash/PTY 等消费者不用各自 fork。
-
-### 2.3 后台的「HTTP 插件化」：傻载体 + 聪明注册者
-
-`ctx.webServer`（`dsh-host-webserver`）刻意 **不懂 harness 业务**：
-
-- 只提供具名路由注册表 + index HTML 转换钩子 + 一个 SPA 回退席位  
-- `/api`、插件 bundle、HMR SSE **全部由别的插件** `register()` 上去  
-- `dsh-client-modules` 用 `tapIndex` 把启动图写进 `index.html`  
-- `frontend-static` 认领回退：未匹配路由回 `index.html`
-
-这是前台插件化的 **宿主机**：后台插件负责「把什么 JS 端点暴露给浏览器」。
-
-### 2.4 动态扩展（agent 现场写插件）
-
-`extensions` 子系统走得更远：允许在会话里 **定义带版本的 Cordis 包**，跑 **Host 半 + Client 半**，并用 inspect 工具查询公开元数据（`ctx.dynamicCordisRunner` / `ctx.cordisInspect`）。  
-这是「插件化」的上限形态：**不仅人写死包，模型也能按协议装卸插件**——但仍落在同一 Cordis 生命周期与沙箱约束下。
+1. **不是两套框架**，是一套规矩（Cordis）在「引擎」和「浏览器」上各落地一次。  
+2. **后台插件** = 往共享「工具箱」里放服务、挂监听、登记工具；拔掉时自动拆线。  
+3. **前台插件** = 先在包裹说明里报名「我有浏览器半成品」→ 后台汇总成清单 → 浏览器按需下载脚本。  
+4. **网页版 / 无界面版**，只是装修方案不同（多不多装「网页那一层」），底层厨房可以是同一套。  
+5. 对 WorkPanel 这类平台：**值得学的是思路（清单、可拆、事件驱动界面），不值得整栋搬迁。**
 
 ---
 
-## 3. 前台（Client / 浏览器）怎么插件化？
+## 三、后台是怎么插件化的？（引擎侧）
 
-前台不是另起一套「npm 插件市场运行时」，而是：
+### 3.1 规矩只有几条（记住比喻即可）
 
-> **同一批包可以有 Host 半 + Client 半；Client 半靠 `dsh.client` 声明进入 Web 启动图。**
+官方底层叫 **Cordis**。用人话就是：
 
-### 3.1 声明：`package.json` 里的 `dsh.client`
+| 规矩 | 人话 |
+|---|---|
+| 插件是一个「会干活的模块」 | 插上开始干活，拔下必须收尾 |
+| 大家共用一个「前台柜」`ctx` | 找「工具柜」「模型柜」，不找某个具体文件名 |
+| 先声明「我依赖谁」 | 电闸没装好，灯不会先亮——靠依赖排队，不靠手写启动脚本 |
+| 用「广播 / 接力」通信 | 有人只旁听；有人可以改请求再往下传；也可以直接喊停 |
+| 登记都能反悔 | 加过的提示词、工具、监听器，卸载时撤掉 |
 
-包要进浏览器表，需同时满足大致条件：
+> 所以它敢说「Everything is a Plugin」：  
+> **没有一块神圣到只能打补丁的主板，只有并排插上去的模块。**
 
-1. `package.json` 声明 **`dsh.client`**（`platform: 'web'`，可选 `inject` 边、`immediately` 预取）  
-2. **`exports["./client"]`** 指向构建好的 client bundle  
-3. 包能从配置树的 `ctx.baseUrl`（cordis.yml 所在目录）解析到  
+### 3.2 启动时怎么「装修」？
 
-Host 侧服务 **`ctx.clientModules`（ClientModuleRegistry）** 扫描 Loader entry，组合出启动图。
+每次你运行 `dsh`，其实是在按图纸叠材料：
 
-### 3.2 启动协议：`window.__DSH_BOOT__`
-
-Host 把组合结果做成 **`WebBootGraph`**，作为 `<head>` 里**第一个脚本**注入：
-
-```ts
-interface WebBootEntry {
-  id: string            // == package name
-  url: string           // '/plugins/<id>/client.js?rev=<rev>'
-  rev: string           // bundle 内容哈希（缓存失效锚）
-  inject?: string[]     // 信息性依赖边
-  immediately?: boolean // 第一阶段预取（只做 factory 登记）
-  external?: string[]   // 约束代码到达的模块边（同步 require）
-}
-
-interface WebBootGraph {
-  rev: string
-  entries: WebBootEntry[]  // 模块图顺序，≠ Cordis fiber 激活顺序
-}
+```text
+空房子
+  → 先铺「基础包」dsh-base（模型、工具、存档、安全策略……）
+  → 若是网页版，再叠 dsh-web-app（网站、界面插件名册、热更新……）
+  → 若是无头脚本版，叠另一套脸（不装网站）
+  → 最后盖上你自己的小修改（本地补丁）
 ```
 
-要点：
+```mermaid
+flowchart TB
+  Z[空配置] --> BASE[基础包<br/>智能体厨房]
+  BASE --> WEB[网页组合包<br/>网站 + 界面名册]
+  BASE --> HL[无头组合包<br/>干完就走]
+  WEB --> U[你的本地补丁]
+  HL --> U
+```
 
-- **图是 Node↔浏览器协议的唯一真源**；图缺失或畸形 → 浏览器大声失败，页面不起。  
-- 行 `rev` 变 → URL query 变；图 `rev` 是各行之哈希。  
-- `immediately`：启动阶段就拉脚本做登记；其它行 **首次 import 才懒加载**。  
-- Cordis 激活顺序与 client entry 顺序 **解耦**（一边靠 fiber 等服务，一边靠模块图）。
+**人话：**  
+同一间厨房，可以做成「带餐厅的店」或「只接外卖单的后厨」——换的是组合方案，不是换锅灶品牌。
 
-### 3.3 投递：`/plugins/<id>/client.js`
+### 3.3 一个后台插件通常干什么？
 
-- `GET/HEAD` 从磁盘吐已注册 bundle，`Cache-Control: no-cache`，靠 `rev` 一致性  
-- 未知 id 或尚未构建 → **404**（故意不让 SPA 回退把 HTML 当 JS 发出）  
-- 开发态：`dsh-client-hmr` 轮询 bundle → `rebuilt(id)` → SSE 通知浏览器半  
-- 生产图 **不含 HMR 行**
+插上之后，常见就这几类活：
 
-浏览器半有内核机件 `ctx.modules`：按启动图 **lazy CJS** 拉取并物化这些 bundle（细节在 `packages/client/modules` README）。
+1. **贡献一种能力**：比如「我负责压缩超长对话」  
+2. **接到已有插座上**：比如「我是 DeepSeek 官方模型的插头」  
+3. **登记工具说明书**：让模型知道能调用哪些工具  
+4. **在关键路口拦一拦**：比如工具执行前问人批不批准  
+5. **往流水账里多记几种事件**：方便以后回放、画界面  
+
+### 3.4 网站在后台眼里是什么？
+
+有意思的一点：**负责开网站的那一层，故意做得「很傻」。**
+
+- 它只提供：注册网址、改首页 HTML、以及「剩下的都交给网页应用」。  
+- **真正的接口、插件脚本地址、热更新推送**，都是别的插件挂上去的。  
+
+**比喻：**  
+物业只给楼道配电箱和门牌规则；  
+每家店自己申请「几楼几号、卖什么」。  
+
+这样前台插件化才有地方「挂招牌」——见下一章。
+
+### 3.5 更猛的一档（知道即可）
+
+dsh 还允许在对话过程中，**由智能体按规矩临时定义插件**（带版本、可查、可卸）。  
+这是插件化的「天花板」：不只有人预装，运行中也能长模块。  
+日常理解到「能动态装卸」就够；细节留给源码读者。
+
+---
+
+## 四、前台是怎么插件化的？（浏览器侧）
+
+### 4.1 核心套路：先报名，再发清单，再下载
+
+前台插件不是浏览器自己随便 `import` 一堆未知脚本，而是：
 
 ```mermaid
 sequenceDiagram
-  participant Browser
-  participant WebServer
-  participant ClientModules
-  participant Disk
+  participant 开发者
+  participant 后台
+  participant 浏览器
 
-  Browser->>WebServer: GET /
-  WebServer->>ClientModules: tapIndex 注入 __DSH_BOOT__
-  WebServer-->>Browser: index.html + 启动图
-  Browser->>Browser: 解析图，预取 immediately 行
-  Browser->>WebServer: GET /plugins/foo/client.js?rev=…
-  WebServer->>ClientModules: clientPath(foo)
-  ClientModules->>Disk: 读 bundle
-  WebServer-->>Browser: JS
-  Browser->>Browser: 登记 UI / ConversationNode / …
+  开发者->>开发者: 包裹说明书里写：我有网页半成品
+  后台->>后台: 启动时扫描：谁报名了网页半？
+  后台->>浏览器: 首页里塞一张「启动清单」
+  浏览器->>后台: 按清单去取某插件的 JS
+  后台-->>浏览器: 返回脚本文件
+  浏览器->>浏览器: 登记聊天气泡、面板、按钮……
 ```
 
-### 3.4 UI 插件长什么样？（以 Chat 节点为例）
+三步记牢：
 
-扩展聊天视图的标准路径（cookbook *adding-a-conversation-node*）：
-
-1. **Host 先有可回放事件族**（仅追加 SessionEvent，带稳定业务 id）  
-2. **Client 插件**声明 `ConversationNodeDefinition`：  
-   - 把事件族收成 Context  
-   - 增量构建 State（重放必须确定性）  
-   - 用 keyed renderer 画 Chat Node  
-3. Client 包编进 Web 组合；**不扫别的节点、不靠「最新未完成」这种脆弱启发式**
-
-其它 UI 域（conversation shell、tool presentation、workflow run…）同样是 **client 包 + 槽位/控制器**，而不是改死一个巨型 React App 内核。
-
-`dsh-web-app` 的职责，就是在 base 之上 **插入 Web host 行 + browser plugin roster + HMR + web-runtime**，把「有哪些 client 包」写进组合，而不是在前端仓库里手维护一张全局插件列表。
-
----
-
-## 4. 前后台如何「对上号」？
-
-| 通道 | 谁主导 | 作用 |
-|---|---|---|
-| **Session 事件流** | Host 写入，Client 投影/渲染 | 真源在后台；UI 是派生视图 |
-| **`__DSH_BOOT__` + `/plugins/*`** | Host 组合与投递，Client 执行 | 前台代码本身的插件装载 |
-| **API gateway / RPC**（GUI 分层笔记） | Host 暴露，Client 调用 | 控制面：会话、设置、工作区… |
-| **HMR SSE** | Host 广播 rev，Client 热更 | 仅开发 |
-| **Dynamic Cordis + Inspect** | 两半都可有 provider | Agent 可查询/驱动动态插件 |
-| **构建面分离** | `tsconfig.host` / `tsconfig.client` | 同仓两套编译面，避免把 Node API 打进浏览器 |
-
-设计哲学：**后台拥有事实与能力；前台拥有呈现与交互插件；二者用启动图 + 事件/API 对齐，而不是共享一个可变全局单例。**
-
----
-
-## 5. 和「普通前端插件 / VS Code 插件」差在哪？
-
-| | dsh | 常见 SPA 插件 | VS Code Extension |
-|---|---|---|---|
-| 后台 | Cordis 服务+事件，可逆 | 往往没有对称插件运行时 | Extension Host |
-| 前台装载 | Host 扫 `dsh.client` 注入启动图 | 路由表/动态 import 自管 | contribution points |
-| 真源 | SessionEvent 回放驱动 UI | 常以 REST 状态为准 | 编辑器模型 |
-| 组装 | Profile/Bundle patch 栈 | 环境变量/功能开关 | package.json contributes |
-| 动态上限 | Agent 可 define Cordis 包 | 少见 | 受限 |
-
-对 WorkPanel 的可借鉴点（仍建议 **抄语义不抄 Cordis**）：
-
-1. **扩展点显式化**：Host 注册能力，UI 只消费契约（类似你们 AdapterKind / Extension Host）。  
-2. **启动清单**：前端扩展列表由后端组合注入，避免前后各维护一份。  
-3. **卸载可逆**：配置变更能撤消监听与路由，而不是只「加不能减」。  
-4. **UI 节点跟事件族走**：Chat/Logs 行用稳定 id 回放，而不是 DOM 临时状态。
-
----
-
-## 6. 风险与边界
-
-| 风险 | 说明 |
+| 步骤 | 人话 |
 |---|---|
-| 预览期 | Loader / `dsh.client` / boot 图字段可能变 |
-| 复杂度 | 双面包 + 双 tsconfig + HMR，学习与构建成本高 |
-| 资源 | 整树 Node 插件对弱机不友好 |
-| 证据 | 本报告基于官方文档与 cookbook，**未**本机跑通 `dsh web` 热更实操 |
-| WorkPanel | 不宜嵌入完整 Cordis；对齐「清单注入 + 可逆注册 + 事件驱动 UI」即可 |
+| **报名** | 包裹说明里声明「我有浏览器这一半」 |
+| **发清单** | 后台汇总成一张启动图，塞进网页（官方名叫启动 boot 图） |
+| **按需取货** | 浏览器打开 `/plugins/某某/client.js` 这类地址下载；着急的先拉，不急的用到再拉 |
+
+**没有有效清单，页面会直接拒绝启动**——宁可大声失败，也不「半残着跑」。
+
+### 4.2 热更新（开发时才有）
+
+改界面插件代码时：
+
+- 后台盯着文件变了没有  
+- 变了就换「版本号」并通知浏览器  
+- 生产环境这套监视默认不装，避免多余负担  
+
+### 4.3 界面插件具体长什么样？（聊天为例）
+
+扩展聊天区，官方推荐路径也很好懂：
+
+1. **后台先把事情记进流水账**（带稳定编号，能重放）  
+2. **前台插件认领这类流水账**，拼成一块「聊天节点」画出来  
+3. **不要靠「最新那条没做完的」这种猜**——重开页面也要画得一样  
+
+**比喻：**  
+后台是法院存档；前台是按案号贴公告栏。  
+公告栏插件可以换皮肤，但案号体系是后台定的。
 
 ---
 
-## 7. 结论
+## 五、前后台怎么对上号？
 
-DeepSeek Harness 的插件化是 **Cordis 一条绳上的两头**：
+| 通道 | 一句话 |
+|---|---|
+| **流水账（会话事件）** | 发生了什么，以后端为准；界面只是放映机 |
+| **启动清单 + 插件脚本地址** | 界面代码怎么装，由后端汇总发放 |
+| **网页接口** | 点按钮、切工作区、改设置，走控制接口 |
+| **开发热更新** | 改代码时推一把「请刷新这块」 |
 
-- **后台**：服务容器 + 类型化事件 + Profile/Bundle 补丁组装 + 可逆副作用；Web 只是再叠一层「傻 HTTP + 聪明注册者」。  
-- **前台**：包用 `dsh.client` 报名，Host 生成 `__DSH_BOOT__` 与 `/plugins/<id>/client.js`，浏览器按图懒加载；Chat 等 UI 以 **可回放事件 → ConversationNode** 方式扩展。  
-- **对上**：事件真源在 Host，代码装载图与 API 把 Client 拴在同一组合配置上。
+```mermaid
+flowchart TB
+  subgraph 后台
+    事实[流水账 · 真源]
+    能力[工具 / 模型 / 审批]
+    清单[启动清单]
+  end
+  subgraph 前台
+    放映[聊天与面板]
+    脚本[界面插件 JS]
+  end
+  事实 --> 放映
+  能力 --> 事实
+  清单 --> 脚本 --> 放映
+```
 
-这就是它能声称「Everything is a Plugin」、同时还能长出 Web GUI 与 headless 两种脸的原因。
+**设计哲学（调研原话压缩）：**  
+后台拥有事实和能力；前台拥有怎么呈现；  
+两边用「清单 + 事件 + 接口」对齐，而不是共用一个乱改的大全局变量。
+
+---
+
+## 六、和常见「插件」对比（方便对外讲）
+
+| | **dsh** | **普通网页插件** | **VS Code 扩展** |
+|---|---|---|---|
+| 后台有没有对称插件体系 | 有，而且是主角 | 常常没有 | 有 Extension Host |
+| 界面怎么发现插件 | 后端发启动清单 | 自己写死或动态 import | 贡献点声明 |
+| 界面跟什么对齐 | 可回放的流水账 | 接口返回的状态 | 编辑器模型 |
+| 拔掉干净吗 | 强调可逆撤消 | 看作者修养 | 框架有卸载 |
+
+---
+
+## 七、对 WorkPanel / 我们自己的启发（可落地）
+
+值得抄的是**作业方法**，不是整仓 Cordis：
+
+| 优先级 | 启发 | 别做的事 |
+|---|---|---|
+| 高 | **扩展清单由编排侧汇总**，前后端别各维护一份 | 别在 1.8G 机上嵌整棵 dsh |
+| 高 | **界面跟可回放事件走**（Experience / Logs） | 别只靠临时 DOM 状态讲故事 |
+| 中 | **装卸可逆**：关掉能力要能撤监听/路由 | 别只支持「越加越多」 |
+| 低 | 无头模式的稳定「干完打印结果」契约 | 别把 `dsh web` 当生产常驻成员 |
+
+---
+
+## 八、风险与调研边界
+
+- dsh 仍是**开发者预览**，名单字段、启动方式以后可能改。  
+- 双端插件 + 双套构建，**学习和运维成本不低**。  
+- 本报告依据官方架构/子系统文档与 cookbook，**未在本机完整实操**网页热更新。  
+- 配图为示意，帮助建立直觉，不是源码级拓扑。
+
+---
+
+## 九、收束：三句话带走
+
+1. **dsh 的插件化 = 引擎积木 + 界面积木，同一套规矩。**  
+2. **后台管能力与流水账；前台按「报名 → 清单 → 下载」装皮肤。**  
+3. **对我们：学清单、学可拆、学事件驱动界面；别整栋楼搬进生产机。**
+
+---
+
+## 还想深挖？
+
+| 主题 | 上游入口（关键词） |
+|---|---|
+| 积木规矩 | Cordis 入门 / primer |
+| 后台组装 | Profile、Bundle、`dsh-base` / `dsh-web-app` |
+| 前台装载 | client-modules、`dsh.client`、启动 boot 图 |
+| 聊天节点 | cookbook：adding-a-conversation-node |
+| 总览对比 | [拆解调查](./2026-08-20-dsh-disassembly-investigation.md) · [白话总览](./2026-08-20-dsh-plain-illustrated.md) |
+
+## 附图
+
+| 文件 | 说明 |
+|---|---|
+| [assets/dsh-plugin-host-client.png](./assets/dsh-plugin-host-client.png) | 后台 Host ↔ 前台浏览器 ↔ 启动清单 |
