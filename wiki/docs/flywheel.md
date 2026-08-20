@@ -67,34 +67,24 @@
 ### 3.3 飞轮总流程图（角色 × 流程）
 
 ```mermaid
-flowchart TB
-    subgraph GEN["生成域（✏️ 可修改知识）"]
-        SK["Skill 知识生成<br/>源码 → 知识文档<br/>✏️ 可修改知识"]
-        FG["首次生成 Agent<br/>知识库首次生成<br/>✏️ 可修改知识"]
-    end
+flowchart LR
+    classDef gen fill:#e8f5e9,stroke:#43a047,stroke-width:2px;
+    classDef cod fill:#fff3e0,stroke:#fb8c00,stroke-width:2px;
+    classDef evl fill:#e3f2fd,stroke:#1e88e5,stroke-width:2px;
+    classDef itr fill:#fce4ec,stroke:#e53935,stroke-width:2px;
 
-    subgraph COD["消费域（🚫 不修改知识）"]
-        CD["Coder Agent<br/>知识库 → 临时代码<br/>🚫 不承担迭代逻辑"]
-    end
+    SK["① Skill 知识生成<br/>源码 → 知识文档<br/>✏️ 可修改知识"]:::gen
+    CD["② Coder 写代码<br/>知识 → 临时代码<br/>🚫 不承担迭代"]:::cod
+    EV["③ 评测闭环（Review 归因）<br/>临时 vs 标准 → 相似度 → 置信度<br/>🔒 只读"]:::evl
+    FW["④ 知识飞轮迭代<br/>按置信度优化知识<br/>✏️ 可修改知识"]:::itr
 
-    subgraph EVL["评测域（🔒 只读）"]
-        EV["评测闭环<br/>需求描述 + 知识库 → 临时代码<br/>vs 标准代码 → 相似度 → 置信度<br/>🔒 只读"]
-        RV["Review Agent<br/>差异对比 + 溯源归因<br/>🔒 只读"]
-    end
-
-    subgraph ITR["迭代域（✏️ 驱动方）"]
-        FW["知识飞轮<br/>按置信度迭代优化知识<br/>✏️ 可修改知识"]
-    end
-
-    SK -->|"知识文档"| CD
-    FG -->|"知识文档"| CD
-    CD -->|"临时代码"| EV
-    EV -->|"置信度 + 通过/失败"| FW
-    EV --> RV
-    RV -->|"归因报告（改哪段）"| FW
-    FW -->|"优化后知识"| SK
-    FW -->|"优化后知识"| FG
+    SK -->|知识文档| CD
+    CD -->|临时代码| EV
+    EV -->|置信度| FW
+    FW -->|优化后知识| SK
 ```
+
+> 备注：**首次生成 Agent** 与 Skill 同属生成域（✏️ 可改知识），**Review Agent** 与评测闭环同属评测域（🔒 只读）；职责细节见 [3.1 角色职责总表](#31-角色职责总表)。
 
 ### 3.4 评测闭环细节图
 
