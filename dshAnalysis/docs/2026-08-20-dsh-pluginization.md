@@ -2,7 +2,8 @@
 
 > **调研报告 · 白话图文版**（2026-08-20）  
 > 对象：[deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness)  
-> 想看技术原文细节：见文末「还想深挖」；机制借鉴总表见 [dsh-analysis-report.md](./dsh-analysis-report.md)
+> 专业技术版：[2026-08-20-dsh-pluginization-professional.md](./2026-08-20-dsh-pluginization-professional.md)  
+> 想看更多技术入口：见文末「还想深挖」；机制借鉴总表见 [dsh-analysis-report.md](./dsh-analysis-report.md)
 
 ---
 
