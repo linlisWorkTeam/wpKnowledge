@@ -51,6 +51,8 @@
 | RepairAgent | 2024 | 422 | [arXiv](https://arxiv.org/abs/2403.17134) | 🆕 自主程序修复 agent |
 | SpecRover | 2024 | 123 | [arXiv](https://arxiv.org/abs/2408.02232) | 🆕 代码意图提取（LLM 反推规格） |
 | **Self-Taught Optimizer (STOP)** | 2023 | 高 | [arXiv](https://arxiv.org/abs/2310.02304) | 🆕 递归自改进代码生成（经典） |
+| **CYCLE** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2403.18746) | 🆕 学习自精炼代码生成（papers.cool 发现） |
+| **AlphaVerus** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2412.06176) | 🆕 自改进翻译+Treefinement 引导形式化验证代码生成（papers.cool 发现） |
 | **PRs as Training Signal** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.07457) | 🆕 用 Pull Request 做仓库级编辑训练信号 |
 | **OctoLong** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.05141) | 🆕 跨仓库上下文长上下文建模 |
 

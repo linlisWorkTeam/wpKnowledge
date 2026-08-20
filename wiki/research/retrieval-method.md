@@ -48,6 +48,18 @@
 - 查询词里已带 `pushed:>2025-08-01` 缩小范围；限速 7 秒/请求（未认证 10 req/min）
 - 建议配 `GH_TOKEN` 环境变量（认证后 30 req/min）
 
+### 3.4 papers.cool — 沉浸式论文发现（手动补充渠道）
+
+> 网址：https://papers.cool（苏剑林/kexue.fm 出品）
+> 搜索 URL：`https://papers.cool/arxiv/search?highlight=1&query=<关键词>`（URL 编码）
+> 单篇页：`https://papers.cool/arxiv/<arXiv-ID>`
+
+- **语义搜索**：按相关性排序（返回上限 1000 条），比 arXiv 官方按日期排序好用；关键词命中在摘要中高亮
+- **REL 相关论文**：每条结果带 `[REL]` 按钮，给出相关论文（共引/相似网络），是引文滚雪球的补充视角
+- **顶会聚合**：首页按 Venue 分类（NeurIPS / ICLR / ICML / EMNLP / ACL / CVPR 等 22 个），适合顶会定向检索
+- **Kimi 集成**：每条论文带 `[Kimi]` 按钮可 AI 解读
+- 用法：手动补充 Semantic Scholar / arXiv API 覆盖不到的新论文，或顶会（ICSE/FSE/ASE）定向检索
+
 ## 4. 准入标准（与 research/README.md 一致）
 
 | 来源类型 | 准入要求 |
