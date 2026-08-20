@@ -34,33 +34,36 @@ dsh 将 Cordis 作为 vendor 框架。插件不是「调用方 import 实现」�
 flowchart TB
   subgraph compose [Composition]
     P[Profile]
-    B[Bundles: dsh-base → dsh-web-app | dsh-headless]
-    X[profile / home / --patch overlays]
+    B[Bundles: dsh-base then web-app or headless]
+    X[profile / home / CLI patch overlays]
   end
 
-  subgraph host [Host process · Node]
-    L[Loader + include]
-    CTX["ctx.&lt;key&gt; services"]
+  subgraph host [Host process - Node]
+    L[Loader plus include]
+    CTX[ctx key services]
     EV[typed events]
     WS[ctx.webServer]
     CM[ctx.clientModules]
   end
 
   subgraph client [Browser]
-    BOOT["window.__DSH_BOOT__"]
-    PJ["GET /plugins/&lt;id&gt;/client.js?rev="]
+    BOOT[window.__DSH_BOOT__]
+    PJ[GET /plugins/id/client.js]
     UI[ConversationNode / slots]
   end
 
   P --> B --> X --> L --> CTX
   CTX --> EV
   CM --> WS
-  CM -->|tapIndex| BOOT
-  CM -->|named route| PJ
+  CM --> BOOT
+  CM --> PJ
   BOOT --> PJ --> UI
 ```
 
+`CM → BOOT` 对应 `tapIndex` 注入启动图；`CM → PJ` 对应注册 `/plugins/*` 具名路由。
+
 **不变量：** `web` 与 `headless` 是同一 Host 内核的两种 **surface bundle**，不是两套插件框架。`dsh-web-app` 只在 base 之上插入 HTTP、client roster、HMR 与 `web-runtime`。
+
 
 ---
 
