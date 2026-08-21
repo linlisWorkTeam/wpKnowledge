@@ -314,3 +314,5 @@ flowchart TB
 6. **非抄代码证明**。每个"已实现"候选的证明怎么出？人工还是自动化？
 7. **实际收敛数据**。max_loops=20 的真实项目平均几轮收敛？单轮耗时与成本？
 8. **Comparator 的 150 行限制**。大算子源码如何对比？分块策略？
+
+> 以上 8 问的逐条回答见 [operator-flywheel-tech-details.md](operator-flywheel-tech-details.md)（2026-08-21）。
