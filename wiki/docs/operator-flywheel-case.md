@@ -271,13 +271,13 @@ flowchart TB
 
 ## 12. 参考意义与自研清单
 
-> 读完案例后，我们吸收什么、刻意不抄什么、必须自己做什么，逐项说明。落点对应 [implementation-plan.md](implementation-plan.md) 与 [multi-agent-task.md](multi-agent-task.md)。
+> 读完案例后，我们吸收什么、刻意不抄什么、必须自己做什么，逐项说明。落点对应 [implementation-plan.md](implementation-plan.md) 与 [codeagent-migration.md](codeagent-migration.md)。
 
 ### 12.1 直接吸收（附落点）
 
 | # | 案例机制 | 落点 | 具体改动 |
 |---|---------|------|---------|
-| 1 | 信息隔离：每角色独立新上下文，不共享历史会话 | multi-agent-task §2.2 | 明确角色每次调用独立构造 messages；历史会话只属于编排层，角色间不传递 |
+| 1 | 信息隔离：每角色独立新上下文，不共享历史会话 | codeagent-migration §2.1 | 明确角色每次调用独立构造上下文（Agent tool 无状态调用）；历史会话只属于编排层，角色间不传递 |
 | 2 | 写保护 + SHA-256 快照校验 | implementation-plan §3 新增 `gate/hashcheck.py` | 受保护路径（知识文档/评测集/源码快照）启动前快照，运行后校验，篡改即失败 |
 | 3 | STATE.md 四节分割，角色只改自己小节 | `flywheel/state.py` | 状态文件按角色分节，编排层校验各节闭合 |
 | 4 | knowledge_worktree 副本继承，禁止重读原始 wiki | orchestrator 决策 + `storage/repo.py` | 迭代变更全在副本上进行，过门禁才合并回主知识库 |
