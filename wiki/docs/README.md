@@ -14,6 +14,7 @@
 | [research-brief.md](research-brief.md) | ⭐ **调研决策简报**：160+ 候选浓缩 15 条关键结论 → 设计决策（收敛入口） |
 | [implementation-plan.md](implementation-plan.md) | ⭐ **实现方案**：给 GLM 5.1 照着搭建的工程方案（目录/接口/分阶段/验收） |
 | [multi-agent-task.md](multi-agent-task.md) | ⭐ **多 Agent 架构任务文档**：框架选型调研 + 角色/通信/状态机设计 + 搭建任务清单 |
+| [operator-flywheel-case.md](operator-flywheel-case.md) | ⭐ **知识飞轮案例**：别的团队实现方案（Base→A→B→C→R 循环），含与本项目设计的角色/机制对照 |
 | [glossary.md](glossary.md) | 名词表 |
 
 ## 📌 已确认的关键决策
