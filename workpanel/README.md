@@ -5,6 +5,7 @@ LinlisWorkPanel 及其相关多 Agent 平台、运行时和竞品的调研工作
 ## 目录
 
 - `docs/workpanel-analysis-report.md`：长期维护的 WorkPanel 综合架构分析。
+- `docs/2026-08-21-workpanel-connecter-architecture-review.md`：Connecter / Connecter Host 愿景符合度、可扩展性与演进路线评审。
 - `docs/YYYY-MM-DD-<topic>.md`：按日期保存的专题调研报告。
 - `notes/`：调研证据、过程记录、未确认事项和后续问题。
 
