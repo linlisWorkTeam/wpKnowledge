@@ -12,6 +12,7 @@
 | [gate.md](gate.md) | 门禁 / 评测机制：TDD 探讨、可靠性约束、职责边界 |
 | [research-mapping.md](research-mapping.md) | ⭐ 调研 ↔ 飞轮关联映射：论文/仓库自动关联到飞轮环节（✅可用/⚠️矛盾） |
 | [research-brief.md](research-brief.md) | ⭐ **调研决策简报**：160+ 候选浓缩 15 条关键结论 → 设计决策（收敛入口） |
+| [implementation-plan.md](implementation-plan.md) | ⭐ **实现方案**：给 GLM 5.1 照着搭建的工程方案（目录/接口/分阶段/验收） |
 | [glossary.md](glossary.md) | 名词表 |
 
 ## 📌 已确认的关键决策
