@@ -146,6 +146,8 @@ Host 保存“可路由的全局投影”和跨站投递状态，不复制 WorkP
 2. **M2：全局目录契约冻结**——site/subject/membership/capability ID 与审批凭证模型。
 3. **M3：两站联邦最小闭环**——两台 Site Connecter 加一台 Host，真实消息与结果往返、断线恢复和幂等全部验收。
 
+完整执行拆分见 [`2026-08-21-connecter-p0-p3-implementation-plan.md`](./2026-08-21-connecter-p0-p3-implementation-plan.md)。
+
 ## 证据来源
 
 本地源码证据（仓库 `D:\AI\workpanelConnecter`，commit `e5b51eb9f89f9bcbb19480d58dc2de230d7e7591`）：
