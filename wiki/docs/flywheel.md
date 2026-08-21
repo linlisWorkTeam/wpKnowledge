@@ -109,6 +109,69 @@ flowchart LR
 2. 门禁判断（≥80%）不依赖任何 agent 的自我感觉
 3. 类比真实工程：写代码与 code review 分人
 
+### 3.5 概念澄清：Agent 与 Skill 的分层 ⭐
+
+> 目的：消除 §3.1 表格里"Skill（知识生成）"作为角色名的歧义。**skill 是操作手册，agent 是执行者**，两者分属不同层。
+
+| 概念 | 是什么 | 干什么 |
+|------|--------|--------|
+| **Skill** | 一份 SKILL.md 文件 | 写清触发条件、操作步骤、坑。**自己不执行任何操作** |
+| **Agent** | LLM 实例（GLM 5.1） | 加载 skill 后按手册调工具执行 |
+
+知识生成的实际执行者命名：**知识生成 Agent**（GLM 5.1），加载"知识生成 skill"后执行源码 → 知识文档。
+
+```mermaid
+flowchart LR
+    SK["知识生成 skill<br/>SKILL.md 操作手册"] -->|加载| AG["知识生成 Agent<br/>GLM 5.1 执行者"]
+    AG -->|读源码| SRC["源码仓库"]
+    AG -->|写文档| DOC["知识文档"]
+```
+
+### 3.6 知识生成与修改的执行链
+
+**首版生成**（飞轮启动时执行一次）：
+
+1. 知识生成 Agent 加载"知识生成 skill"
+2. 按 skill 流程：读源码 → 提炼伪代码 + 为什么 + 埋溯源链接 → 产出知识文档
+3. 产出后交评测闭环过门禁
+
+**迭代修改**（每次评测失败后）：
+
+1. 评测闭环输出结构化信号（diff 定位 + 相似度分数）
+2. Review Agent 输出自然语言归因（例："知识文档 §3.2 缺边界处理说明"）
+3. 知识飞轮（编排层）读取归因 → 决策：改哪段、怎么改
+4. 同一个知识生成 Agent 加载同一 skill 的修订流程 → 执行修改
+5. 修改后的知识再喂给 Coder 重新生成 → 进入下一轮评测
+
+**谁动文档**：
+
+| 阶段 | 决策者 | 执行者 |
+|------|--------|--------|
+| 首版生成 | 知识生成 Agent | 知识生成 Agent |
+| 迭代修改 | 知识飞轮（编排层，只决策） | 知识生成 Agent（同一实例 + 同一 skill） |
+| 任何阶段 | Coder / Review / 评测闭环 | **不碰文档**（只读） |
+
+```mermaid
+flowchart TB
+    subgraph GEN["生成域"]
+        SKL["知识生成 skill<br/>操作手册"]
+        AGT["知识生成 Agent<br/>GLM 5.1"]
+        DOC["知识文档"]
+    end
+    subgraph ORCH["编排层"]
+        FW["知识飞轮<br/>读归因 → 决策改哪段"]
+    end
+    SKL -->|加载| AGT
+    AGT -->|首版生成| DOC
+    AGT -->|迭代修订| DOC
+    RV["Review 归因报告"] --> FW
+    FW -->|"决策：改 §3.2"| AGT
+    CD["Coder<br/>🚫 不碰文档"] -.-> DOC
+    EV["评测闭环<br/>🔒 只读"] -.-> DOC
+```
+
+关键点：**知识飞轮只决策不执笔**，动文档的始终是生成域的同一个 Agent；Coder、Review、评测闭环在整条链上对文档只读。
+
 ## 4. 溯源链接与差异归因 ⭐
 
 > 结论：**怎么知道改文档哪部分 = 溯源链接反向映射**。依据：[repodoc.md](../research/doc-generation/repodoc.md)（文档挂接代码单元节点，变更沿图回溯）、[knowledge-catalog-okf.md](../research/knowledge-format/knowledge-catalog-okf.md)（OKF 的 sources 元数据）。
