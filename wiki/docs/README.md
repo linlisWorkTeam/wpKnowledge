@@ -13,6 +13,7 @@
 | [research-mapping.md](research-mapping.md) | ⭐ 调研 ↔ 飞轮关联映射：论文/仓库自动关联到飞轮环节（✅可用/⚠️矛盾） |
 | [research-brief.md](research-brief.md) | ⭐ **调研决策简报**：160+ 候选浓缩 15 条关键结论 → 设计决策（收敛入口） |
 | [implementation-plan.md](implementation-plan.md) | ⭐ **实现方案**：给 GLM 5.1 照着搭建的工程方案（目录/接口/分阶段/验收） |
+| [multi-agent-task.md](multi-agent-task.md) | ⭐ **多 Agent 架构任务文档**：框架选型调研 + 角色/通信/状态机设计 + 搭建任务清单 |
 | [glossary.md](glossary.md) | 名词表 |
 
 ## 📌 已确认的关键决策
