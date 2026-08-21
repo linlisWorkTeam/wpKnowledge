@@ -22,3 +22,12 @@ LinlisWorkPanel 架构、竞品、技术选型与演进建议知识库。
 - 任务书：[`workpanel/docs/TASK-workpanel-analysis.md`](workpanel/docs/TASK-workpanel-analysis.md)
 - 调研笔记：[`workpanel/notes/2026-08-21-analysis-notes.md`](workpanel/notes/2026-08-21-analysis-notes.md)
 - 修改建议复评：[`workpanel/docs/2026-08-21-workpanel-followup-review.md`](workpanel/docs/2026-08-21-workpanel-followup-review.md)
+
+## workpanelConnecter
+
+WorkPanelConnecter 的设计理念、演进路线、市场竞品与跨平台连接研究。
+
+- 综合报告：[`workpanelConnecter/docs/workpanel-connecter-analysis-report.md`](workpanelConnecter/docs/workpanel-connecter-analysis-report.md)
+- 设计与路线：[`workpanelConnecter/docs/2026-08-22-design-and-evolution.md`](workpanelConnecter/docs/2026-08-22-design-and-evolution.md)
+- 竞品分析：[`workpanelConnecter/docs/2026-08-22-competitive-analysis.md`](workpanelConnecter/docs/2026-08-22-competitive-analysis.md)
+- Clowder 集成分析：[`workpanelConnecter/docs/2026-08-22-clowder-integration-analysis.md`](workpanelConnecter/docs/2026-08-22-clowder-integration-analysis.md)

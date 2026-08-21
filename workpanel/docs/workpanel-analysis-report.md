@@ -9,6 +9,8 @@
 | 验证 | Rust 123 项测试通过；前端 81 项测试通过；前端生产构建通过 |
 | 日期快照 | [`2026-08-21-workpanel-architecture-review.md`](./2026-08-21-workpanel-architecture-review.md) |
 
+相关中间件专题：[`2026-08-21-workpanel-connecter-architecture-review.md`](./2026-08-21-workpanel-connecter-architecture-review.md)。该报告评审每站 Connecter、中心 Connecter Host、异地 Runner/User 和跨站消息联邦的当前实现与演进路线。
+
 ## 一句话结论
 
 LinlisWorkPanel 已经不是普通的多 Agent 聊天壳，而是一个以群聊为治理平面、以外部 Agent CLI 为执行平面、兼顾本地桌面和 Web 服务的协作平台。产品边界和发布治理做得很好，但代码结构仍保留早期单体形态，下一阶段应优先补 Application Service、持久事件日志、数据库 lease 调度和正式迁移体系。
