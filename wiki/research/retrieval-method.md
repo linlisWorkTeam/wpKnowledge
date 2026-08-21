@@ -75,6 +75,7 @@
 |------|------|------|------|
 | 第1轮 | 2026-08-20 | 8 篇核心滚雪球 + 7 组定向关键词 | 44 + 12 候选 → candidate-pool.md（40+ 篇） |
 | 第2轮 | 2026-08-20 | 扩展核心集（12 篇）+ 14 组定向词（S2 429 限速 → 切 arXiv API）+ GitHub 高 star 检索 | 60 论文 + 64 仓库 → candidate-pool.md 扩充至 100+ 条目 + 新单篇 |
+| 第3轮 | 2026-08-20 | papers.cool 语义搜索 5 主题（文档生成/知识库/规格驱动/仓库理解/反馈驱动） | +35 篇新候选（含 TDD 专项组、CASCADE、Spec Growth Engine、Executable Code Knowledge 等） |
 
 ## 6. 注意事项（踩过的坑）
 

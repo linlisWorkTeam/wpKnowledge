@@ -1,7 +1,7 @@
 # 🧭 候选论文池（引文滚雪球 + 定向检索）
 
-> 更新时间：2026-08-20（第2轮扩充）
-> 来源：Semantic Scholar 引文滚雪球（从 12 篇核心论文向前/向后追踪）+ 定向关键词检索（Semantic Scholar / arXiv 双通道）+ GitHub 高 star 仓库检索
+> 更新时间：2026-08-20（第3轮扩充：papers.cool 检索）
+> 来源：Semantic Scholar 引文滚雪球（从 12 篇核心论文向前/向后追踪）+ 定向关键词检索（Semantic Scholar / arXiv / papers.cool 三通道）+ GitHub 高 star 仓库检索
 > 用途：头脑风暴候选池——这些论文/仓库**尚未写详细单篇**，按主题列出，需要深入哪篇告诉我
 > 检索方法见 [retrieval-method.md](retrieval-method.md)；脚本在 [scripts/](../scripts/)
 
@@ -34,6 +34,8 @@
 | **DependEval** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2503.06689) | 🆕 仓库依赖理解评测 |
 | **Code2Doc** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2512.18748) | 🆕 质量优先的代码文档数据集（文档质量评测用） |
 | **LLM Code Doc + Multi-Judge** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.09852) | 🆕 文档生成 + 多裁判评测框架 |
+| **Spec-Driven Test Gen（Google）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.17177) | 🆕⭐ 规格→测试生成实证：先写前置/后置条件再生成测试，bug 检出率 +9.8pp（papers.cool） |
+| **MRG-Bench** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2508.02998) | 🆕 仓库级代码生成的上下文需求基准（papers.cool） |
 
 ## 2️⃣ 代码生成与 agent 框架（第二步参考）
 
@@ -55,6 +57,11 @@
 | **AlphaVerus** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2412.06176) | 🆕 自改进翻译+Treefinement 引导形式化验证代码生成（papers.cool 发现） |
 | **PRs as Training Signal** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.07457) | 🆕 用 Pull Request 做仓库级编辑训练信号 |
 | **OctoLong** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.05141) | 🆕 跨仓库上下文长上下文建模 |
+| **InlineCoder** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2601.00376) | 🆕 上下文内联：把未完成函数内联进调用图，仓库级生成转函数级（papers.cool） |
+| **SSDE（结构化规格工程）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2605.02455) | 🆕 结构化规格驱动仓库级生成（papers.cool） |
+| **Probe-and-Refine 仓库指导** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.20512) | 🆕⭐ 对 coding agent 的仓库指导做探查-精炼调优（papers.cool） |
+| **Executable Repo-Level Gen** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2604.03622) | 🆕 环境对齐实现可执行仓库级代码生成（papers.cool） |
+| **SDD: From Code to Contract** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.00180) | 🆕 SDD 实践指南：spec-first / spec-anchored / spec-as-source 三级规格严格度（papers.cool） |
 
 ## 3️⃣ 自进化/自改进（反馈循环参考）
 
@@ -78,6 +85,15 @@
 | **Dual-Granularity Skill Bank** | 2026 | 25 | [arXiv](https://arxiv.org/abs/2603.28716) | 🆕 双粒度技能库 agentic RL |
 | **Test-Time Self-Improving Agents** | 2025 | 23 | [arXiv](https://arxiv.org/abs/2510.07841) | 🆕 测试时自改进 |
 | **Learning on the Job** | 2025 | 22 | [arXiv](https://arxiv.org/abs/2510.08002) | 🆕 经验驱动长时程任务自进化 |
+| **Spec Growth Engine** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.27045) | 🆕⭐ 规格增长引擎：规格锚定+代码耦合+漂移强制架构（papers.cool，与飞轮高度相似） |
+| **Shared Org Memory（企业）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.00122) | 🆕⭐ 企业 coding agent 共享组织记忆系统设计（papers.cool） |
+| **Executable Code Knowledge** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.16295) | 🆕⭐ 代码作为原生可验证知识表示（papers.cool，知识形态参考） |
+| **CODESKILL** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2605.25430) | 🆕 自进化技能学习（papers.cool，与 SkillOS 互补） |
+| **Ontology-Grounded Project Memory** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.13662) | 🆕 本体接地项目记忆（papers.cool） |
+| **GenX** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2412.13464) | 🆕 执行反馈的代码+测试生成（papers.cool） |
+| **Iterative Feedback Loops 修正** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.17514) | 🆕 迭代反馈循环解锁代码修正（papers.cool） |
+| **FDI（反馈通道攻击）** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2408.04194) | 🆕 通过用户反馈通道攻击代码生成（安全维度，papers.cool） |
+| **TaPR** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.00494) | 🆕 测试感知策略精炼（反馈条件化代码生成，papers.cool） |
 
 ## 4️⃣ 综述与评估方法
 
@@ -104,6 +120,12 @@
 | **Doc vs Code Patterns** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.00884) | 🆕 文档 vs 代码模式：异常 oracle 生成驱动因素 |
 | **Doc-to-Code Traceability** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2506.16440) | 🆕 文档-代码可追溯性评估 |
 | **Lost in the Middle** | 2023 | 4708 | [arXiv](https://arxiv.org/abs/2307.03172) | 🆕 长上下文位置偏差（知识注入位置设计参考） |
+| **CASCADE** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2604.19400) | 🆕⭐⭐ 自动测试生成检测代码-文档不一致（门禁/一致性直接相关，papers.cool） |
+| **Evaluating AGENTS.md** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.11988) | 🆕⭐ 仓库级上下文文件对 coding agent 是否有用（知识消费实证，papers.cool） |
+| **Code Doc 对理解的影响** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2404.03114) | 🆕 直接测文档对 LLM 代码理解的影响（papers.cool） |
+| **Product Doc 提升代码生成** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2503.17837) | 🆕 产品文档用于代码生成质量提升（papers.cool） |
+| **Code-Doc Equivalence** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.22247) | 🆕 代码-文档等价的自然语言软件工程（papers.cool） |
+| **Code & Doc Churn** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2410.05992) | 🆕 代码与文档变更关联分析（增量同步参考，papers.cool） |
 
 ## 6️⃣ 其他值得关注的
 
@@ -117,7 +139,17 @@
 | **RAG Code Gen 安全** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2502.03233) | 🆕 知识库投毒攻击（RAG 代码生成安全） |
 | **RepoGraph** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2410.14684) | 🆕 仓库级代码图谱增强 |
 
-## 7️⃣ GitHub 高 star 仓库（⭐≥1000 且活跃维护，按准入标准）
+## 7️⃣ TDD 评测专项（gate.md §7 探讨支撑）⭐
+
+| 论文 | 年份 | 引用 | 链接 | 一句话 |
+|------|------|------|------|--------|
+| **TDD-Agent** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.16742) | 🆕⭐ 测试驱动推理的代码生成 agent（papers.cool） |
+| **Scaling TDD: 函数到类** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.03557) | 🆕 TDD 代码生成从函数级扩展到类级实证（papers.cool） |
+| **TDD for Code Generation** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2402.13521) | 🆕 TDD 用于代码生成的奠基工作（papers.cool） |
+| **Spec-Driven Test Gen（Google）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.17177) | 见评测组：规格契约→测试生成，bug 检出 +9.8pp |
+| **TaPR** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.00494) | 见自进化组：测试感知策略精炼 |
+
+## 8️⃣ GitHub 高 star 仓库（⭐≥1000 且活跃维护，按准入标准）
 
 ### 规格驱动开发（知识=规格，对应飞轮第二步）
 | 仓库 | ⭐ | 最近push | 一句话 |
