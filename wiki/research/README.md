@@ -5,7 +5,7 @@
 
 ## 📂 主题目录
 
-> 📅 **按日期浏览**：候选池按检索日期索引见 [candidate-pool.md 顶部](candidate-pool.md)；论文 ↔ 飞轮环节自动关联见 [docs/research-mapping.md](../docs/research-mapping.md)
+> 📅 **按日期浏览**：候选池按检索日期索引见 [candidate-pool.md 顶部](candidate-pool.md)；论文 ↔ 飞轮环节自动关联见 [docs/research-mapping.md](../docs/research-mapping.md)；**收敛结论**见 [docs/research-brief.md](../docs/research-brief.md)
 
 | 目录 | 内容 | 与飞轮的关系 |
 |------|------|--------------|

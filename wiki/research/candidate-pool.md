@@ -8,9 +8,12 @@
 ## 📌 怎么用这个池子
 
 1. 按**检索日期**看（下面 📅 索引）：每天搜到的新货都在对应日期下
-2. 看主题分组 → 找感兴趣的标题
-3. 点链接看摘要（arXiv 免费）
-4. 需要我深读哪篇 → 说标题，我写详细单篇文档（含方法/实验/启发/置信度）
+2. **浏览优先级**：⭐ = A 级（与飞轮直接相关，优先看）；普通 = B 级（相关，有空再看）；已写单篇 = 已深读可直接引用
+3. 看主题分组 → 找感兴趣的标题
+4. 点链接看摘要（arXiv 免费）
+5. 需要我深读哪篇 → 说标题，我写详细单篇文档（含方法/实验/启发/置信度）
+
+> 💡 **收敛提示**：全池 160+ 条目不必全看。**A 级必读清单**（⭐ 或已写单篇）约 40 篇；**浓缩结论**见 [docs/research-brief.md](../docs/research-brief.md)（15 条关键结论 → 设计决策），看简报再按需深读。
 
 ---
 
@@ -83,7 +86,12 @@
 | **SSDE（结构化规格工程）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2605.02455) | 🆕 结构化规格驱动仓库级生成（papers.cool） |
 | **Probe-and-Refine 仓库指导** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.20512) | 🆕⭐ 对 coding agent 的仓库指导做探查-精炼调优（papers.cool） |
 | **Executable Repo-Level Gen** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2604.03622) | 🆕 环境对齐实现可执行仓库级代码生成（papers.cool） |
+| **Wild Code Understanding** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.08500) | 🆕 野外代码理解评测（cs.SE 顶会线） |
 | **SDD: From Code to Contract** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.00180) | 🆕 SDD 实践指南：spec-first / spec-anchored / spec-as-source 三级规格严格度（papers.cool） |
+| **Specification Paradox** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.16618) | 🆕⭐ 规格悖论：AI 时代重思需求工程（cs.SE 顶会线，规格方法边界警示） |
+| **SDD for AI-Native Enterprise** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2607.16680) | 🆕 规格驱动作为 AI 原生企业软件地基（cs.SE 顶会线） |
+| **SDD Benchmark: Security** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2606.00167) | 🆕 规格驱动开发基准：安全知识迁移（cs.SE 顶会线） |
+| **Sedeve-Kit** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2509.11566) | 🆕 分布式系统规格驱动开发框架（cs.SE 顶会线） |
 
 ## 3️⃣ 自进化/自改进（反馈循环参考）
 
@@ -170,6 +178,9 @@
 | **TDD for Code Generation** | 2024 | 新 | [arXiv](https://arxiv.org/abs/2402.13521) | 🆕 TDD 用于代码生成的奠基工作（papers.cool） |
 | **Spec-Driven Test Gen（Google）** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.17177) | 见评测组：规格契约→测试生成，bug 检出 +9.8pp |
 | **TaPR** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2608.00494) | 见自进化组：测试感知策略精炼 |
+| **Do Code LMs Use Tests?** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2607.26244) | 🆕⭐ 测试驱动代码生成的行为与表征研究（cs.SE 顶会线） |
+| **TDD 理论分析** | 2026 | 新 | [arXiv](https://arxiv.org/abs/2602.06098) | 🆕 TDD 代码生成的理论分析（cs.SE 顶会线） |
+| **Bayesian Prompt Opt for TDD** | 2025 | 新 | [arXiv](https://arxiv.org/abs/2512.15076) | 🆕 TDD 代码生成的贝叶斯提示优化（cs.SE 顶会线） |
 
 ## 8️⃣ GitHub 高 star 仓库（⭐≥1000 且活跃维护，按准入标准）
 

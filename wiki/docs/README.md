@@ -11,6 +11,7 @@
 | [flywheel.md](flywheel.md) | 知识飞轮流程设计：主力路线 + 备选路线 |
 | [gate.md](gate.md) | 门禁 / 评测机制：TDD 探讨、可靠性约束、职责边界 |
 | [research-mapping.md](research-mapping.md) | ⭐ 调研 ↔ 飞轮关联映射：论文/仓库自动关联到飞轮环节（✅可用/⚠️矛盾） |
+| [research-brief.md](research-brief.md) | ⭐ **调研决策简报**：160+ 候选浓缩 15 条关键结论 → 设计决策（收敛入口） |
 | [glossary.md](glossary.md) | 名词表 |
 
 ## 📌 已确认的关键决策
