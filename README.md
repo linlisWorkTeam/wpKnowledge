@@ -12,3 +12,12 @@ DeepSeek Harness（dsh）可借鉴性分析（WorkPanel 机制样本，非整仓
 - 插件化（专业技术版）：[`dshAnalysis/docs/2026-08-20-dsh-pluginization-professional.md`](dshAnalysis/docs/2026-08-20-dsh-pluginization-professional.md)
 - 任务书：[`dshAnalysis/docs/TASK-dsh-analysis.md`](dshAnalysis/docs/TASK-dsh-analysis.md)
 - 过程笔记：[`dshAnalysis/notes/2026-08-14-analysis-notes.md`](dshAnalysis/notes/2026-08-14-analysis-notes.md)
+
+## workpanel
+
+LinlisWorkPanel 架构、竞品、技术选型与演进建议知识库。
+
+- 综合报告：[`workpanel/docs/workpanel-analysis-report.md`](workpanel/docs/workpanel-analysis-report.md)
+- 2.0.0 架构评审：[`workpanel/docs/2026-08-21-workpanel-architecture-review.md`](workpanel/docs/2026-08-21-workpanel-architecture-review.md)
+- 任务书：[`workpanel/docs/TASK-workpanel-analysis.md`](workpanel/docs/TASK-workpanel-analysis.md)
+- 调研笔记：[`workpanel/notes/2026-08-21-analysis-notes.md`](workpanel/notes/2026-08-21-analysis-notes.md)
