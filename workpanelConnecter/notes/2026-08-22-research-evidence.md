@@ -4,7 +4,7 @@ Date: 2026-08-22
 
 ## Source revisions
 
-- WorkPanelConnecter: `b133877` (P0-P3), `12ebb66` (mTLS gate), `d73e5c6` (v0.2.2 Windows artifacts); v0.2.3 documentation-audit candidate follows.
+- WorkPanelConnecter: `b133877` (P0-P3), `12ebb66` (mTLS gate), `d73e5c6` (v0.2.2 Windows artifacts), `8b176cb` (v0.2.3 documentation audit).
 - WorkPanel baseline before implementation: `e5b51eb9f89f9bcbb19480d58dc2de230d7e7591`.
 - Clowder AI: `8fd4824cb7db9124a0d863ba1b085a59b865c722`, commit date `2026-08-21T08:29:45Z`.
 - wpKnowledge baseline: `d5d7a29ac1c1885eb07f81f1c53ffb595c1e1108` plus pre-existing local research changes.
@@ -12,6 +12,9 @@ Date: 2026-08-22
 ## Local evidence
 
 - v0.2.2: `npm run test:release-local` -> `RELEASE_LOCAL_GATE_OK gates=50`; v0.2.3 adds `test:docs` and passed `RELEASE_LOCAL_GATE_OK gates=51` on 2026-08-22.
+- v0.2.3 release: https://github.com/linlisWorkTeam/workpanelConnecter/releases/tag/v0.2.3
+- `WorkPet_0.2.3_x64-setup.exe` SHA-256 `66be12cb709f39b458718e531a896d4bbf3c5738b094a9afa11ba676d70365f8`.
+- `WorkPanelConnecter_0.2.3_win-x64-portable.zip` SHA-256 `acb4a84e20fba8b5fa7d661af209132e6db88fdf6535b3e1ea01542ef0e7f17a`.
 - `npm run test:mtls-handshake` -> `MTLS_HANDSHAKE_E2E_OK`; ephemeral CA signs server/client certificates, and the no-client-certificate request is rejected before the handler.
 - `CONNECTER_CANARY_URL=http://127.0.0.1:8082`, group `seed-group-workpanel` / `LinlisWorkPanel`, `npm run test:e2-canary` -> `E2_AT_MENTION_OK`.
 - `node scripts/federation-soak.js --duration-ms=600000` -> exit 0 / `FEDERATION_SOAK_OK`, wall 602.4 s.

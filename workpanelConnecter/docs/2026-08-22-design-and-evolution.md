@@ -1,7 +1,7 @@
 # WorkPanelConnecter 设计理念与演进路线
 
 日期：2026-08-22
-研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.3 候选，基线 commits `b133877`, `12ebb66`, `d73e5c6`
+研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.3，commit `8b176cb`
 证据：源码、发布门禁、真实 WorkPanel canary 与故障注入；详见 notes。
 
 ## 产品边界
@@ -29,7 +29,7 @@ WorkPet/User -> Site Connecter A -> Connecter Host -> Site Connecter B -> Runner
 6. **协议与实现解耦**：HTTP handler、application service、目录、队列、WorkPanel/Runner 适配层分别演进。
 7. **证据分级**：进程健康不等于端到端完成；本地 mock、真实 canary、真实多机和长稳测试分别报告。
 
-## v0.2.3 候选现状
+## v0.2.3 现状
 
 - P0：12 个顺序 migration、checksum、升级前备份与事务回滚；Runner lease/ack/renew/fencing/recovery；稳定标识和服务边界。
 - P1：Directory v2、TTL presence、v1/v2 Runner 隔离、一次性 enrollment、设备凭证、解释型路由与同名消歧。
