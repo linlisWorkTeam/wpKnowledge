@@ -1,7 +1,7 @@
 # WorkPanelConnecter 设计理念与演进路线
 
 日期：2026-08-22
-研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.0，commit `b133877`
+研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.1，commits `b133877`, `12ebb66`
 证据：源码、发布门禁、真实 WorkPanel canary 与故障注入；详见 notes。
 
 ## 产品边界
@@ -29,12 +29,12 @@ WorkPet/User -> Site Connecter A -> Connecter Host -> Site Connecter B -> Runner
 6. **协议与实现解耦**：HTTP handler、application service、目录、队列、WorkPanel/Runner 适配层分别演进。
 7. **证据分级**：进程健康不等于端到端完成；本地 mock、真实 canary、真实多机和长稳测试分别报告。
 
-## v0.2.0 现状
+## v0.2.1 现状
 
 - P0：12 个顺序 migration、checksum、升级前备份与事务回滚；Runner lease/ack/renew/fencing/recovery；稳定标识和服务边界。
 - P1：Directory v2、TTL presence、v1/v2 Runner 隔离、一次性 enrollment、设备凭证、解释型路由与同名消歧。
 - P2：Host/Site durable inbox/outbox、命令/结果往返、Host 丢库重建、各节点独立重启/离线、WorkPanel 回写。
-- P3：消息签名、外部密钥、HTTPS/mTLS client、全维 ACL、运行时 policy 与 peer credential 生命周期、配额、审计、trace、备份恢复和 runbook。
+- P3：消息签名、外部密钥、HTTPS/mTLS client、临时 CA 的真实握手与无 client cert 拒绝、全维 ACL、运行时 policy 与 peer credential 生命周期、配额、审计、trace、备份恢复和 runbook。
 
 ## 演进路线
 
@@ -68,4 +68,4 @@ WorkPet/User -> Site Connecter A -> Connecter Host -> Site Connecter B -> Runner
 
 ## 证据边界
 
-v0.2.0 已验证本机三进程与真实 WorkPanel `:8082`，没有验证真实多服务器 mTLS、72 小时稳定性或外部告警。上述 P5/P6 是路线建议，不代表已实现。
+v0.2.1 已验证本机三进程、真实 WorkPanel `:8082` 和本地真实 mTLS 握手，但没有验证真实多服务器网络/证书运维、72 小时稳定性或外部告警。上述 P5/P6 是路线建议，不代表已实现。

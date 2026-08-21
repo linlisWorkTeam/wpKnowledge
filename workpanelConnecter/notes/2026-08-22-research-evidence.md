@@ -4,14 +4,15 @@ Date: 2026-08-22
 
 ## Source revisions
 
-- WorkPanelConnecter: `b133877`, release `v0.2.0`.
+- WorkPanelConnecter: `b133877` (P0-P3), `12ebb66` (mTLS gate), latest release `v0.2.1`.
 - WorkPanel baseline before implementation: `e5b51eb9f89f9bcbb19480d58dc2de230d7e7591`.
 - Clowder AI: `8fd4824cb7db9124a0d863ba1b085a59b865c722`, commit date `2026-08-21T08:29:45Z`.
 - wpKnowledge baseline: `d5d7a29ac1c1885eb07f81f1c53ffb595c1e1108` plus pre-existing local research changes.
 
 ## Local evidence
 
-- `npm run test:release-local` -> `RELEASE_LOCAL_GATE_OK gates=48` on package v0.2.0.
+- `npm run test:release-local` -> `RELEASE_LOCAL_GATE_OK gates=49` on package v0.2.1.
+- `npm run test:mtls-handshake` -> `MTLS_HANDSHAKE_E2E_OK`; ephemeral CA signs server/client certificates, and the no-client-certificate request is rejected before the handler.
 - `CONNECTER_CANARY_URL=http://127.0.0.1:8082`, group `seed-group-workpanel` / `LinlisWorkPanel`, `npm run test:e2-canary` -> `E2_AT_MENTION_OK`.
 - `node scripts/federation-soak.js --duration-ms=600000` -> exit 0 / `FEDERATION_SOAK_OK`, wall 602.4 s.
 - `node scripts/federation-soak.js --duration-ms=480000` -> exit 0 / `FEDERATION_SOAK_OK`, wall 482.6 s.

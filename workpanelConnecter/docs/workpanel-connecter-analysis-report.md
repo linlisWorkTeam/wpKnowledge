@@ -1,14 +1,14 @@
 # WorkPanelConnecter 综合分析报告
 
 更新日期：2026-08-22
-研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.0 / commit `b133877`
+研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.1 / commits `b133877`, `12ebb66`
 定位：每站一台 Connecter，全网一台中心化 Connecter Host。
 
 ## 核心结论
 
 WorkPanelConnecter 不应演进成另一个多 Agent 框架，也不应把 WorkPanel、Clowder 或具体模型运行时写死在核心里。它的长期产品边界是“跨站身份目录 + 可靠消息中继 + 策略执行点”：站点 Connecter 连接本地 User、WorkPet、WorkPanel 与 Runner/Agent，Connecter Host 只负责站点注册、目录交换和跨站消息转发。站内流量留在站内，跨站流量必须经过 Host。
 
-v0.2.0 已在本机完成这条拓扑的 P0-P3 实现，并通过 48 项发布门禁、真实 WorkPanel canary 消息路由，以及额外 10 分钟和 8 分钟三进程重复 soak。它仍是 release candidate：真实两站点 + 独立 Host 的 TLS/mTLS、72 小时 soak 和外部告警集成尚未验收。
+v0.2.1 已在本机完成这条拓扑的 P0-P3 实现，并通过 49 项发布门禁、真实 WorkPanel canary 消息路由、临时 CA 的真实本地 mTLS 握手/无证书拒绝，以及额外 10 分钟和 8 分钟三进程重复 soak。它仍是 release candidate：真实两站点 + 独立 Host 的网络与证书运维、72 小时 soak 和外部告警集成尚未验收。
 
 市场上最接近的对象分成四类：Agent 编排框架、互操作协议、分布式运行时、用户侧 Agent 平台。它们大多不是 Connecter 的直接同构替代。Connecter 最有价值的差异化是“站点边缘自治 + 中心化中继 + User/Agent 同一身份与策略域 + 对 WorkPanel 的现成闭环”。A2A、Temporal/Dapr 更适合作为协议或基础设施补强，而不是产品替换。
 
