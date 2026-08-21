@@ -21,3 +21,4 @@ LinlisWorkPanel 架构、竞品、技术选型与演进建议知识库。
 - 2.0.0 架构评审：[`workpanel/docs/2026-08-21-workpanel-architecture-review.md`](workpanel/docs/2026-08-21-workpanel-architecture-review.md)
 - 任务书：[`workpanel/docs/TASK-workpanel-analysis.md`](workpanel/docs/TASK-workpanel-analysis.md)
 - 调研笔记：[`workpanel/notes/2026-08-21-analysis-notes.md`](workpanel/notes/2026-08-21-analysis-notes.md)
+- 修改建议复评：[`workpanel/docs/2026-08-21-workpanel-followup-review.md`](workpanel/docs/2026-08-21-workpanel-followup-review.md)
