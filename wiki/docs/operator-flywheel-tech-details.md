@@ -249,3 +249,37 @@ A 先读切片计划，然后按计划逐个模板定位，不需要全文件展
 | 6. 非抄代码证明 | 第 8.5 节（融合路径验收不变量） |
 | 7. 实际收敛数据 | 无对应（补充数据） |
 | 8. Comparator 150 行限制 | 第 6.4 节（硬边界） |
+
+---
+
+## 对本项目的启示（2026-08-21 分析）
+
+> 项目边界澄清：本项目范围 = **飞轮演进知识副本**（知识库输入，首版生成由上游负责，不在本项目范围）；项目背景 = **业务代码仓库**（每仓几十万行），文档滞后失真，需从代码回推解释型文档。以下启示基于此定位。
+
+### 1. 轨迹 JSONL 直接可借鉴（对齐 session.py）
+
+attempt_id + started_at/finished_at + prompt_sha256 作为飞轮层会话标识，外键关联编码 CLI 内部会话。对应到我们的 session.py：
+
+- 每次角色调用记录：attempt_id、prompt_sha256、时间戳、退出码
+- 增加 boundary_changes 字段：越权修改的受保护路径名单，对应它们的 return_code=3 机制（有越权写即失败）
+
+### 2. Landing Review 是纯 LLM 判断，规则只做确定性关卡
+
+确定性部分（readlist 完整性、终态枚举、精度 100%、canonical 校验）在 R 之前由脚本检查；R 的 LLM 部分判断：语义方向对不对、是否朝官方路线收敛、路由条件是否来自语义、是否有 harness debt / 无脑复制。
+
+对我们：印证 §12.1 第 6 条（Review Agent 增加"知识是否正确落地"审查维度），且拿到具体输入清单：02-code-comparison.md（A 证据）+ 04/07（B 决策与 readlist）+ verifier 设计/progress/checklist + 当前代码 diff，交叉比对后 LLM 自行判定偏离点。
+
+### 3. hash 算法与写保护细节可抄
+
+- 逐文件 SHA-256，**路径字符串也入哈希**（先 update 路径再 update 内容，重命名可检测）
+- 排除 __pycache__/.pytest_cache/.pyc 等临时文件
+- 写保护清单分三层：角色级（按角色分组）、loop 级（input.json/source_manifest/loop-decision）、知识库根（kernels/、runbooks/、reference/、graph/、schemas/）
+- 对应我们的 gate/hashcheck.py 设想，比现有粒度细得多
+
+### 4. 收敛数据警示：正确率与相似度是两条线
+
+transpose 实测 20/20 正确率但 avg_speedup 0.42 远未达标（目标 1.0），max_loops 从 10 提到 20 暗示收敛慢。对照我们的门禁：
+
+- 测试通过率（正确率）和相似度是独立信号，测试全过不代表相似度达标
+- PoC 阶段必须分开记录两条曲线，避免"正确率提升"误判为"知识合格"
+- 收敛慢是常态：该团队无"平均几轮收敛"的系统数据，我们 PoC 的 5 轮上限可能偏紧，需预留扩展
