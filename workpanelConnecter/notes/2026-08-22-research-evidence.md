@@ -13,8 +13,9 @@ Date: 2026-08-22
 
 - v0.2.2: `npm run test:release-local` -> `RELEASE_LOCAL_GATE_OK gates=50`; v0.2.3 adds `test:docs` and passed `RELEASE_LOCAL_GATE_OK gates=51` on 2026-08-22.
 - v0.2.3 release: https://github.com/linlisWorkTeam/workpanelConnecter/releases/tag/v0.2.3
-- `WorkPet_0.2.3_x64-setup.exe` SHA-256 `66be12cb709f39b458718e531a896d4bbf3c5738b094a9afa11ba676d70365f8`.
-- `WorkPanelConnecter_0.2.3_win-x64-portable.zip` SHA-256 `acb4a84e20fba8b5fa7d661af209132e6db88fdf6535b3e1ea01542ef0e7f17a`.
+- GitHub Actions run `32518030659` completed successfully and replaced the initial local uploads with its independently built artifacts.
+- `WorkPet_0.2.3_x64-setup.exe` final release SHA-256 `dd419e65439d7ec5743f2e442d151943f55d02555f6e09fa692bb98426e02b3d`.
+- `WorkPanelConnecter_0.2.3_win-x64-portable.zip` final release SHA-256 `15f3a7fb32e0231956c5187791a7222daf875415fbf9603e10f5b5cba822f930`.
 - `npm run test:mtls-handshake` -> `MTLS_HANDSHAKE_E2E_OK`; ephemeral CA signs server/client certificates, and the no-client-certificate request is rejected before the handler.
 - `CONNECTER_CANARY_URL=http://127.0.0.1:8082`, group `seed-group-workpanel` / `LinlisWorkPanel`, `npm run test:e2-canary` -> `E2_AT_MENTION_OK`.
 - `node scripts/federation-soak.js --duration-ms=600000` -> exit 0 / `FEDERATION_SOAK_OK`, wall 602.4 s.
