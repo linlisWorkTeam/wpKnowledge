@@ -1,7 +1,7 @@
 # WorkPanelConnecter 文档与代码一致性审查
 
 日期：2026-08-22  
-研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.3，commit `8b176cb`  
+研究对象：`linlisWorkTeam/workpanelConnecter` v0.2.3，commit `8b176cb`
 源码证据：`src/relay/server.js`、handlers、协议模块、`config/relay.schema.json`、根/WorkPet package 与构建脚本。
 
 ## 结论
