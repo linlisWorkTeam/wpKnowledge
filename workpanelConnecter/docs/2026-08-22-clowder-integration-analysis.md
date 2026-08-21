@@ -2,7 +2,7 @@
 
 日期：2026-08-22
 Clowder 研究 commit：`8fd4824cb7db9124a0d863ba1b085a59b865c722`（2026-08-21）
-Connecter 研究 commits：`b133877`, `12ebb66` / v0.2.1
+Connecter 研究 commits：`b133877`, `12ebb66`, `d73e5c6` / v0.2.3 候选；本轮文档审查未改变 adapter 结论
 Clowder 仓库：[zts212653/clowder-ai](https://github.com/zts212653/clowder-ai)
 
 ## 结论
