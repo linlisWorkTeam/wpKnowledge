@@ -8,6 +8,8 @@
 
 ## 2. 主力路线（四步循环）
 
+> 📎 四步的调研依据见 [research-mapping.md](research-mapping.md)（论文 ↔ 飞轮环节自动关联，✅可用/⚠️矛盾）
+
 ### 2.1 知识生成（Knowledge Generation）
 
 - **输入**：源码仓库中的原始源码。

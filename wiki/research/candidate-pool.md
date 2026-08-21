@@ -7,9 +7,31 @@
 
 ## 📌 怎么用这个池子
 
-1. 看主题分组 → 找感兴趣的标题
-2. 点链接看摘要（arXiv 免费）
-3. 需要我深读哪篇 → 说标题，我写详细单篇文档（含方法/实验/启发/置信度）
+1. 按**检索日期**看（下面 📅 索引）：每天搜到的新货都在对应日期下
+2. 看主题分组 → 找感兴趣的标题
+3. 点链接看摘要（arXiv 免费）
+4. 需要我深读哪篇 → 说标题，我写详细单篇文档（含方法/实验/启发/置信度）
+
+---
+
+## 📅 按日期索引
+
+### 2026-08-21（第 3 轮：papers.cool 5 主题）⭐ 最新
+
+| 主题搜索 | 新增亮点（完整列表见各组，均标 "papers.cool"） |
+|---------|----------------------------------------------|
+| 文档生成 | CASCADE（代码-文档不一致检测）、Evaluating AGENTS.md、Code Doc 对理解的影响、Product Doc、Code-Doc Equivalence、Code & Doc Churn |
+| 知识库/记忆 | Shared Org Memory、Executable Code Knowledge、Ontology-Grounded Memory、CODESKILL、Probe-and-Refine |
+| 规格驱动 | Spec-Driven Test Gen（Google）、SDD: From Code to Contract、SSDE、Spec Growth Engine |
+| 仓库理解 | InlineCoder、MRG-Bench、Executable Repo-Level Gen |
+| 反馈驱动 | GenX、Iterative Feedback Loops、FDI（攻击）、TaPR |
+| TDD 专项 | TDD-Agent、Scaling TDD、TDD for Code Generation |
+
+### 2026-08-20（第 1+2 轮：S2 滚雪球 + arXiv/GitHub 检索）
+
+- 基础池：评测基准（SWE-bench/Code-QA-Bench 等）+ 代码生成框架（RepoAgent/DocAgent 等）+ 自进化（Reflexion/CRITIC 等）
+- GitHub 高 star 仓库 64 个（⭐≥1000 活跃）：spec-kit ⭐130k / OpenSpec ⭐65k / context7 ⭐60k 等（见 8️⃣ 组）
+- 已写单篇的论文均在此日收录
 
 ---
 

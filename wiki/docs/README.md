@@ -9,8 +9,9 @@
 | [overview.md](overview.md) | 项目概述：背景、目标、飞轮总览、门禁总览、约束、参考仓库 |
 | [knowledge-format.md](knowledge-format.md) | 知识形态定义：解释型 Markdown 文档规范 |
 | [flywheel.md](flywheel.md) | 知识飞轮流程设计：主力路线 + 备选路线 |
-| [gate.md](gate.md) | 门禁 / 评测机制：80% 阈值、候选评测维度 |
-| [glossary.md](glossary.md) | 名词表：统一术语 |
+| [gate.md](gate.md) | 门禁 / 评测机制：TDD 探讨、可靠性约束、职责边界 |
+| [research-mapping.md](research-mapping.md) | ⭐ 调研 ↔ 飞轮关联映射：论文/仓库自动关联到飞轮环节（✅可用/⚠️矛盾） |
+| [glossary.md](glossary.md) | 名词表 |
 
 ## 📌 已确认的关键决策
 

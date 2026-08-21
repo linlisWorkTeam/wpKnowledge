@@ -5,6 +5,8 @@
 
 ## 📂 主题目录
 
+> 📅 **按日期浏览**：候选池按检索日期索引见 [candidate-pool.md 顶部](candidate-pool.md)；论文 ↔ 飞轮环节自动关联见 [docs/research-mapping.md](../docs/research-mapping.md)
+
 | 目录 | 内容 | 与飞轮的关系 |
 |------|------|--------------|
 | [feedback-loop](feedback-loop/) | 🔄 反馈循环与自进化（Reflexion/CRITIC/自进化综述等） | 飞轮第三步+第四步：差异对比与反馈优化 |

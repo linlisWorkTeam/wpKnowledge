@@ -103,6 +103,7 @@
 ## 7. TDD 评测方案（探讨，未定稿）⭐
 
 > 状态：**探讨中**，未替换上面 §2/§3/§3.6 的既有设计。若采纳，需同步更新 §2/§3/§3.6/§4/§5/§6。
+> 📎 支撑证据（papers.cool 检索）：[Spec-Driven Test Gen（Google）](../research/candidate-pool.md)（规格契约→测试，bug 检出 +9.8pp）、[TDD-Agent](../research/candidate-pool.md)、[Scaling TDD](../research/candidate-pool.md)、[TDD for Code Generation](../research/candidate-pool.md)；关联见 [research-mapping.md](research-mapping.md)
 
 ### 7.1 思路
 
