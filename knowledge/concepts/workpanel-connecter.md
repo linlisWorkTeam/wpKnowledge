@@ -5,7 +5,7 @@ description: Connecter 适配层与边界处理设计
 category: architecture
 tags: [connecter, workpanel, architecture]
 sources:
-  - path: knowledge/workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md
+  - path: knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md
     pinned: true
 schema_version: okf.v1
 kind: concept
@@ -50,5 +50,5 @@ WorkPanel Connecter 是 WorkPanel 与外部环境的通信桥接层。它解决�
 
 ## 验证
 
-- 文档: knowledge/workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md 第 30-90 行
+- 文档: knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md 第 30-90 行
 - 复现: 模拟发送 10 万条消息压测，验证 chunk 拆分与 seq 重排逻辑

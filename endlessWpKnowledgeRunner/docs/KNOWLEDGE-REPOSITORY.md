@@ -15,10 +15,10 @@ wpKnowledge/
 │  ├─ web/                         # local Dashboard
 │  └─ tests/
 └─ knowledge/                      # published OKF bundle
-   ├─ dshAnalysis/                 # curated DSH research domain
-   ├─ wiki/                        # curated flywheel/research domain
-   ├─ workpanel/                   # curated WorkPanel domain
-   ├─ workpanelConnecter/          # curated Connecter domain
+   ├─ 1.dshAnalysis/               # DSH domain: 调研/任务/作者随笔/资源
+   ├─ 2.wiki/                      # flywheel domain: 设计/研究/脚本
+   ├─ 3.workpanel/                 # WorkPanel: 调研/作者随笔/规划/证据
+   ├─ 4.workpanelConnecter/        # Connecter: 调研/证据
    ├─ inbox/                       # controlled acquisition input
    ├─ drafts/                      # below-gate candidates
    ├─ concepts/                    # verified retrieval corpus

@@ -17,5 +17,5 @@
 ## Sources index
 
 - `endlessWpKnowledgeRunner/fwrunner/livemode.py` <- flywheel-livemode
-- `knowledge/wiki/research/knowledge-format/knowledge-catalog-okf.md` <- okf-knowledge-format
-- `knowledge/workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md` <- workpanel-connecter
+- `knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md` <- okf-knowledge-format
+- `knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md` <- workpanel-connecter

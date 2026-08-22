@@ -4,7 +4,7 @@ title: okf-knowledge-format
 category: knowledge-format
 tags: [okf, knowledge]
 sources:
-  - path: knowledge/wiki/research/knowledge-format/knowledge-catalog-okf.md
+  - path: knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md
     pinned: true
 schema_version: okf.v1
 kind: concept
@@ -49,4 +49,4 @@ OKF（Open Knowledge Format）是 Google knowledge-catalog 提出的知识表示
 
 ## 验证
 
-官方仓库 https://github.com/GoogleCloudPlatform/knowledge-catalog 的 SPEC.md 与 samples/bundles
+官方仓库 https://github.com/GoogleCloudPlatform/knowledge-catalog 的 SPEC.md 与 samples/bundles；本卡的来源文档为 `knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md`。
