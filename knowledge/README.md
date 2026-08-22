@@ -8,6 +8,10 @@ from `endlessWpKnowledgeRunner/`, which contains the flywheel implementation.
 | Path | Responsibility | Writer |
 |---|---|---|
 | `inbox/` | Raw Markdown candidates waiting for ingestion | human or acquisition adapter |
+| `dshAnalysis/` | DeepSeek Harness analysis and reusable research | maintainers; reviewed through Git |
+| `wiki/` | Flywheel, OKF, retrieval, evaluation, and research corpus | maintainers; reviewed through Git |
+| `workpanel/` | WorkPanel architecture and implementation knowledge | maintainers; reviewed through Git |
+| `workpanelConnecter/` | Connecter design, evidence, and integration knowledge | maintainers; reviewed through Git |
 | `drafts/` | OKF cards that have not passed the gate | runner only |
 | `concepts/` | Verified cards available to retrieval | runner only; reviewed through Git |
 | `history/<name>/` | Immutable snapshots of prior verified versions | runner only |
@@ -15,9 +19,10 @@ from `endlessWpKnowledgeRunner/`, which contains the flywheel implementation.
 | `index.md` | Generated catalog of cards and sources | runner only |
 | `runtime/` | Feedback, logs, and live-mode cursor | runner only |
 
-`inbox/` is the only directory where an acquisition process may place new
-knowledge. Agents and integrations must call `fw.py ingest` (or the DSH
-adapter) and must not write `drafts/`, `concepts/`, `history/`, or
+The four domain directories are curated knowledge sources already admitted to
+the repository through review. New acquisition processes may only place raw
+Markdown in `inbox/`; agents and integrations must call `fw.py ingest` (or the
+DSH adapter) and must not write `drafts/`, `concepts/`, `history/`, or
 `runtime/` directly.
 
 ## Publication rule

@@ -15,6 +15,10 @@ wpKnowledge/
 │  ├─ web/                         # local Dashboard
 │  └─ tests/
 └─ knowledge/                      # published OKF bundle
+   ├─ dshAnalysis/                 # curated DSH research domain
+   ├─ wiki/                        # curated flywheel/research domain
+   ├─ workpanel/                   # curated WorkPanel domain
+   ├─ workpanelConnecter/          # curated Connecter domain
    ├─ inbox/                       # controlled acquisition input
    ├─ drafts/                      # below-gate candidates
    ├─ concepts/                    # verified retrieval corpus
