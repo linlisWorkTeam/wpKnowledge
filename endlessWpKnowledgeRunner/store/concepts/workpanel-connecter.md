@@ -1,0 +1,54 @@
+---
+name: workpanel-connecter
+title: WorkPanel Connecter 架构
+description: Connecter 适配层与边界处理设计
+category: architecture
+tags: [connecter, workpanel, architecture]
+sources:
+  - path: workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md
+    pinned: true
+schema_version: okf.v1
+kind: concept
+status: verified
+verified: true
+stale_after: ""
+platforms: []
+created_at: "2026-08-22T01:36:40+08:00"
+updated_at: "2026-08-22T01:36:40+08:00"
+version: 1
+score: 93.0
+confidence: 0.9
+score_breakdown:
+  provenance: 1.0
+  structure: 0.971
+  freshness: 1.0
+  dedup: 1.0
+  verifiability: 1.0
+  usage: 0.5
+---
+
+## 概述
+
+WorkPanel Connecter 是 WorkPanel 与外部环境的通信桥接层。它解决的核心问题：把「平台内部消息」与「外部 CLI/工具协议」互相转换，让 Agent 不需要直接理解传输细节。
+
+## 设计要点
+
+```text
+内部事件 -> Connecter 适配层 -> 协议编解码 -> 外部命令/端点
+外部响应 -> Connecter 回调 -> 规范化 -> 内部事件
+```
+
+- 适配层按协议分插件：每种外部协议一个 adapter，新增协议只加 adapter 不改核心。
+- 编解码做**边界处理**：空消息返回默认值而非抛异常；超长消息按 chunk 拆分；乱序响应按 seq 重排。
+- 调用关系：Connecter 不直接持有命令句柄，通过「会话 id -> 连接」路由表查询，断开时自动清理（防泄漏）。
+
+## 为什么这样设计
+
+1. 兼容历史需求：早期版本直接耦合 CLI 参数，导致换协议要改核心代码（曾经为此返工）。
+2. 权衡：统一适配层多一层间接，但换来协议扩展成本从「改核心」降到「加一个 adapter 文件」。
+3. 适用场景：多协议并存、协议演进频繁、外部工具不可控（可能失联/乱序）时应该采用这种写法；单协议且永不变更的场景不值得，直接调用即可。
+
+## 验证
+
+- 文档: workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md 第 30-90 行
+- 复现: 模拟发送 10 万条消息压测，验证 chunk 拆分与 seq 重排逻辑

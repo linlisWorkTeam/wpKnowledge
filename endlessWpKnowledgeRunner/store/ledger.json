@@ -1,0 +1,68 @@
+{
+  "concepts": {
+    "workpanel-connecter": {
+      "hits": 3,
+      "ratings": [
+        4.5
+      ],
+      "corrections": 0,
+      "last_seen": "2026-08-22T02:16:59+08:00"
+    },
+    "flywheel-livemode": {
+      "hits": 1,
+      "ratings": [],
+      "corrections": 0,
+      "last_seen": "2026-08-22T02:16:59+08:00"
+    }
+  },
+  "ingested_hashes": {
+    "f001a74885c80f99849ca92dbe2fb19e3c38178370f2b2c525c70f5f2ac445a0": {
+      "concept": "workpanel-connecter",
+      "ts": "2026-08-22T01:36:40+08:00"
+    },
+    "4c1a0421931b1ec6de6798c92a76196fafa0fc2f3ecb6238d2ea4c795fa2c24a": {
+      "concept": "okf-knowledge-format",
+      "ts": "2026-08-22T01:37:10+08:00"
+    },
+    "91505c73b3b74ba56f8c1cb4c703971a768aa4100b30f0b4092c334441dbd024": {
+      "concept": "garbage-note",
+      "ts": "2026-08-22T01:37:16+08:00"
+    },
+    "c520308d7e99c12f70d9de4588f1d6615ce9747c6def171d6d2bcc8286f99b6b": {
+      "concept": "flywheel-livemode",
+      "ts": "2026-08-22T01:37:16+08:00"
+    }
+  },
+  "feedback": [
+    {
+      "ts": "2026-08-22T01:36:44+08:00",
+      "name": "workpanel-connecter",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-22T01:36:44+08:00",
+      "name": "workpanel-connecter",
+      "action": "rate",
+      "rating": 4.5
+    },
+    {
+      "ts": "2026-08-22T01:37:05+08:00",
+      "name": "workpanel-connecter",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-22T02:16:59+08:00",
+      "name": "workpanel-connecter",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-22T02:16:59+08:00",
+      "name": "flywheel-livemode",
+      "action": "hit",
+      "rating": null
+    }
+  ]
+}
