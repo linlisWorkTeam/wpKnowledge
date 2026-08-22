@@ -60,12 +60,17 @@ class Ingester:
             source_lines: Optional[str] = None) -> IngestResult:
         # 1. read input
         if file_path:
-            abs_path = file_path if os.path.isabs(file_path) else os.path.join(self.cfg.root, file_path)
+            if os.path.isabs(file_path):
+                abs_path = file_path
+            else:
+                candidates = [self.cfg.resolve_repo_path(file_path),
+                              os.path.join(self.cfg.root, file_path)]
+                abs_path = next((p for p in candidates if os.path.isfile(p)), candidates[0])
             if not os.path.isfile(abs_path):
                 raise FileNotFoundError("input file not found: %s" % abs_path)
             with open(abs_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            auto_source = os.path.relpath(abs_path, self.cfg.root).replace("\\", "/")
+            auto_source = self.cfg.path_label(abs_path)
             # files inside a configured source dir are auto-marked handled so
             # liveMode scan does not re-list them
             if silent_file is None:
@@ -212,7 +217,7 @@ class Ingester:
         if silent_file:
             state = self.store.read_state()
             files = state.setdefault("files", {})
-            full_path = silent_file if os.path.isabs(silent_file) else os.path.join(self.cfg.root, silent_file)
+            full_path = self.cfg.resolve_repo_path(silent_file)
             files[silent_file] = {
                 "hash": util.sha256_file(full_path) if os.path.isfile(full_path) else "",
                 "concept": concept_name, "ts": util.now_iso(),

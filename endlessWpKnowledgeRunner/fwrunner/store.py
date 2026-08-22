@@ -1,17 +1,19 @@
 # -*- coding: utf-8 -*-
-"""Bundle store: drafts / concepts / history, index.md, log.md, ledger.
+"""Controlled OKF knowledge-base store.
 
-The store is the OKF Bundle: a git-tracked directory tree that is itself the
-published knowledge base (cat-able, diff-able, review-able - no RAG).
+Only this module writes the knowledge base. The runner code lives in the
+neighbouring endlessWpKnowledgeRunner directory; this store is the separate,
+git-reviewable OKF bundle (concepts, drafts, history and governance runtime).
 """
 import json
 import os
+import tempfile
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
 
 from . import okf
 from .config import Config
-from .util import now_iso
+from .util import now_iso, slugify
 
 CARD_SUFFIX = ".md"
 
@@ -53,29 +55,59 @@ class Store:
         self.drafts_dir = os.path.join(self.root, "drafts")
         self.concepts_dir = os.path.join(self.root, "concepts")
         self.history_dir = os.path.join(self.root, "history")
-        self.jury_dir = os.path.join(self.root, "jury")
+        self.runtime_dir = os.path.join(self.root, "runtime")
+        self.jury_dir = os.path.join(self.runtime_dir, "jury")
         self.index_path = os.path.join(self.root, "index.md")
-        self.log_path = os.path.join(self.root, "log.md")
-        self.ledger_path = os.path.join(self.root, "ledger.json")
-        self.state_path = os.path.join(self.root, str(cfg.get("livemode", {}).get("state_file", ".livemode-state.json")))
+        self.log_path = os.path.join(self.runtime_dir, "log.md")
+        self.ledger_path = os.path.join(self.runtime_dir, "ledger.json")
+        state_file = str(cfg.get("livemode", {}).get("state_file", "runtime/livemode-state.json"))
+        self.state_path = state_file if os.path.isabs(state_file) else os.path.join(self.root, state_file)
         self._ensure()
 
     def _ensure(self) -> None:
-        for d in (self.root, self.drafts_dir, self.concepts_dir, self.history_dir, self.jury_dir):
+        for d in (self.root, self.drafts_dir, self.concepts_dir, self.history_dir, self.runtime_dir, self.jury_dir):
             os.makedirs(d, exist_ok=True)
         for p in (self.index_path, self.log_path):
             if not os.path.exists(p):
+                os.makedirs(os.path.dirname(p), exist_ok=True)
                 with open(p, "w", encoding="utf-8") as f:
                     f.write("")
         if not os.path.exists(self.ledger_path):
             self._write_ledger({"concepts": {}, "ingested_hashes": {}, "feedback": []})
 
+    @staticmethod
+    def _atomic_write(path: str, text: str) -> None:
+        """Write a complete file before replacing the published version."""
+        directory = os.path.dirname(path) or "."
+        os.makedirs(directory, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(prefix=".write-", suffix=".tmp", dir=directory)
+        try:
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as f:
+                f.write(text)
+                f.flush()
+                os.fsync(f.fileno())
+            os.replace(tmp, path)
+        finally:
+            if os.path.exists(tmp):
+                os.unlink(tmp)
+
+    @staticmethod
+    def _validate_name(name: str) -> str:
+        safe = slugify(name)
+        if not safe or safe != name or len(safe) > 100:
+            raise ValueError("concept name must be a slug (a-z, 0-9, '-' or '_')")
+        return safe
+
     # ---------------- card paths ----------------
     def card_path(self, name: str, status: str) -> str:
+        self._validate_name(name)
+        if status not in ("verified", "draft"):
+            raise ValueError("card status must be draft or verified")
         base = self.concepts_dir if status == "verified" else self.drafts_dir
         return os.path.join(base, name + CARD_SUFFIX)
 
     def history_path(self, name: str, version: int) -> str:
+        self._validate_name(name)
         d = os.path.join(self.history_dir, name)
         os.makedirs(d, exist_ok=True)
         return os.path.join(d, "v%d%s" % (version, CARD_SUFFIX))
@@ -117,10 +149,13 @@ class Store:
     # ---------------- write ----------------
     def write_card(self, name: str, status: str, meta: Dict[str, Any], body: str,
                    journal: bool = True, action: str = "write", detail: str = "") -> str:
+        self._validate_name(name)
+        errors = okf.validate_card(meta, body, status)
+        if errors:
+            raise ValueError("invalid knowledge card: %s" % "; ".join(errors))
         path = self.card_path(name, status)
         text = okf.build_card(meta, body)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(text)
+        self._atomic_write(path, text)
         if journal:
             self.append_log(action=action, concept=name, status=status,
                             score=meta.get("score"), detail=detail)
@@ -132,8 +167,7 @@ class Store:
             return None
         text = okf.build_card(meta, body)
         path = self.history_path(name, version)
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(text)
+        self._atomic_write(path, text)
         return path
 
     # ---------------- ledger / usage ----------------
@@ -142,8 +176,7 @@ class Store:
             return json.load(f)
 
     def _write_ledger(self, data: Dict[str, Any]) -> None:
-        with open(self.ledger_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        self._atomic_write(self.ledger_path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")
 
     def record_feedback(self, name: str, action: str, rating: Optional[float] = None) -> Dict[str, Any]:
         ledger = self.read_ledger()
@@ -261,8 +294,7 @@ class Store:
         if not seen:
             lines.append("_(no sources recorded yet)_")
         text = "\n".join(lines) + "\n"
-        with open(self.index_path, "w", encoding="utf-8") as f:
-            f.write(text)
+        self._atomic_write(self.index_path, text)
         return text
 
     # ---------------- livemode state ----------------
@@ -273,5 +305,4 @@ class Store:
         return {"files": {}}
 
     def write_state(self, data: Dict[str, Any]) -> None:
-        with open(self.state_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        self._atomic_write(self.state_path, json.dumps(data, ensure_ascii=False, indent=2) + "\n")

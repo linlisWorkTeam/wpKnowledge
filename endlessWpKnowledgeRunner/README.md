@@ -42,7 +42,7 @@ fw.py                CLI 入口（python fw.py <cmd>）
 fwrunner/            Python 核心：okf / store / ingest / scorer / retrieve / livemode
 config.json          门禁阈值 / 信号权重 / 来源目录 / 陪审团开关（可执行级定义）
 sources/             投放目录（往里丢 .md 即被 liveMode 拾取）
-store/               OKF Bundle 知识库：index.md / log.md / ledger.json（使用反馈）
+store/               legacy path only; the repository knowledge base is ../knowledge/
   drafts/            未过门禁的知识卡
   concepts/          已过门禁的合格知识卡（verified）
   history/           版本升级前的旧版快照（防污染回滚）
@@ -51,6 +51,10 @@ dsh/                 DSH 集成：插件源码 + 挂载说明
 tests/               python -m unittest discover -s tests
 docs/                飞轮设计总结（读完仓库全部调研后的收敛）
 ```
+
+目录边界：runner 代码与仓库根目录的 `knowledge/` 知识库分离。原始资料只能进入
+`knowledge/inbox/`，所有卡片必须通过 `python fw.py ingest` 经过 OKF 规范化、评分和门禁；
+详见 [KNOWLEDGE-REPOSITORY.md](docs/KNOWLEDGE-REPOSITORY.md)。
 
 ## 打分与门禁（一句话）
 

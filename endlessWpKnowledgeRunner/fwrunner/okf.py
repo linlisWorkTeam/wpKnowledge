@@ -222,6 +222,34 @@ def build_card(meta: Dict[str, Any], body: str) -> str:
     return fm + "\n\n" + (body or "").strip() + "\n"
 
 
+def validate_card(meta: Dict[str, Any], body: str, status: str) -> List[str]:
+    """Validate the small, stable contract shared by every persisted card."""
+    errors: List[str] = []
+    if not str(meta.get("schema_version", "")).startswith("okf.v1"):
+        errors.append("schema_version must start with okf.v1")
+    if not str(meta.get("name", "")).strip():
+        errors.append("name is required")
+    if status not in ("draft", "verified"):
+        errors.append("status must be draft or verified")
+    if meta.get("status") != status:
+        errors.append("frontmatter status must match storage status")
+    verified = meta.get("verified")
+    if status == "verified" and verified is not True:
+        errors.append("verified cards must set verified: true")
+    if status == "draft" and verified is True:
+        errors.append("draft cards cannot set verified: true")
+    if status == "verified" and not normalize_sources(meta.get("sources")):
+        errors.append("verified cards require at least one source")
+    try:
+        if int(meta.get("version", 0) or 0) < 1:
+            errors.append("version must be a positive integer")
+    except (TypeError, ValueError):
+        errors.append("version must be a positive integer")
+    if not (body or "").strip():
+        errors.append("body is required")
+    return errors
+
+
 def normalize_sources(sources: Any) -> List[Dict[str, Any]]:
     """Accept a list of strings or dicts and normalize to dict entries."""
     out: List[Dict[str, Any]] = []
