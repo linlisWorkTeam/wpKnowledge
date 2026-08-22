@@ -198,3 +198,210 @@ updated_at: '2026-08-21T10:00:00+08:00'
 | `wiki/docs/implementation-plan.md` | 目录/模块结构对齐（config/store/scorer/retrieve）；实现语言同为 Python（MVP 零依赖） |
 | `wiki/docs/codeagent-migration.md` | 本 MVP 是「CodeAgent 主会话编排」思路的 DSH 落地：DSH 动态插件 = 主会话，harvester = 子 agent，确定性管道 = 脚本化决策 |
 | `wiki/research/knowledge-format/*` | OKF = 格式锚点，cannbot = 运营流程锚点，均 1:1 采纳 |
+## 10. 当前实现详解：从设计能力到源码行为
+
+本节记录当前 MVP 的真实实现，而不是只描述目标架构。源码基线为 `c8f1d8d25b39edfeea0c9aa712f8b541159a6872`，实现语言为 Python 3.8+ 标准库；DSH 适配层使用 JavaScript。整体调用链如下：
+
+```text
+文件 / stdin / DSH fw_ingest
+        │
+        ▼
+fw.py -> Ingester.run
+        │  解析 frontmatter、补元数据、计算 source
+        ▼
+Scorer.score_concept
+        │  provenance / structure / freshness / dedup
+        │  verifiability / jury / usage
+        ▼
+score >= threshold ?
+        ├─ pass -> store/concepts/<name>.md
+        └─ fail -> store/drafts/<name>.md
+                       │
+                       ├─ history/ 保护旧 verified 版本
+                       ├─ index.md / log.md
+                       └─ ledger.json / liveMode state
+        ▼
+Retriever.search -> BM25 + quality rerank -> feedback
+```
+
+### 10.1 知识获取（Acquire）
+
+**触发式获取**由 `fw.py ingest` 或 DSH 的 `fw_ingest` 触发；输入可以是 `--file`、`--content` 或 stdin。`Ingester.run` 先读取正文，再从已有 OKF frontmatter、命令行参数和文件路径合并出概念名、描述、分类、标签和来源。
+
+**自动获取**由 liveMode 的 `scan` 找出新增/变更文件，再由 DSH 插件启动 harvester agent 提炼结构化 JSON。harvester 只产出 `name/title/description/category/tags/content/sources`，不直接写 Store；最终仍必须回到同一条 `fw_ingest -> score -> gate` 管道。
+
+实现映射：
+
+| 能力 | 实现位置 | 主要输入/输出 |
+|---|---|---|
+| CLI 入口 | `fw.py:49-121` | 参数或 stdin -> JSON 结果 |
+| 规范化获取 | `fwrunner/ingest.py:54-135` | 原始文本/文件 -> draft Concept |
+| DSH 工具适配 | `dsh/fw-plugin.js:167-216` | `fw_ingest` -> Python CLI |
+| Agent 获取 | `dsh/fw-plugin.js:77-125` | 来源文件 -> structured payload |
+
+### 10.2 格式化沉淀（OKF Consolidate）
+
+知识卡使用 Markdown 正文 + YAML-like frontmatter。`okf.py` 自己实现了一个无第三方依赖的 YAML 子集解析器和 emitter，支持标量、简单列表、列表映射和 `sources` 归一化。
+
+写入时，runner 会补齐或维护：
+
+- `schema_version: okf.v1`；
+- `name/title/description/sources`；
+- `status`、`verified`、`version`；
+- `created_at/updated_at`；
+- runner 计算的 `score/confidence/score_breakdown`。
+
+知识卡的物理位置就是状态机：`store/concepts/` 表示 verified，`store/drafts/` 表示 draft。`store/index.md` 是可读索引，`store/log.md` 是追加日志，`store/ledger.json` 是反馈和内容 hash 台账。
+
+实现映射：`fwrunner/okf.py:81-245`、`fwrunner/store.py:49-71,118-127,224-266`。
+
+### 10.3 自动评分（Evaluate）
+
+`Scorer.score_concept` 为每张卡计算 0 到 1 的信号，再按配置权重归一化为 0 到 100 分：
+
+```text
+score = 100 * sum(active_weight * signal) / sum(active_weight)
+gate = score >= gate.threshold
+```
+
+当前默认信号和实现规则：
+
+| 信号 | 当前实现 |
+|---|---|
+| provenance | 检查 `schema_version`、sources、pinned/lines/commit/url，以及文件或 URL 是否可解析 |
+| structure | 检查 name、description、`##` 章节、代码块/列表、解释性词、长度和正文复制相似度 |
+| freshness | 根据 `updated_at` 和 `stale_after` 做时间衰减 |
+| dedup | 对正文做 SHA-256，并与 ledger 和 Store 中已有正文比较 |
+| verifiability | 统计 URL、代码围栏、命令、数字/百分比等验证锚点 |
+| jury | 可选读取 `store/jury/<name>.json`，对多次外部评分计算均值和标准差 |
+| usage | 从 `ledger.json` 读取命中、rating、correct 和最近使用时间 |
+
+`config.json` 是评分规则的可执行配置：默认门槛 70，jury 默认关闭；未启用的 jury 权重会重新分配给其余信号。`fw_score` 持久化最新信号，`fw_eval` 重复评分并报告 mean/std/min/max，但重复同一确定性函数不能替代独立外部验证。
+
+实现映射：`fwrunner/scorer.py:54-303`、`fwrunner/config.py:7-49`。
+
+### 10.4 draft / verified 门禁
+
+门禁只在 `Ingester.run` 的入库路径上决定状态：
+
+1. 创建临时 draft 视图并评分；
+2. pass 且没有 `force_draft` 时，写入 `concepts/`，设置 `status=verified`、`verified=true`；
+3. fail 或显式 `force_draft` 时，写入 `drafts/`，设置 `status=draft`、`verified=false`；
+4. 返回报告和 weak points，便于上层 Agent 或 Dashboard 展示。
+
+已有 verified 卡收到更差的新版本时，旧卡不会被覆盖；新内容进入 drafts，返回结果仍指出当前 verified 版本被保留。这是防止低质量 Agent 输出污染知识库的核心约束。
+
+注意：当前 `fw_score`/`fw_eval` 只负责重新计算和报告，不负责把已有 draft 自动迁移为 verified；真正的状态迁移仍需要重新走 ingest/review 策略。
+
+实现映射：`fwrunner/ingest.py:136-225`。
+
+### 10.5 历史版本保护
+
+当同名 verified 概念被成功更新时，runner：
+
+1. 读取旧版本的 `version`；
+2. 将旧 frontmatter + 正文写入 `store/history/<name>/v<old_version>.md`；
+3. 新版本号加一后写入 `store/concepts/<name>.md`。
+
+如果新版本评分失败，历史快照仍保留，但 verified 卡继续留在 `concepts/`，新候选落在 `drafts/`。因此版本升级和质量门禁共同形成“可回看、可 diff、可人工恢复”的保护层。
+
+实现映射：`fwrunner/ingest.py:136-155`、`fwrunner/store.py:78-81,129-137`。
+
+### 10.6 BM25 检索（Apply）
+
+`Retriever.search` 默认只读取 verified 概念，也可以显式指定 `status=draft` 或开启配置中的 `include_drafts`。每张卡将以下字段合并进索引，并使用不同字段权重：
+
+```text
+name 3.0 / title 3.0 / description 2.0 / tags 2.0 / body 1.0
+```
+
+查询过程是：
+
+1. 对中文生成单字和双字 token，对英文/数字生成词 token；
+2. 计算简化 BM25；
+3. 将 BM25 归一化；
+4. 与 `score / 100` 做质量重排；
+5. 返回 name、score、version、sources、snippet 等信息。
+
+排序公式：
+
+```text
+relevance = normalized_bm25 * (1 - quality_weight)
+          + score/100 * quality_weight
+```
+
+CLI/DSH 的普通查询默认会记录命中反馈；Dashboard 查询显式使用 read-only 模式，避免“搜索结果展示”自动放大 usage。
+
+实现映射：`fwrunner/retrieve.py:27-136`、`fwrunner/util.py:21-51`。
+
+### 10.7 使用反馈（Feedback）
+
+反馈写入 `store/ledger.json`，分为：
+
+- `hit`：命中或显式取回；
+- `rate`：0 到 5 的用户评分；
+- `correct`：标记知识需要纠正。
+
+`usage_signal` 会综合命中次数、评分、纠错次数和距上次使用的天数，生成 0 到 1 的 usage 信号，参与下一次评分。反馈本身不会直接改正文，也不会跳过 gate。
+
+当前实现是“反馈影响质量分”的第一步；`correct` 尚未自动生成修订任务、定位来源段落或启动 Agent 重写。完整的“纠错 -> 归因 -> 修订 -> 重测”仍是后续迭代项。
+
+实现映射：`fwrunner/store.py:139-189`、`fw.py:191-193`。
+
+### 10.8 liveMode 自动扫描
+
+Python 侧 `livemode.scan`：
+
+1. 遍历 `source_dirs + watch_dirs`；
+2. 只处理 Markdown；
+3. 跳过 `.git`、`__pycache__`、`node_modules`、`history`、`jury` 等目录；
+4. 跳过 README、index、log、ledger 等管理文件；
+5. 计算文件 SHA-256；
+6. 与 `.livemode-state.json` 和 `ledger.json` 对比，过滤未变更/已入库文件；
+7. 按 mtime 升序返回候选，默认每轮最多 4 个。
+
+DSH 插件用宿主 timer 每 15 分钟执行一轮：扫描候选、启动 harvester、读取 structured JSON，再调用 `fw_ingest`。Agent 提炼失败时回退为直接 ingest 原始文件。处理后的文件 hash 和概念名写入 `.livemode-state.json`，避免下一轮重复列出。
+
+实现映射：`fwrunner/livemode.py:17-78`、`dsh/fw-plugin.js:74-162,339-416`。
+
+### 10.9 Dashboard 可视化
+
+Dashboard 是独立的零依赖本地前台，不替换 Store，也不复制一套评分逻辑：
+
+```powershell
+cd D:\AI\wpKnowledge\endlessWpKnowledgeRunner
+python web/server.py
+```
+
+默认访问 `http://127.0.0.1:4174/`。服务器直接加载当前 runner 的 `Store/Scorer/Retriever/livemode`，前端通过同源 API 获取数据：
+
+| API | 用途 | 是否写入数据 |
+|---|---|---:|
+| `GET /api/status` | 总数、verified/draft、平均分、反馈数、最近日志 | 否 |
+| `GET /api/concepts` | 知识卡列表与筛选 | 否 |
+| `GET /api/concepts/<name>` | 正文、来源、信号、版本详情 | 否 |
+| `GET /api/query?q=...` | BM25 查询 | 否，Dashboard 显式禁用命中反馈 |
+| `GET /api/scan` | liveMode 候选扫描 | 可能推进扫描游标 |
+| `POST /api/feedback` | rate/correct/hit | 是 |
+| `POST /api/rescore` | 重新计算并写回评分字段 | 是 |
+
+页面布局分为四块：顶部状态统计、左侧知识卡列表、中间详情和评分信号、底部运行日志；按钮只调用 runner 已有能力，不直接修改 Markdown 正文。`web/` 下的 HTML/CSS/JS 不依赖 React、Node 或第三方 Python 包。
+
+实现映射：`web/server.py`、`web/dashboard.html`、`web/app.js`、`web/styles.css`。
+
+## 11. 当前运行验证与证据边界
+
+当前实现可以用以下命令复核：
+
+```powershell
+cd D:\AI\wpKnowledge\endlessWpKnowledgeRunner
+python -m unittest discover -s tests -v
+python fw.py status --json
+python fw.py query --q "connecter" --no-feedback --json
+python fw.py eval --name workpanel-connecter --runs 5 --json
+python web/server.py
+```
+
+已验证能力包括：15 项 Python 单元测试通过、CLI status/query/eval 可运行、Dashboard HTTP 页面和 API 可访问、真实浏览器可渲染知识卡和评分信号、检索交互可用。
+
+仍未由本设计文档宣称为生产能力的部分：文件写入没有事务/锁，Dashboard 没有认证和权限，liveMode timer 依赖 DSH 进程生命周期，OKF 解析器是 YAML 子集，评分尚未执行代码—知识语义一致性验证，跨进程/跨机器部署也尚未验收。

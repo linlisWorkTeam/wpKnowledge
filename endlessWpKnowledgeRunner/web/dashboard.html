@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>wpKnowledge · Knowledge Flywheel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">ENDLESS WP KNOWLEDGE RUNNER</p>
+        <h1>Knowledge Flywheel</h1>
+        <p class="subtle">候选获取、质量门禁、检索反馈，一页看清。</p>
+      </div>
+      <div class="toolbar">
+        <button id="scanBtn" class="button ghost">扫描 liveMode</button>
+        <button id="refreshBtn" class="button primary">刷新</button>
+      </div>
+    </header>
+    <section id="stats" class="stats" aria-label="飞轮状态"></section>
+    <section class="workspace">
+      <aside class="panel library">
+        <div class="panel-head">
+          <div><p class="eyebrow">KNOWLEDGE STORE</p><h2>知识卡</h2></div>
+          <select id="statusFilter" class="select"><option value="">全部</option><option value="verified">Verified</option><option value="draft">Draft</option></select>
+        </div>
+        <form id="searchForm" class="search"><input id="queryInput" type="search" placeholder="检索知识，例如 connecter" autocomplete="off"><button class="button primary" type="submit">检索</button></form>
+        <div id="searchHint" class="search-hint">默认显示全部知识卡；搜索不会自动计入 usage。</div>
+        <div id="cardList" class="card-list"></div>
+      </aside>
+      <section class="panel detail-panel">
+        <div id="emptyState" class="empty"><div class="empty-mark">◎</div><h2>选择一张知识卡</h2><p>查看正文、来源、评分信号和反馈。</p></div>
+        <article id="detail" class="detail hidden"></article>
+      </section>
+    </section>
+    <section class="panel activity-panel">
+      <div class="panel-head compact"><div><p class="eyebrow">OPERATIONS</p><h2>运行状态</h2></div><span id="lastUpdated" class="subtle">尚未刷新</span></div>
+      <div id="activity" class="activity">正在读取 runner 状态…</div>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/app.js"></script>
+</body>
+</html>
