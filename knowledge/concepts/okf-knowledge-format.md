@@ -4,7 +4,7 @@ title: okf-knowledge-format
 category: knowledge-format
 tags: [okf, knowledge]
 sources:
-  - path: wiki/research/knowledge-format/knowledge-catalog-okf.md
+  - path: knowledge/wiki/research/knowledge-format/knowledge-catalog-okf.md
     pinned: true
 schema_version: okf.v1
 kind: concept

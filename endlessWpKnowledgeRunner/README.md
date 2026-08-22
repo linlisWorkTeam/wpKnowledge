@@ -3,7 +3,7 @@
 打造「简易但功能够强」的知识飞轮：**获取 → 沉淀（OKF）→ 评测（打分）→ 应用（检索）** 的循环。
 设计依据与实现说明见 [docs/FLYWHEEL-DESIGN.md](docs/FLYWHEEL-DESIGN.md)（汇总自 wpKnowledge 仓库全部调研）。
 
-- **触发式**：`fw_ingest`（或 CLI `python fw.py ingest` / 向 `sources/` 投递文件）→ 收到知识即运行。
+- **触发式**：`fw_ingest`（或 CLI `python fw.py ingest` / 向仓库 `knowledge/inbox/` 投递文件）→ 收到知识即运行。
 - **自动化**：`fw_livemode on`（或 CLI `python fw.py harvest`）→ harvester agent 自行扫描、提炼、入库。
 - **沉淀不用 RAG，用 OKF**：知识卡 = Markdown + YAML frontmatter（sources/status/verified/score），Bundle 目录树即知识库，可 `cat`、可 diff、可 git 评审。
 - **评测 = 多信号打分**：溯源 / 结构 / 时效 / 去重 / 可验证性 / 使用反馈（+可选 LLM 陪审团），重复评测报均值±方差，门禁决定 verified 或 draft，防污染自动回滚保护。
@@ -33,7 +33,7 @@ MVP 以 DSH 动态 Cordis 插件方式加载，注册 `fw_*` 工具与 HTTP 检�
 3. 然后让任意 agent 调用：`fw_ingest`（触发）/ `fw_query`（检索）/ `fw_livemode on`（自动化）。
 4. 外部检索：`curl "http://127.0.0.1:3080/fw/query?q=connecter"` 与 `http://127.0.0.1:3080/fw/status`。
 
-> 动态插件随进程生命周期存在；需要永久挂载时，把 plugin 代码放进 agent preset（见 [dsh/plugin-agent-preset.md](dsh/plugin-agent-preset.md)），或在宿主 composition 中注册该插件行。
+> 动态插件随进程生命周期存在；需要永久挂载时，参见 [dsh/README.md](dsh/README.md) 的 preset/composition 说明，或在宿主 composition 中注册该插件行。
 
 ## 目录
 
@@ -41,12 +41,7 @@ MVP 以 DSH 动态 Cordis 插件方式加载，注册 `fw_*` 工具与 HTTP 检�
 fw.py                CLI 入口（python fw.py <cmd>）
 fwrunner/            Python 核心：okf / store / ingest / scorer / retrieve / livemode
 config.json          门禁阈值 / 信号权重 / 来源目录 / 陪审团开关（可执行级定义）
-sources/             投放目录（往里丢 .md 即被 liveMode 拾取）
-store/               legacy path only; the repository knowledge base is ../knowledge/
-  drafts/            未过门禁的知识卡
-  concepts/          已过门禁的合格知识卡（verified）
-  history/           版本升级前的旧版快照（防污染回滚）
-  jury/              外部模型写入的陪审团打分 JSON（可选）
+knowledge/           仓库根目录的知识库；输入为 knowledge/inbox/
 dsh/                 DSH 集成：插件源码 + 挂载说明
 tests/               python -m unittest discover -s tests
 docs/                飞轮设计总结（读完仓库全部调研后的收敛）

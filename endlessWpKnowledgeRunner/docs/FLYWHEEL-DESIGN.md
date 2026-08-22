@@ -1,6 +1,6 @@
 # endlessWpKnowledgeRunner — 知识飞轮设计总结与 MVP 实现方案
 
-> 本文档基于对 wpKnowledge 仓库全部调研文档（`wiki/docs/*` 8 篇正式文档 + `wiki/research/*` 34 篇调研笔记 + 候选池 160+ 条目、`dshAnalysis/*` 5 篇、`workpanel/*` 与两个参考仓库 OKF / cannbot 的深度笔记）的系统阅读与收敛。
+> 本文档基于对 wpKnowledge 仓库全部调研文档（`knowledge/wiki/docs/*` 8 篇正式文档 + `knowledge/wiki/research/*` 34 篇调研笔记 + 候选池 160+ 条目、`knowledge/dshAnalysis/*` 5 篇、`knowledge/workpanel/*` 与两个参考仓库 OKF / cannbot 的深度笔记）的系统阅读与收敛。
 > 它回答一个问题：**把「知识飞轮」从纸面设计落成一个可运行、可扩展的 MVP，应该怎么设计？**
 
 ---
@@ -20,7 +20,7 @@ The detailed directory and write contract is maintained in
 
 ## 1. 飞轮是什么：一个 Loop，由四个环节组成
 
-调研文档（`wiki/docs/flywheel.md`、`overview.md`、`gate.md`、`operator-flywheel-case.md`）反复确认同一件事：**飞轮不是一个系统，是一个 loop / workflow**。本仓库已有分析的目标是「源码/知识 → 代码 → 反馈」；本 MVP 把它泛化为更适合「知识仓库运营」的形态，四个环节各自可以由被赋予使命的 agent 承担：
+调研文档（`knowledge/wiki/docs/flywheel.md`、`overview.md`、`gate.md`、`operator-flywheel-case.md`）反复确认同一件事：**飞轮不是一个系统，是一个 loop / workflow**。本仓库已有分析的目标是「源码/知识 → 代码 → 反馈」；本 MVP 把它泛化为更适合「知识仓库运营」的形态，四个环节各自可以由被赋予使命的 agent 承担：
 
 ```
                     ┌─────────────────────────────────────────────┐
@@ -38,8 +38,8 @@ The detailed directory and write contract is maintained in
                          └──────── 使用反馈（点击/评分/勘误）───────────────────┘
 ```
 
-- **① 获取知识（Acquire）**：两个入口。**触发式**：任何 agent / 用户向飞轮推送知识（`fw_ingest` 工具，或往 `sources/` 投递文件）即运行；**自动化**：`liveMode` 启动后，一个 **harvester agent** 周期性扫描来源目录与投放目录，自行提炼知识入库。
-- **② 沉淀知识（Consolidate）**：**不使用 RAG**，采用 **OKF 模式**（知识内容直接可 `cat`、可 `git diff`、可评审）。知识 = Markdown + YAML frontmatter 的知识卡（Concept），按 Bundle（目录树）自包含组织，`sources` 溯源 + `status` 状态 + `verified` 信任级别为 first-class（依据 `wiki/research/knowledge-format/knowledge-catalog-okf.md`）。知识库天生可 diff、可评审、可回滚。
+- **① 获取知识（Acquire）**：两个入口。**触发式**：任何 agent / 用户向飞轮推送知识（`fw_ingest` 工具，或往 `knowledge/inbox/` 投递文件）即运行；**自动化**：`liveMode` 启动后，一个 **harvester agent** 周期性扫描来源目录与投放目录，自行提炼知识入库。
+- **② 沉淀知识（Consolidate）**：**不使用 RAG**，采用 **OKF 模式**（知识内容直接可 `cat`、可 `git diff`、可评审）。知识 = Markdown + YAML frontmatter 的知识卡（Concept），按 Bundle（目录树）自包含组织，`sources` 溯源 + `status` 状态 + `verified` 信任级别为 first-class（依据 `knowledge/wiki/research/knowledge-format/knowledge-catalog-okf.md`）。知识库天生可 diff、可评审、可回滚。
 - **③ 评测打分（Evaluate）**：一套**多信号打分机制**（详见 §4）。打分是「评测闭环」而非 LLM 自我感觉：客观信号为主，LLM 陪审团为辅，重复评测报告均值±方差，通过门禁才合并（防污染，依据 `flywheel.md §9` + `fragility-self-improving.md`）。
 - **④ 应用知识（Apply）**：**只读检索**入口（`fw_query` 工具 + HTTP 端点），供外部消费；检索命中与用户反馈回流为评分信号（依据 cannbot `knowledge-query` + `knowledge-issue-report` 的「生产→治理→消费→反馈」闭环）。
 
@@ -47,7 +47,7 @@ The detailed directory and write contract is maintained in
 
 | 飞轮环节 | 采纳的关键结论 | 调研依据（仓库内文档） |
 |---|---|---|
-| 获取（顺序） | 知识处理顺序 = 依赖拓扑序；先依赖后被依赖 | RepoAgent、RepoDoc（`wiki/research/doc-generation/`） |
+| 获取（顺序） | 知识处理顺序 = 依赖拓扑序；先依赖后被依赖 | RepoAgent、RepoDoc（`knowledge/wiki/research/doc-generation/`） |
 | 获取（触发） | 代码/文档变更触发增量更新，而非全量重跑 | RepoAgent、RepoDoc、Code & Doc Churn（candidate-pool） |
 | 沉淀（格式） | 知识格式 = OKF：Markdown + frontmatter（sources/status/verified）；Bundle 自包含；index.md 渐进披露；log.md 更新历史 | knowledge-catalog-okf、cannbot-knowledge、knowledge-format.md |
 | 沉淀（形态） | 知识 = 解释型文档：伪代码/要点 + 为什么这样、解决什么问题、适用场景；**保留"魂"不搬运"壳"**；低质文档不如没有 | knowledge-format.md、llm-api-docs（Code2Doc） |
@@ -150,7 +150,7 @@ category: architecture
 title: WorkPanel Connecter 架构
 description: 一句话概括：Connecter 的 P0-P3 分层与消息路由设计
 sources:                                      # 溯源（必须，可核）
-  - path: workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md
+  - path: knowledge/workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md
     lines: 1-120
     pinned: true
 status: verified                               # draft | verified
@@ -205,12 +205,12 @@ updated_at: '2026-08-21T10:00:00+08:00'
 
 | 仓库文档 | 本 MVP 的对应/差异 |
 |---|---|
-| `wiki/docs/flywheel.md` | 四环节是其「源码→知识→代码→反馈」的泛化；角色分离/溯源/反馈结构/防污染全部继承 |
-| `wiki/docs/gate.md` | 打分机制 = gate 的多信号评测的三信号组合落地为五+三信号；80% 阈值语义保留在缓存可配置位置，默认 70（知识卡质量分） |
-| `wiki/docs/knowledge-format.md` | 知识形态 1:1 采用；补全 OKF frontmatter 与知识卡模板 |
-| `wiki/docs/implementation-plan.md` | 目录/模块结构对齐（config/store/scorer/retrieve）；实现语言同为 Python（MVP 零依赖） |
-| `wiki/docs/codeagent-migration.md` | 本 MVP 是「CodeAgent 主会话编排」思路的 DSH 落地：DSH 动态插件 = 主会话，harvester = 子 agent，确定性管道 = 脚本化决策 |
-| `wiki/research/knowledge-format/*` | OKF = 格式锚点，cannbot = 运营流程锚点，均 1:1 采纳 |
+| `knowledge/wiki/docs/flywheel.md` | 四环节是其「源码→知识→代码→反馈」的泛化；角色分离/溯源/反馈结构/防污染全部继承 |
+| `knowledge/wiki/docs/gate.md` | 打分机制 = gate 的多信号评测的三信号组合落地为五+三信号；80% 阈值语义保留在缓存可配置位置，默认 70（知识卡质量分） |
+| `knowledge/wiki/docs/knowledge-format.md` | 知识形态 1:1 采用；补全 OKF frontmatter 与知识卡模板 |
+| `knowledge/wiki/docs/implementation-plan.md` | 目录/模块结构对齐（config/store/scorer/retrieve）；实现语言同为 Python（MVP 零依赖） |
+| `knowledge/wiki/docs/codeagent-migration.md` | 本 MVP 是「CodeAgent 主会话编排」思路的 DSH 落地：DSH 动态插件 = 主会话，harvester = 子 agent，确定性管道 = 脚本化决策 |
+| `knowledge/wiki/research/knowledge-format/*` | OKF = 格式锚点，cannbot = 运营流程锚点，均 1:1 采纳 |
 ## 10. 当前实现详解：从设计能力到源码行为
 
 本节记录当前 MVP 的真实实现，而不是只描述目标架构。源码基线为 `c8f1d8d25b39edfeea0c9aa712f8b541159a6872`，实现语言为 Python 3.8+ 标准库；DSH 适配层使用 JavaScript。整体调用链如下：

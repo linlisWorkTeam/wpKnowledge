@@ -5,7 +5,7 @@
 | 日期 | 2026-08-21 |
 | 研究对象 | `linlisWorkTeam/workpanelConnecter` |
 | 源码基线 | `main@e5b51eb9f89f9bcbb19480d58dc2de230d7e7591` |
-| 完整执行计划 | `workpanelConnecter/docs/superpowers/plans/2026-08-21-connecter-p0-p3-evolution.md` |
+| 完整执行计划 | `../../workpanelConnecter/docs/superpowers/plans/2026-08-21-connecter-p0-p3-evolution.md` |
 
 ## 目标
 

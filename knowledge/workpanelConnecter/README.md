@@ -1,6 +1,6 @@
 # workpanelConnecter
 
-WorkPanelConnecter 独立知识域，与 `workpanel/` 平级。这里记录 Connecter / Connecter Host 自身的设计、实现证据、竞品和跨平台适配研究，不把它混入 WorkPanel 应用层报告。
+WorkPanelConnecter 独立知识域，与 `../workpanel/` 平级。这里记录 Connecter / Connecter Host 自身的设计、实现证据、竞品和跨平台适配研究，不把它混入 WorkPanel 应用层报告。
 
 ## 目录
 
