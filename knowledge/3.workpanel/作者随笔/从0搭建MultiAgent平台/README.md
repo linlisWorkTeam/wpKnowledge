@@ -44,7 +44,7 @@ flowchart LR
 - **对 Agent 生态**：做一个**协议中立、CLI 复用的聚合层**，不绑架任何模型或框架；并通过扩展宿主（Extension Host）与未来的 Connecter 打通"更多 Agent 平台互通"的想象空间。
 - **对开源社区**：MIT 许可、文档按 Diátaxis 组织、有明确的版本流水线与贡献门禁——目标是成为一个别人愿意接入、愿意贡献的开放项目。
 
-> 更进一步的战略思考（差异化、soul、生态、开源与 dsh 集成等讨论），见 [06-战略思考：与作者的共同命题](06-strategy-thinking.md)。clowder-ai（猫咖）的专题调研见 [research/clowder-ai调研](../research/clowder-ai调研/README.md)。
+> 更进一步的战略思考（差异化、soul、生态、开源与 dsh 集成等讨论），见 [06-战略思考：与作者的共同命题](06-strategy-thinking.md)。clowder-ai（猫咖）的专题调研见 [../../调研/clowder-ai调研/README.md](../../调研/clowder-ai调研/README.md)。
 
 ---
 

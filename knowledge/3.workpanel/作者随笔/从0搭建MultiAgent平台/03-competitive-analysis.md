@@ -68,6 +68,6 @@ A2A 是"Agent 之间说话的语言"，ohMyWorkPanel 是"人和 Agent 一起工�
 
 1. **"看得见的 AI 团队"**：多 Agent 平台的信任问题 = 黑盒问题；ohMyWorkPanel 用群聊+任务轨迹+审批把执行完全摊开在阳光下;
 2. **"你的 CLI，你的面板"**：不锁定模型/厂商，用户已付费的 CLI 即插即用，迁移成本趋近于零;
-3. **"本地优先的开放客厅"**：别人的生态要么在云端（托管），要么在某个模型阵营里；ohMyWorkPanel 站在本地，向所有 Agent 平台开门——这正是它与 Connecter 一起能讲的故事（见 [04 演进方向](04-evolution-roadmap.md)、[clowder 对比](../research/clowder-ai调研/02-compare-with-ohMyWorkPanel.md)）。
+3. **"本地优先的开放客厅"**：别人的生态要么在云端（托管），要么在某个模型阵营里；ohMyWorkPanel 站在本地，向所有 Agent 平台开门——这正是它与 Connecter 一起能讲的故事（见 [04 演进方向](04-evolution-roadmap.md)、[clowder 对比](../../调研/clowder-ai调研/02-compare-with-ohMyWorkPanel.md)）。
 
 > 风险提示：记忆/人格/互审是 Clowder 的长板，也是"情绪价值"叙事的钥匙；ohMyWorkPanel 若长期不补这一点，会在生态成熟期被拉开差距（详见 [06 战略思考](06-strategy-thinking.md) 的 soul 讨论）。

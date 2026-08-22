@@ -75,4 +75,4 @@ flowchart LR
 - **soul** = 皮可换、骨难换、心不可换——"可替换 soul 内核"应以"保留关系资产"为前提设计；
 - **商业** = 产品付费 → 团队付费 → 生态抽成 三阶段；生态从"贡献者易赢"开始建。
 
-> 这些结论如何落到 ohMyWorkPanel 自己身上，见 [05 联合思考](05-joint-thinking.md) 与 [originDesign/06 战略思考](../../originDesign/06-strategy-thinking.md)。
+> 这些结论如何落到 ohMyWorkPanel 自己身上，见 [05 联合思考](05-joint-thinking.md) 与 [从0搭建MultiAgent平台/06 战略思考](../../作者随笔/从0搭建MultiAgent平台/06-strategy-thinking.md)。

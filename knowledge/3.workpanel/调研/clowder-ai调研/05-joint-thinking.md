@@ -1,6 +1,6 @@
 # 联合思考（05）：clowder-ai 教我什么，ohMyWorkPanel 怎么接
 
-> 与原文 [originDesign/06 战略思考](../../originDesign/06-strategy-thinking.md) 配套：那一篇从 ohMyWorkPanel 出发；这一篇从 clowder-ai 的观察反推，回答"clowder 已经验证了什么、ohMyWorkPanel 该抄什么、又该留下什么"。
+> 与原文 [从0搭建MultiAgent平台/06 战略思考](../../作者随笔/从0搭建MultiAgent平台/06-strategy-thinking.md) 配套：那一篇从 ohMyWorkPanel 出发；这一篇从 clowder-ai 的观察反推，回答"clowder 已经验证了什么、ohMyWorkPanel 该抄什么、又该留下什么"。
 
 ---
 
@@ -57,4 +57,4 @@ clowder 开源仓是脱敏出口（内部 cat-cafe → 对外 clowder-ai），�
 | 灵魂牌 | 通用 soul 规格 + MBTI 首发皮肤 + 关系资产可带走 | P2–P3 |
 | 生态牌 | 开源门面（版本/文档/门禁）+ 走出去贡献 + 集成 dsh | 常做 |
 
-> 详细论证与分阶段计划：见 [originDesign/06 战略思考](../../originDesign/06-strategy-thinking.md)。
+> 详细论证与分阶段计划：见 [从0搭建MultiAgent平台/06 战略思考](../../作者随笔/从0搭建MultiAgent平台/06-strategy-thinking.md)。

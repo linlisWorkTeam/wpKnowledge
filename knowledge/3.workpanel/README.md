@@ -16,3 +16,8 @@ WorkPanel 架构、实现分析、规划和评审证据。
 - [WorkPanelConnecter 当前实现分析](调研/WorkPanelConnecter当前实现分析.md)
 - [endlessWpKnowledgeRunner 飞轮实现分析](调研/endlessWpKnowledgeRunner飞轮实现分析.md)
 - [Connecter P0-P3 修改计划](规划/Connecter%20P0-P3修改计划.md)
+
+## 对外交流文档
+
+- [从0搭建MultiAgent平台（作者随笔）](作者随笔/从0搭建MultiAgent平台/README.md)——4+1 视图 / 核心设计理念 / 竞品对比 / 演进方向 / 开发笔记 / 战略思考
+- [clowder-ai（猫咖）调研](调研/clowder-ai调研/README.md)——原始设计 / 与 ohMyWorkPanel 对比 / 演进与 Connecter / 作者四问 / 联合思考
