@@ -1,0 +1,200 @@
+# endlessWpKnowledgeRunner — 知识飞轮设计总结与 MVP 实现方案
+
+> 本文档基于对 wpKnowledge 仓库全部调研文档（`wiki/docs/*` 8 篇正式文档 + `wiki/research/*` 34 篇调研笔记 + 候选池 160+ 条目、`dshAnalysis/*` 5 篇、`workpanel/*` 与两个参考仓库 OKF / cannbot 的深度笔记）的系统阅读与收敛。
+> 它回答一个问题：**把「知识飞轮」从纸面设计落成一个可运行、可扩展的 MVP，应该怎么设计？**
+
+---
+
+## 1. 飞轮是什么：一个 Loop，由四个环节组成
+
+调研文档（`wiki/docs/flywheel.md`、`overview.md`、`gate.md`、`operator-flywheel-case.md`）反复确认同一件事：**飞轮不是一个系统，是一个 loop / workflow**。本仓库已有分析的目标是「源码/知识 → 代码 → 反馈」；本 MVP 把它泛化为更适合「知识仓库运营」的形态，四个环节各自可以由被赋予使命的 agent 承担：
+
+```
+                    ┌─────────────────────────────────────────────┐
+                    │                                             │
+   ┌──────────┐     ▼       ┌──────────────┐      ┌────────────┐  │
+   │ ① 获取知识 │ ────────▶ │ ② 沉淀知识 OKF │ ──▶ │ ③ 评测打分 │──┼─┐
+   │ Acquire  │   触发式    │ Consolidate  │      │ Evaluate   │  │ │
+   └──────────┘   /自动    └──────────────┘      └─────┬──────┘  │ │
+                                                      │ 通过门禁  │ │
+                    ┌──────────────┐                   ▼          │ │
+                    │ ④ 应用知识    │ ◀── 外部检索 ── 合格知识库     │ │
+                    │ Apply        │              (concepts/)     │ │
+                    └──────────────┘                              │ │
+                         ▲                                        │ │
+                         └──────── 使用反馈（点击/评分/勘误）───────────────────┘
+```
+
+- **① 获取知识（Acquire）**：两个入口。**触发式**：任何 agent / 用户向飞轮推送知识（`fw_ingest` 工具，或往 `sources/` 投递文件）即运行；**自动化**：`liveMode` 启动后，一个 **harvester agent** 周期性扫描来源目录与投放目录，自行提炼知识入库。
+- **② 沉淀知识（Consolidate）**：**不使用 RAG**，采用 **OKF 模式**（知识内容直接可 `cat`、可 `git diff`、可评审）。知识 = Markdown + YAML frontmatter 的知识卡（Concept），按 Bundle（目录树）自包含组织，`sources` 溯源 + `status` 状态 + `verified` 信任级别为 first-class（依据 `wiki/research/knowledge-format/knowledge-catalog-okf.md`）。知识库天生可 diff、可评审、可回滚。
+- **③ 评测打分（Evaluate）**：一套**多信号打分机制**（详见 §4）。打分是「评测闭环」而非 LLM 自我感觉：客观信号为主，LLM 陪审团为辅，重复评测报告均值±方差，通过门禁才合并（防污染，依据 `flywheel.md §9` + `fragility-self-improving.md`）。
+- **④ 应用知识（Apply）**：**只读检索**入口（`fw_query` 工具 + HTTP 端点），供外部消费；检索命中与用户反馈回流为评分信号（依据 cannbot `knowledge-query` + `knowledge-issue-report` 的「生产→治理→消费→反馈」闭环）。
+
+## 2. 设计溯源：这些结论是从哪里来的
+
+| 飞轮环节 | 采纳的关键结论 | 调研依据（仓库内文档） |
+|---|---|---|
+| 获取（顺序） | 知识处理顺序 = 依赖拓扑序；先依赖后被依赖 | RepoAgent、RepoDoc（`wiki/research/doc-generation/`） |
+| 获取（触发） | 代码/文档变更触发增量更新，而非全量重跑 | RepoAgent、RepoDoc、Code & Doc Churn（candidate-pool） |
+| 沉淀（格式） | 知识格式 = OKF：Markdown + frontmatter（sources/status/verified）；Bundle 自包含；index.md 渐进披露；log.md 更新历史 | knowledge-catalog-okf、cannbot-knowledge、knowledge-format.md |
+| 沉淀（形态） | 知识 = 解释型文档：伪代码/要点 + 为什么这样、解决什么问题、适用场景；**保留"魂"不搬运"壳"**；低质文档不如没有 | knowledge-format.md、llm-api-docs（Code2Doc） |
+| 评测（信号） | 多信号组合：结构 + 溯源 + 时效 + 去重 + 客观一致性；单一指标必误判 | gate.md §3.5、research-brief 结论 9 |
+| 评测（客观性） | 外部验证 > 内部反思；LLM 自评不可作主信号；防作弊（评测集独立） | critic.md、fragility-self-improving.md、code-qa-bench.md |
+| 评测（可靠性） | 重复评测 ≥ 5 次报告均值±方差；规格定义到可执行级；控制顺序 | fragility-self-improving.md、gate.md §3.5、research-brief 结论 14 |
+| 评测（反馈） | 结构化信号 + 自然语言解读两层；执行反馈最有效 | self-debugging.md、feedback-over-form.md、flywheel.md §5 |
+| 应用（检索） | 多路召回 + 质量重排；证据充分性规则（weak 不能单独支撑结论）；检索可审计 | cannbot-knowledge §5、retrieval-method.md |
+| 全生命周期 | 知识「生产→治理→消费→反馈」流程锚点 | cannbot-knowledge、sok-agentic-skills（技能生命周期 7 阶段） |
+| 可靠性硬约束 | 防污染（未过门禁不合并 + 回滚）、防脆弱（方差/顺序/规格）、知识库是攻击面（来源可信） | flywheel.md §9、conself、FDI/RAG 投毒（candidate-pool） |
+
+## 3. 角色分工（谁可以碰知识）
+
+继承 `flywheel.md §3` 的三角色分离，但针对「知识运营」场景简化为两方 + 一个编排层：
+
+| 角色 | 职责 | 是否允许修改知识 |
+|---|---|---|
+| 推送方（触发 agent / 用户） | 通过 `fw_ingest` 投递知识原文或文件；只读检索 `fw_query` | ❌ 不直接写 store（由 ingest 管道写 draft） |
+| **harvester agent**（liveMode） | 扫描来源 → 自行提炼结构化知识 → 交给 ingest 管道 | ❌ 只产出 draft payload，不直接落知识卡 |
+| **编排层（runner 自身的确定性管道）** | OKF 化（frontmatter 补齐）→ 打分 → 门禁决策 → 合并/退回 → 索引/日志 | ✅ 唯一执笔者（写 store） |
+| 消费方（外部 agent / HTTP 调用方） | 检索 + 反馈（命中、评分、勘误 flag） | ❌ 只读；反馈写 ledger（可审计） |
+
+原则（来自调研）：**谁评测谁不改，谁沉淀谁负责**；门禁判断不依赖任何 agent 的自我感觉；评测与生成分离。
+MVP 中评测的「生成」环节弱化为「文档一致性」客观信号（见 §4），后续可扩展「知识 → 代码还原」强评测。
+
+## 4. 打分机制（评测环节）：多信号加权 + 门禁 + 重复评测
+
+> `gate.md` 留下了「相似度怎么算、置信度怎么算」的待定项。本 MVP 给出一个**切实可行、可执行到代码级**的打分定义（规则全部确定性可重复），也保留了 LLM 陪审团作为辅助信号。
+
+### 4.1 信号清单（每一项 0~1，可单独开启/关闭）
+
+| 信号 | 权重 | 是什么 / 怎么算 | 依据 |
+|---|---|---|---|
+| S1 溯源完整性 Provenance | 0.25 | frontmatter 有效；`sources` 非空；来源可解析（文件存在或 http(s) URL）；有 pinned 锚点（文件:行 / commit / URL） | OKF sources；flywheel §4 溯源是归因前提 |
+| S2 结构质量 Structure | 0.20 | 有 title/description/正文；有 `##` 分节；有代码块或要点列表；出现「为什么/原因/适用场景」类解释词；长度在合理区间；非整段原文搬运（与来源文本的相似度阈值） | knowledge-format.md（解释型文档）；Code2Doc 防 AI 污染/防搬运 |
+| S3 时效 Freshness | 0.10 | 按 `updated_at`/`stale_after` 衰减：越新越满，超期降到 0.5 以下 | OKF status/stale_after；Code2Doc 时效关卡 |
+| S4 去重/污染 Dedup | 0.10 | 与 store 中已有概念按 name/内容哈希查重；重复 → 低分；已 verified 概念被改写 → 走版本升级而非新卡 | flywheel §9.5 防污染；Code2Doc 去重 |
+| S5 可验证性 Verifiability | 0.05 | 卡内是否给出可验证锚点（数字指标、引用链接、命令、公式），便于外部复核 | OKF Attested Computation（executor/attester 雏形）；cannbot 证据体系 |
+| **J 陪审团 LLM Jury** **（可选）** | 0.20 | 模型对「清晰度 / 忠实度 / 可行动性」三项 1~10 打分（相对 sources 核对），**重复 N 次取均值±方差**；未启用或失败时权重重新分配给确定性信号 | critic（外部验证）；fragility（重复评测）；gate §3 候选方向「LLM 打分」作为辅信号 |
+| U 使用反馈 Usage | 0.10 | 检索命中数、消费方评分、勘误 flag，从 `ledger.json` 统计；无数据时取中性 0.5，随最后命中时间衰减 | cannbot issue-report；cannbot knowledge-query 充分性规则 |
+
+### 4.2 合成与门禁
+
+- `score = round(100 * Σ (w_i · s_i))`；未启用信号的权重按剩余权重归一化（多信号优雅降级）。
+- **门禁**：`score ≥ gate_threshold`（默认 70，可配置；区别于 wiki 中面向「代码还原」的 80% 相似度门禁——那个信号在 MVP 中由 S2/S5 近似，后续扩展环节可直接接入）→ `status: verified` 合并入 `concepts/`；否则留在 `drafts/`，返回「薄弱点清单」。
+- **置信度**：`confidence = 1 - min(1, jury_std / 2)`（陪审团一致性强则置信度高）；`fw_eval` 对同一批卡重复打分 ≥3 次报告均值±方差。
+- 评测输出 = 结构化分数报告（每信号分 + 原因清单 + 薄弱点），对应 `flywheel.md §5` 的「结构化信号」层；薄弱点即「知识薄弱点地图」的雏形（触发几次扣分 → 标记薄弱）。
+
+### 4.3 为什么这样设计（而不是更复杂的方案）
+
+1. **客观信号优先**（fragility/conself）：S1~S5 全部是确定性规则，重复执行结果一致，不依赖模型状态。
+2. **防作弊**（code-qa-bench）：S2 显式惩罚「整段搬运」，S1 要求 sources 溯源可核，J 陪审团要求对照 sources 判忠实度而非凭印象。
+3. **防污染**（flywheel §9.5）：未过门禁只进 drafts；已 verified 卡被覆盖必须走版本升级（history/ 保留旧版）；评分低于上一版本的改写会被标记回滚候选。
+4. **可演进**：权重、阈值全部在 `config.json`，新信号（如测试通过率、知识→代码还原相似度）按同一接口插拔。
+
+## 5. 目录结构（MVP 落地）
+
+```
+endlessWpKnowledgeRunner/
+├── README.md                    # 使用入口（怎么触发/怎么查/liveMode）
+├── config.json                  # 阈值/权重/来源目录/陪审团开关
+├── fw.py                        # CLI 入口：python fw.py <cmd>（standalone 运行，零第三方依赖）
+├── fwrunner/
+│   ├── __init__.py
+│   ├── config.py                # 配置加载（JSON）
+│   ├── okf.py                   # OKF 知识卡读写：frontmatter 子集解析/生成、sources 规范化
+│   ├── store.py                 # Bundle 存储：drafts/concepts/history、index.md、log.md、ledger
+│   ├── ingest.py                # ①获取→②沉淀管道：原稿 → 概念卡(draft) → 打分 → 门禁 → 合并
+│   ├── scorer.py                # ③打分引擎：信号计算、合成、置信度、报告（含薄弱点）
+│   ├── jury.py                  # LLM 陪审团信号（可插拔：读 DSH 或 API 产出的 JSON）
+│   ├── retrieve.py              # ④应用：索引 + BM25 检索 + 质量重排 + 充分性提示
+│   ├── livemode.py              # ready 状态机：scan 来源 → 候选清单（供 harvester 消费）
+│   ├── ledger.py                # 使用反馈记录：命中/评分/勘误（回流为 Usage 信号）
+│   └── util.py                  # CJK tokenize、文本相似度、时间工具
+├── dsh/
+│   ├── fw-plugin.js             # DSH 动态 Cordis 插件源码（fw_* 工具 + liveMode + HTTP 端点）
+│   └── plugin-agent-preset.md   # 如何把插件永久挂进 DSH（agent preset / 开机加载）
+├── sources/                     # ①触发式投放目录：往里丢 .md 即被 ingest；examples/ 示例
+├── store/                       # ②OKF Bundle（本目录入库 git，即发布）
+│   ├── index.md                 # 渐进式披露索引（自动生成）
+│   ├── log.md                   # 追加式更新历史（审计）
+│   ├── ledger.json              # 使用反馈统计（应用环节回流）
+│   ├── .livemode-state.json     # liveMode 扫描游标（已处理文件 + 内容哈希）
+│   ├── drafts/                  # 未过门禁的草稿卡
+│   ├── concepts/                # 已过门禁的合格知识卡（外部检索只搜这里 + drafts 可选）
+│   └── history/                 # version 升级前的旧版快照（防污染回滚）
+└── tests/                       # python -m unittest discover（无第三方依赖）
+```
+
+## 6. OKF 知识卡模板（沉淀环节产物）
+
+每张知识卡 = 一个 `.md` 文件，frontmatter 对齐 `okf.v1`，正文对齐「解释型文档」规范：
+
+```yaml
+---
+schema_version: okf.v1
+name: workpanel-connecter-architecture        # 概念 ID（= 文件名）
+kind: concept
+category: architecture
+title: WorkPanel Connecter 架构
+description: 一句话概括：Connecter 的 P0-P3 分层与消息路由设计
+sources:                                      # 溯源（必须，可核）
+  - path: workpanel/docs/2026-08-21-workpanel-connecter-architecture-review.md
+    lines: 1-120
+    pinned: true
+status: verified                               # draft | verified
+verified: true                                 # false | true
+version: 1                                     # 覆盖更新必须 +1
+stale_after: '2027-01-01'                      # 过期日（时效信号）
+score: 82                                      # 最近一次评测（只读，由 runner 写）
+score_breakdown: { provenance: 0.9, structure: 0.85, ... }   # 信号分
+confidence: 0.9
+tags: [connecter, workpanel, architecture]
+platforms: []                                  # 可选：适用平台过滤
+created_at: '2026-08-21T10:00:00+08:00'
+updated_at: '2026-08-21T10:00:00+08:00'
+---
+
+## 概述
+（为什么有这个东西、解决什么问题）
+
+## 设计要点（伪代码/结构 + 为什么）
+（保留逻辑"魂"：数据流、边界、调用关系；每条尽量附 sources 锚点）
+
+## 适用场景
+（什么时候应该采用这个写法/设计，什么时候不应该）
+
+## 验证
+（如何复核这条知识：链接、命令、指标、原始文档位置）
+```
+
+## 7. 评测报告结构（结构化信号，可被编排层消费）
+
+```json
+{
+  "concept": "workpanel-connecter-architecture",
+  "score": 82,
+  "gate": "pass",
+  "signals": {"provenance": 0.9, "structure": 0.85, "freshness": 1.0, "dedup": 1.0, "verifiability": 0.6, "usage": 0.5},
+  "jury": {"enabled": false, "runs": 0, "mean": null, "std": null},
+  "weak_points": ["verifiability: 无 pinsized 验证锚点，建议补充可复核的文档/代码链接", "structure: 缺少『适用场景』小节"],
+  "confidence": 0.9,
+  "took_ms": 12
+}
+```
+
+## 8. 迭代方向（MVP 之后的飞轮闭环）
+
+1. **强评测环**：把 wiki 的「知识→代码→与源码对比」门禁接入 scorer（新增信号：还原相似度 + 测试通过率），实现真正的「评测失败→反馈→知识修订→重测」回路（`flywheel.md` 主线）。
+2. **归因修订**：按 sources 反向映射薄弱点到段落（`review/attributor` 思路），让修订 agent 只改被点名的段落。
+3. **薄弱点地图持久化**：ledger 中累计各信号失败次数，作为门禁辅助信号。
+4. **liveMode 调度升级**：定时任务 + 网页端控制面板 + 检索审计日志。
+
+## 9. 与仓库既有文档的关系
+
+| 仓库文档 | 本 MVP 的对应/差异 |
+|---|---|
+| `wiki/docs/flywheel.md` | 四环节是其「源码→知识→代码→反馈」的泛化；角色分离/溯源/反馈结构/防污染全部继承 |
+| `wiki/docs/gate.md` | 打分机制 = gate 的多信号评测的三信号组合落地为五+三信号；80% 阈值语义保留在缓存可配置位置，默认 70（知识卡质量分） |
+| `wiki/docs/knowledge-format.md` | 知识形态 1:1 采用；补全 OKF frontmatter 与知识卡模板 |
+| `wiki/docs/implementation-plan.md` | 目录/模块结构对齐（config/store/scorer/retrieve）；实现语言同为 Python（MVP 零依赖） |
+| `wiki/docs/codeagent-migration.md` | 本 MVP 是「CodeAgent 主会话编排」思路的 DSH 落地：DSH 动态插件 = 主会话，harvester = 子 agent，确定性管道 = 脚本化决策 |
+| `wiki/research/knowledge-format/*` | OKF = 格式锚点，cannbot = 运营流程锚点，均 1:1 采纳 |
