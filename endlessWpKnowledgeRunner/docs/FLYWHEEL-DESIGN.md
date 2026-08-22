@@ -5,6 +5,19 @@
 
 ---
 
+## 0. Repository boundary (current layout)
+
+The implementation is under `endlessWpKnowledgeRunner/`; the publishable OKF
+bundle is the repository-level `knowledge/` directory. New raw material goes
+to `knowledge/inbox/`, verified cards go to `knowledge/concepts/`, drafts go to
+`knowledge/drafts/`, protected revisions go to `knowledge/history/`, and
+feedback/log/cursor state goes to `knowledge/runtime/`. The runner is the only
+writer of card and runtime files; agents enter through `fw_ingest` or
+`python fw.py ingest`.
+
+The detailed directory and write contract is maintained in
+[`KNOWLEDGE-REPOSITORY.md`](KNOWLEDGE-REPOSITORY.md).
+
 ## 1. 飞轮是什么：一个 Loop，由四个环节组成
 
 调研文档（`wiki/docs/flywheel.md`、`overview.md`、`gate.md`、`operator-flywheel-case.md`）反复确认同一件事：**飞轮不是一个系统，是一个 loop / workflow**。本仓库已有分析的目标是「源码/知识 → 代码 → 反馈」；本 MVP 把它泛化为更适合「知识仓库运营」的形态，四个环节各自可以由被赋予使命的 agent 承担：

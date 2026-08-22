@@ -1,0 +1,8 @@
+# Python and local browser/test artifacts
+**/__pycache__/
+*.py[cod]
+endlessWpKnowledgeRunner/.playwright-cli/
+
+# Atomic-write leftovers
+knowledge/**/*.tmp
+knowledge/**/*.write-*

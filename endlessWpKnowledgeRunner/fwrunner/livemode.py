@@ -14,7 +14,7 @@ from . import util
 from .config import Config
 from .store import Store
 
-IGNORE_DIRS = {".git", ".dsh", "__pycache__", "node_modules", "dist", "build", "history", "jury"}
+IGNORE_DIRS = {".git", ".dsh", "__pycache__", "node_modules", "dist", "build", "history", "jury", "runtime", "schema"}
 IGNORE_FILES = {"index.md", "log.md", "README.md", "ledger.json"}
 
 
@@ -25,8 +25,7 @@ def scan(cfg: Config, store: Store, limit: Optional[int] = None) -> Dict[str, An
     state = store.read_state()
     files_state: Dict[str, Any] = state.setdefault("files", {})
     candidates: List[Dict[str, Any]] = []
-    for rel_dir in cfg.source_dirs:
-        abs_dir = rel_dir if os.path.isabs(rel_dir) else os.path.join(cfg.root, rel_dir)
+    for abs_dir in cfg.source_dirs:
         if not os.path.isdir(abs_dir):
             continue
         for root, dirs, fnames in os.walk(abs_dir):
@@ -37,7 +36,7 @@ def scan(cfg: Config, store: Store, limit: Optional[int] = None) -> Dict[str, An
                 if fn in IGNORE_FILES:
                     continue
                 full = os.path.join(root, fn)
-                rel = os.path.relpath(full, cfg.root).replace("\\", "/")
+                rel = cfg.path_label(full)
                 h = util.sha256_file(full)
                 prev = files_state.get(rel) or {}
                 if prev.get("hash") == h:
@@ -62,7 +61,7 @@ def scan(cfg: Config, store: Store, limit: Optional[int] = None) -> Dict[str, An
 def mark_handled(cfg: Config, store: Store, rel_path: str, concept: str) -> None:
     state = store.read_state()
     files = state.setdefault("files", {})
-    full = rel_path if os.path.isabs(rel_path) else os.path.join(cfg.root, rel_path)
+    full = cfg.resolve_repo_path(rel_path)
     files[rel_path] = {"hash": util.sha256_file(full) if os.path.isfile(full) else "",
                        "concept": concept, "ts": util.now_iso()}
     store.write_state(state)

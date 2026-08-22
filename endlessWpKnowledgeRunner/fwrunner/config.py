@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
-"""Configuration: default + JSON overlay, threshold/weights, source dirs."""
+"""Configuration: runner code paths, knowledge-base paths and gate settings."""
 import json
 import os
 from typing import Any, Dict, List, Optional
 
 DEFAULTS: Dict[str, Any] = {
     "runner_root": None,          # auto: directory containing config.json
+    # The runner is code; the knowledge base is a sibling directory.  Keep
+    # store_dir as a legacy alias for installations that still use the old
+    # runner-local layout.
+    "knowledge_dir": "../knowledge",
     "store_dir": "store",
-    "source_dirs": ["sources"],   # liveMode scan roots (relative to runner root)
-    "watch_dirs": [],             # extra dirs scanned in liveMode (e.g. ["../wiki/docs"])
+    "source_dirs": ["inbox"],      # roots relative to knowledge_dir
+    "watch_dirs": [],              # extra roots relative to runner root
     "gate": {
         "threshold": 70,          # score >= threshold -> verified
         "min_length": 80,         # body chars below -> structure penalty
@@ -31,7 +35,7 @@ DEFAULTS: Dict[str, Any] = {
     "jury": {
         "enabled": False,          # LLM jury is pluggable & opt-in (see docs)
         "runs": 3,                 # repeat runs -> mean/std (fragility constraint)
-        "dir": "store/jury",       # where external jury JSON files land
+        "dir": "jury",             # relative to knowledge_dir
     },
     "retrieval": {
         "top_k": 8,
@@ -43,7 +47,7 @@ DEFAULTS: Dict[str, Any] = {
     "livemode": {
         "interval_minutes": 15,    # used by the DSH plugin interval
         "max_per_cycle": 4,        # candidates extracted per agent cycle
-        "state_file": ".livemode-state.json",
+        "state_file": "runtime/livemode-state.json",
     },
     "logging": {"log_max_lines": 5000},
 }
@@ -62,7 +66,31 @@ class Config:
 
     @property
     def store_dir(self) -> str:
-        return os.path.join(self.root, str(self.get("store_dir", "store")))
+        return self.knowledge_dir
+
+    @property
+    def knowledge_dir(self) -> str:
+        configured = self.get("knowledge_dir")
+        if configured:
+            return configured if os.path.isabs(configured) else os.path.normpath(os.path.join(self.root, configured))
+        legacy = str(self.get("store_dir", "store"))
+        return legacy if os.path.isabs(legacy) else os.path.normpath(os.path.join(self.root, legacy))
+
+    @property
+    def repo_root(self) -> str:
+        return os.path.dirname(self.root)
+
+    def resolve_source_dir(self, path: str) -> str:
+        """Resolve a managed inbox path or an explicitly configured watch path."""
+        return path if os.path.isabs(path) else os.path.normpath(os.path.join(self.knowledge_dir, path))
+
+    def resolve_repo_path(self, path: str) -> str:
+        """Resolve a provenance/state path relative to the repository root."""
+        return path if os.path.isabs(path) else os.path.normpath(os.path.join(self.repo_root, path))
+
+    def path_label(self, path: str) -> str:
+        """Return a stable repository-relative label for provenance/state."""
+        return os.path.relpath(path, self.repo_root).replace("\\", "/")
 
     @property
     def gate_threshold(self) -> float:
@@ -74,9 +102,11 @@ class Config:
 
     @property
     def source_dirs(self) -> List[str]:
-        dirs: List[str] = list(self.get("source_dirs", ["sources"]))
+        dirs: List[str] = [self.resolve_source_dir(d) for d in self.get("source_dirs", ["inbox"])]
+        # watch_dirs are intentionally runner/repository paths, not writable
+        # knowledge paths. They are read-only acquisition sources.
         for d in self.get("watch_dirs", []):
-            dirs.append(d)
+            dirs.append(d if os.path.isabs(d) else os.path.normpath(os.path.join(self.root, d)))
         return dirs
 
 

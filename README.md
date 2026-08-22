@@ -1,6 +1,14 @@
 # wpKnowledge
 wp输出的知识库
 
+## Repository boundaries
+
+- `endlessWpKnowledgeRunner/` contains the flywheel implementation, CLI, DSH adapter, Dashboard, and tests.
+- `knowledge/` contains the controlled OKF knowledge base: `inbox/` for raw candidates, `drafts/` for below-gate cards, `concepts/` for verified cards, `history/` for protected versions, and `runtime/` for governance state.
+- New knowledge enters through `endlessWpKnowledgeRunner/fw.py ingest`; agents must not write cards directly into `knowledge/concepts/`.
+
+The layout and insertion contract are documented in [`knowledge/README.md`](knowledge/README.md) and [`endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md`](endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md).
+
 ## dshAnalysis
 
 DeepSeek Harness（dsh）可借鉴性分析（WorkPanel 机制样本，非整仓接入）。

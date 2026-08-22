@@ -192,7 +192,7 @@ class Scorer:
     def jury_signal(self, name: str) -> Tuple[Optional[float], Dict[str, Any]]:
         """Read pluggable jury JSON (written by any external model) and return
         (signal or None when unavailable, detail)."""
-        jury_dir = os.path.join(self.store.root, "jury")
+        jury_dir = self.store.jury_dir
         path = os.path.join(jury_dir, name + ".json")
         if not os.path.isfile(path):
             return None, {"enabled": self.cfg.get("jury", {}).get("enabled", False), "runs": 0, "mean": None, "std": None}

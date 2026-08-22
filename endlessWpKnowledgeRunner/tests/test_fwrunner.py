@@ -50,9 +50,15 @@ class RunnerTestCase(unittest.TestCase):
         self.root = tempfile.mkdtemp(prefix="fw-test-")
         # copy the real config so defaults match
         cfg_src = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "config.json")
-        shutil.copy(cfg_src, os.path.join(self.root, "config.json"))
-        os.makedirs(os.path.join(self.root, "sources"), exist_ok=True)
+        with open(cfg_src, "r", encoding="utf-8") as f:
+            cfg_data = json.load(f)
+        # Tests use an isolated knowledge base while production uses the
+        # repository-level ../knowledge directory.
+        cfg_data["knowledge_dir"] = "knowledge"
+        with open(os.path.join(self.root, "config.json"), "w", encoding="utf-8") as f:
+            json.dump(cfg_data, f, ensure_ascii=False, indent=2)
         self.cfg = load_config(self.root)
+        os.makedirs(os.path.join(self.cfg.knowledge_dir, "inbox"), exist_ok=True)
         self.store = Store(self.cfg)
         self.scorer = Scorer(self.cfg, self.store)
         self.ing = Ingester(self.cfg, self.store, self.scorer)
@@ -77,6 +83,37 @@ class TestOKF(RunnerTestCase):
         self.assertEqual(meta2["sources"], meta["sources"])
         self.assertEqual(meta2["score"], 88.5)
         self.assertEqual(meta2["tags"], ["a", "b"])
+
+
+class TestStorePolicy(RunnerTestCase):
+    def test_knowledge_runtime_is_separate_from_cards(self):
+        self.assertEqual(self.store.root, self.cfg.knowledge_dir)
+        self.assertTrue(self.store.log_path.startswith(self.store.runtime_dir))
+        self.assertTrue(self.store.ledger_path.startswith(self.store.runtime_dir))
+
+    def test_store_rejects_unsafe_card_name(self):
+        meta = {
+            "schema_version": "okf.v1",
+            "name": "escape",
+            "sources": [{"path": "docs/source.md"}],
+            "status": "verified",
+            "verified": True,
+            "version": 1,
+        }
+        with self.assertRaises(ValueError):
+            self.store.write_card("../escape", "verified", meta, "# body")
+
+    def test_verified_card_requires_provenance(self):
+        meta = {
+            "schema_version": "okf.v1",
+            "name": "no-source",
+            "sources": [],
+            "status": "verified",
+            "verified": True,
+            "version": 1,
+        }
+        with self.assertRaises(ValueError):
+            self.store.write_card("no-source", "verified", meta, "# body")
 
     def test_sources_urls_not_mangled(self):
         meta, body = okf.parse_frontmatter("---\nsources:\n  - path: https://github.com/x/y\n    pinned: true\n---\n\nbody\n")
@@ -137,10 +174,10 @@ class TestScoringSignals(RunnerTestCase):
         self.assertLess(r.report["signals"]["provenance"], 0.5)
 
     def test_copy_penalty(self):
-        src_file = os.path.join(self.root, "sources", "origin.md")
+        src_file = os.path.join(self.cfg.knowledge_dir, "inbox", "origin.md")
         with open(src_file, "w", encoding="utf-8") as f:
             f.write(GOOD_BODY)  # body is a verbatim copy of the source
-        r = self.ing.run(content=GOOD_BODY, name="copied", source="sources/origin.md")
+        r = self.ing.run(content=GOOD_BODY, name="copied", source="knowledge/inbox/origin.md")
         # structure signal must be penalized (copy penalty)
         self.assertLess(r.report["signals"]["structure"], 0.9)
 
@@ -182,7 +219,7 @@ class TestRetrieval(RunnerTestCase):
 
 class TestLiveMode(RunnerTestCase):
     def test_scan_finds_and_dedups(self):
-        src = os.path.join(self.root, "sources", "new.md")
+        src = os.path.join(self.cfg.knowledge_dir, "inbox", "new.md")
         with open(src, "w", encoding="utf-8") as f:
             f.write(GOOD_BODY)
         scan1 = livemode.scan(self.cfg, self.store)
@@ -195,10 +232,10 @@ class TestLiveMode(RunnerTestCase):
         self.assertEqual(scan2["total"], 0)  # cursor advanced
 
     def test_harvest_deterministic(self):
-        src = os.path.join(self.root, "sources", "harvest-me.md")
+        src = os.path.join(self.cfg.knowledge_dir, "inbox", "harvest-me.md")
         with open(src, "w", encoding="utf-8") as f:
             f.write(GOOD_BODY)
-        self.ing.run(file_path=src, source="sources/harvest-me.md", name="pre")
+        self.ing.run(file_path=src, source="knowledge/inbox/harvest-me.md", name="pre")
         # second scan: content unchanged -> no candidates
         scan = livemode.scan(self.cfg, self.store)
         self.assertEqual(scan["total"], 0)

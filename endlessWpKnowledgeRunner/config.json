@@ -1,7 +1,8 @@
 {
   "_comment": "endlessWpKnowledgeRunner configuration. Thresholds/weights are the executable definition of the gate (flywheel design doc §4).",
+  "knowledge_dir": "../knowledge",
   "store_dir": "store",
-  "source_dirs": ["sources"],
+  "source_dirs": ["inbox"],
   "watch_dirs": [],
   "gate": {
     "threshold": 70,
@@ -25,7 +26,7 @@
   "jury": {
     "enabled": false,
     "runs": 3,
-    "dir": "store/jury"
+    "dir": "jury"
   },
   "retrieval": {
     "top_k": 8,
@@ -37,7 +38,7 @@
   "livemode": {
     "interval_minutes": 15,
     "max_per_cycle": 4,
-    "state_file": ".livemode-state.json"
+    "state_file": "runtime/livemode-state.json"
   },
   "logging": {
     "log_max_lines": 5000
