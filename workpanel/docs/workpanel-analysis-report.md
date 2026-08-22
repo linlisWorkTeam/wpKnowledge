@@ -9,7 +9,7 @@
 | 验证 | Rust 123 项测试通过；前端 81 项测试通过；前端生产构建通过 |
 | 日期快照 | [`2026-08-21-workpanel-architecture-review.md`](./2026-08-21-workpanel-architecture-review.md) |
 
-相关中间件专题：[`2026-08-21-workpanel-connecter-architecture-review.md`](./2026-08-21-workpanel-connecter-architecture-review.md)。该报告评审每站 Connecter、中心 Connecter Host、异地 Runner/User 和跨站消息联邦的当前实现与演进路线。
+相关中间件专题：[`2026-08-22-workpanel-connecter-implementation-analysis.md`](./2026-08-22-workpanel-connecter-implementation-analysis.md)（当前源码实现，`main@3cf0d68`）和 [`2026-08-21-workpanel-connecter-architecture-review.md`](./2026-08-21-workpanel-connecter-architecture-review.md)（历史演进评审）。前者覆盖每站 Connecter、中心 Connecter Host、Runner、Directory v2、WorkPet 和跨站消息联邦的当前数据流与证据边界。
 
 ## 一句话结论
 
