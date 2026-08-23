@@ -6,3 +6,9 @@
 [2026-08-22T01:37:16+08:00] index rebuilt concept=garbage-note score=39.5 status=draft
 [2026-08-22T01:37:16+08:00] ingest:verified concept=flywheel-livemode status=verified score=84.8 score=84.8 gate=pass
 [2026-08-22T01:37:16+08:00] index rebuilt concept=flywheel-livemode score=84.8 status=verified
+[2026-08-23T02:23:41+08:00] ingest:verified concept=ai-emotional-value-entertainment-market status=verified score=82.1 score=82.1 gate=pass
+[2026-08-23T02:23:41+08:00] index rebuilt concept=ai-emotional-value-entertainment-market score=82.1 status=verified
+[2026-08-23T02:53:56+08:00] ingest:verified concept=omp-soul status=verified score=93.0 score=93.0 gate=pass
+[2026-08-23T02:53:56+08:00] index rebuilt concept=omp-soul score=93.0 status=verified
+[2026-08-23T03:00:30+08:00] ingest:verified concept=omp-soul status=verified score=93.0 score=93.0 gate=pass
+[2026-08-23T03:00:30+08:00] index rebuilt concept=omp-soul score=93.0 status=verified

@@ -6,8 +6,10 @@
 
 | name | category | score | version | description |
 |---|---|---|---|---|
+| ai-emotional-value-entertainment-market | market-research | 82 | 1 | AI 情绪价值娱乐产品市场与 ohMySocialPanel 定位调研核心结论 |
 | flywheel-livemode | flywheel | 85 | 1 | - |
 | okf-knowledge-format | knowledge-format | 88 | 1 | - |
+| omp-soul | architecture | 93 | 2 | omp 下一代 soul 概念：第一类实体、双层级、壳壳分离、评测门禁（v2 经交叉评审修订） |
 | workpanel-connecter | architecture | 93 | 1 | Connecter 适配层与边界处理设计 |
 
 ## Drafts (below gate)
@@ -16,6 +18,8 @@
 
 ## Sources index
 
+- `knowledge/5.ohMySocialPanel/调研/05-可行性分析.md` <- ai-emotional-value-entertainment-market
 - `endlessWpKnowledgeRunner/fwrunner/livemode.py` <- flywheel-livemode
 - `knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md` <- okf-knowledge-format
+- `knowledge/3.workpanel/作者随笔/下一代OMP，或者说ohMyAGI/08-概念：soul在ohMyAGI中的位置.md` <- omp-soul
 - `knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md` <- workpanel-connecter

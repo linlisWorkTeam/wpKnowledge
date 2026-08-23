@@ -1,18 +1,30 @@
 {
   "concepts": {
     "workpanel-connecter": {
-      "hits": 3,
+      "hits": 5,
       "ratings": [
         4.5
       ],
       "corrections": 0,
-      "last_seen": "2026-08-22T02:16:59+08:00"
+      "last_seen": "2026-08-23T02:16:06+08:00"
     },
     "flywheel-livemode": {
+      "hits": 3,
+      "ratings": [],
+      "corrections": 0,
+      "last_seen": "2026-08-23T02:16:06+08:00"
+    },
+    "okf-knowledge-format": {
+      "hits": 2,
+      "ratings": [],
+      "corrections": 0,
+      "last_seen": "2026-08-23T02:16:06+08:00"
+    },
+    "ai-emotional-value-entertainment-market": {
       "hits": 1,
       "ratings": [],
       "corrections": 0,
-      "last_seen": "2026-08-22T02:16:59+08:00"
+      "last_seen": "2026-08-23T02:54:40+08:00"
     }
   },
   "ingested_hashes": {
@@ -31,6 +43,18 @@
     "c520308d7e99c12f70d9de4588f1d6615ce9747c6def171d6d2bcc8286f99b6b": {
       "concept": "flywheel-livemode",
       "ts": "2026-08-22T01:37:16+08:00"
+    },
+    "40bbd8cd3dd4dc6caad5a02229dfd3ff9cffc13561f30a1f359239fed00c04c6": {
+      "concept": "ai-emotional-value-entertainment-market",
+      "ts": "2026-08-23T02:23:41+08:00"
+    },
+    "be6d1faa57918b9090c49d3bcd8786a1de866794ee1d9f117a29656ca4df08cd": {
+      "concept": "omp-soul",
+      "ts": "2026-08-23T02:53:56+08:00"
+    },
+    "8d719e89445414ca3d3d9948d3327ba0c271adf75db29fb287aaee435b4f696c": {
+      "concept": "omp-soul",
+      "ts": "2026-08-23T03:00:30+08:00"
     }
   },
   "feedback": [
@@ -61,6 +85,48 @@
     {
       "ts": "2026-08-22T02:16:59+08:00",
       "name": "flywheel-livemode",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "workpanel-connecter",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "okf-knowledge-format",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "flywheel-livemode",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "flywheel-livemode",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "okf-knowledge-format",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:16:06+08:00",
+      "name": "workpanel-connecter",
+      "action": "hit",
+      "rating": null
+    },
+    {
+      "ts": "2026-08-23T02:54:40+08:00",
+      "name": "ai-emotional-value-entertainment-market",
       "action": "hit",
       "rating": null
     }

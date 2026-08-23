@@ -21,3 +21,4 @@ WorkPanel 架构、实现分析、规划和评审证据。
 
 - [从0搭建MultiAgent平台（作者随笔）](作者随笔/从0搭建MultiAgent平台/README.md)——4+1 视图 / 核心设计理念 / 竞品对比 / 演进方向 / 开发笔记 / 战略思考
 - [clowder-ai（猫咖）调研](调研/clowder-ai调研/README.md)——原始设计 / 与 ohMyWorkPanel 对比 / 演进与 Connecter / 作者四问 / 联合思考
+- [下一代OMP，或者说ohMyAGI（作者随笔）](作者随笔/下一代OMP，或者说ohMyAGI/README.md)——soul 功能七问调研：市场概念 / 加载层级与常驻 / 一键卸载 / 类型与建群推荐 / 版本优先级 / 流水线制造 / 对话归纳
