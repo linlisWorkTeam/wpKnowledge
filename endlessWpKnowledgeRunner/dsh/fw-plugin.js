@@ -197,7 +197,7 @@ return {
         render,
       },
       async execute(args, exec) {
-        const a = []
+        const a = ['ingest']
         if (args.file) a.push('--file', args.file)
         if (args.name) a.push('--name', args.name)
         if (args.title) a.push('--title', args.title)
