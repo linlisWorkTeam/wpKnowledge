@@ -1,0 +1,13 @@
+{
+  "round": 2,
+  "module": "tiling",
+  "compile_ok": true,
+  "compile_errors": [],
+  "passed": 8,
+  "total": 8,
+  "confidence": 1.0,
+  "similarity": 0.7256132344552196,
+  "decision": "pass",
+  "attribution": "置信度 1.00，相似度 0.73",
+  "weak_spots": []
+}

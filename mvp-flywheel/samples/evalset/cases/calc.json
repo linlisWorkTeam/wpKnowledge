@@ -1,0 +1,11 @@
+[
+  {"id": "calc-add-001", "module": "calc", "function": "add", "args": [2, 3], "expected": 5, "ret_type": "int", "split": "train"},
+  {"id": "calc-add-002", "module": "calc", "function": "add", "args": [-5, 5], "expected": 0, "ret_type": "int", "split": "train"},
+  {"id": "calc-clamp-001", "module": "calc", "function": "clamp", "args": [15, 0, 10], "expected": 10, "ret_type": "int", "split": "train"},
+  {"id": "calc-clamp-002", "module": "calc", "function": "clamp", "args": [-3, 0, 10], "expected": 0, "ret_type": "int", "split": "train"},
+  {"id": "calc-clamp-003", "module": "calc", "function": "clamp", "args": [5, 0, 10], "expected": 5, "ret_type": "int", "split": "train"},
+  {"id": "calc-max3-001", "module": "calc", "function": "max3", "args": [1, 2, 3], "expected": 3, "ret_type": "int", "split": "holdout"},
+  {"id": "calc-max3-002", "module": "calc", "function": "max3", "args": [3, 2, 1], "expected": 3, "ret_type": "int", "split": "holdout"},
+  {"id": "calc-mean-001", "module": "calc", "function": "mean", "args": [1, 3], "expected": 2.0, "ret_type": "double", "split": "train"},
+  {"id": "calc-mean-002", "module": "calc", "function": "mean", "args": [0, 5], "expected": 2.5, "ret_type": "double", "split": "train"}
+]
