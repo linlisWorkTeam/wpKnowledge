@@ -173,7 +173,7 @@
 
 ### 4.4 构建输入保护
 
-"构建输入"（csrc/ 下所有源文件，排除 设计/ 和临时目录）的哈希保护机制保持不变。source_hash.py 不需要修改，编排层在评测前后调用即可。
+"构建输入"（csrc/ 下所有源文件，排除 docs/ 和临时目录）的哈希保护机制保持不变。source_hash.py 不需要修改，编排层在评测前后调用即可。
 
 ## 5. STATE 责任制迁移
 
@@ -328,20 +328,20 @@ Skill 文档的执行章节按步骤描述编排流程，主会话按步骤顺�
 | 模板 | references/base-state-template.md | Base STATE 模板 |
 | 模板 | references/loop-state-template.md | 循环 STATE 模板 |
 | 模板 | references/common-failure-modes.md | 常见失败模式 |
-| 准备脚本 | 脚本/prepare_e2e.py | 准备阶段入口 |
-| 循环脚本 | 脚本/prepare_loop.py | 循环目录创建与校验 |
-| 决策脚本 | 脚本/review_loop.py | 循环决策与收口 |
-| 评测脚本 | 脚本/canonical_eval.py | Canonical 评测报告选择 |
-| 评测脚本 | 脚本/local_bench.py | 本地评测 helper |
-| 评测脚本 | 脚本/remote_bench.py | 远程评测 helper |
-| 性能脚本 | 脚本/performance_target.py | 性能目标与退出判定 |
-| 源码脚本 | 脚本/golden_source.py | 官方源码固定 |
-| 源码脚本 | 脚本/source_hash.py | 构建输入 hash 计算 |
-| 校验脚本 | 脚本/validate_evolved_knowledge.py | 增量知识校验 |
-| 审计脚本 | 脚本/knowledge_query_audit.py | 知识检索审计 wrapper |
-| 续跑脚本 | 脚本/resume_e2e.py | 原地续跑 |
-| 版本脚本 | 脚本/knowledge_versions.py | 知识版本差分校验 |
-| 解锁脚本 | 脚本/unlocker.py | 阻断恢复 |
+| 准备脚本 | scripts/prepare_e2e.py | 准备阶段入口 |
+| 循环脚本 | scripts/prepare_loop.py | 循环目录创建与校验 |
+| 决策脚本 | scripts/review_loop.py | 循环决策与收口 |
+| 评测脚本 | scripts/canonical_eval.py | Canonical 评测报告选择 |
+| 评测脚本 | scripts/local_bench.py | 本地评测 helper |
+| 评测脚本 | scripts/remote_bench.py | 远程评测 helper |
+| 性能脚本 | scripts/performance_target.py | 性能目标与退出判定 |
+| 源码脚本 | scripts/golden_source.py | 官方源码固定 |
+| 源码脚本 | scripts/source_hash.py | 构建输入 hash 计算 |
+| 校验脚本 | scripts/validate_evolved_knowledge.py | 增量知识校验 |
+| 审计脚本 | scripts/knowledge_query_audit.py | 知识检索审计 wrapper |
+| 续跑脚本 | scripts/resume_e2e.py | 原地续跑 |
+| 版本脚本 | scripts/knowledge_versions.py | 知识版本差分校验 |
+| 解锁脚本 | scripts/unlocker.py | 阻断恢复 |
 
 ## 12. 需要提取或新建的脚本
 
@@ -391,7 +391,7 @@ Skill 文档的执行章节按步骤描述编排流程，主会话按步骤顺�
 
 | 文件 | 删除原因 |
 |------|---------|
-| 脚本/run_role.py | 编排职责归 Skill 文档，验证职责归提取出的独立脚本，角色执行归 Agent tool |
+| scripts/run_role.py | 编排职责归 Skill 文档，验证职责归提取出的独立脚本，角色执行归 Agent tool |
 | agents/openai.yaml | Agent tool 的 prompt 参数和配置矩阵替代角色定义文件 |
 
 ## 14. 关键差异与风险缓解

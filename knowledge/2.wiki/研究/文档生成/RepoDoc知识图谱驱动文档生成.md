@@ -124,5 +124,5 @@ flowchart TD
 
 - [RepoAgent仓库级代码文档生成.md](RepoAgent仓库级代码文档生成.md) — 拓扑序生成 + 增量更新的前作，两者互相印证
 - [DocAgent自动代码文档生成.md](DocAgent自动代码文档生成.md) — 多 Agent 协作文档生成
-- 设计/知识形态定义.md §5 — OKF 格式锚点（文档组织方式）
+- docs/knowledge-format.md §5 — OKF 格式锚点（文档组织方式）
 - [知识图谱驱动仓库级代码生成.md](知识图谱驱动仓库级代码生成.md) — 知识图谱增强代码生成（下游消费侧）

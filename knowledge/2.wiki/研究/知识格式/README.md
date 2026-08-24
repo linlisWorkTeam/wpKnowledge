@@ -1,20 +1,9 @@
-# 📦 knowledge-format · 知识格式与组织
+# 研究 / 知识格式
 
-> 知识形态：解释型 Markdown 知识文档的格式规范与组织方式。
-> 按时间排序（最新在前）。
+知识卡格式、知识目录和 Agent 技能生命周期的研究材料。
 
-## 📄 文档索引
-
-| 文档 | 类型 | 时间 | 置信度 | 一句话 |
-|------|------|------|--------|--------|
-| [Agentic Skills系统综述.md](Agentic Skills系统综述.md) | 综述 | 2026-02 | 🟡 中 | Agentic Skills 生命周期+7 设计模式（技能=知识形态参考） |
-| [Cannbot知识库插件.md](Cannbot知识库插件.md) | 仓库★ | 持续 | ✅ 高 | 昇腾 NPU 知识库插件（生产/治理/检索/勘误全流程） |
-| [Knowledge Catalog与OKF知识格式.md](Knowledge Catalog与OKF知识格式.md) | 仓库★ | 持续 | ✅ 高 | Google OKF 规范：Markdown + YAML frontmatter 知识格式 |
-
-> ★ 两者为**设计核心参考**（设计/项目概述.md §6 锚点仓库）：OKF 定格式（⭐8756）、cannbot 定运营流程（昇腾官方活跃维护），不受公开仓库 star 门槛约束。
-
-## 📌 核心结论
-
-1. **OKF 格式可直接借鉴**：Markdown + frontmatter（sources/status/verified），知识库天生可信、可 diff、可评审
-2. **cannbot 是完整运营样例**：knowledge-query（检索）+ knowledge-lint（门禁）+ ingest（生产），且 frontmatter 用的就是 okf.v1 —— 两个参考仓库是同一体系
-3. **知识格式 = 规格**：知识文档足够结构化后可视为规格，Agent 基于它生成代码 = spec-to-code（见 文档生成/Spec2RTL-Agent从复杂规格生成硬件代码.md）
+| 文档 | 核心主题 |
+|---|---|
+| [Knowledge Catalog 与 OKF 知识格式](Knowledge%20Catalog与OKF知识格式.md) | 目录、知识卡和溯源格式 |
+| [Cannbot 知识库插件](Cannbot知识库插件.md) | 知识生产、治理、消费和反馈 |
+| [Agentic Skills 系统综述](Agentic%20Skills系统综述.md) | 技能生命周期与组织方式 |
