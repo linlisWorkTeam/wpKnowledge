@@ -1,6 +1,6 @@
 # knowledge-catalog / OKF — Google Cloud 知识目录
 
-> ⭐ **设计核心参考**：本项目知识格式的**格式锚点**（⭐8756，活跃维护）。地位见 docs/overview.md §6；格式落地见 docs/knowledge-format.md §5。
+> ⭐ **设计核心参考**：本项目知识格式的**格式锚点**（⭐8756，活跃维护）。地位见 设计/项目概述.md §6；格式落地见 设计/知识形态定义.md §5。
 > 调研日期：2026-08-20
 > 仓库：https://github.com/GoogleCloudPlatform/knowledge-catalog
 > 核心产出：**Open Knowledge Format (OKF) v0.2 规范** —— 通用、厂商中立的**知识表示格式**

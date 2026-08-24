@@ -1,6 +1,6 @@
 # cannbot-knowledge — 昇腾 NPU 算子知识库插件
 
-> ⭐ **设计核心参考**：本项目知识运营流程的**流程锚点**（生产 → 治理 → 消费 → 反馈全生命周期）。昇腾官方活跃维护项目（2026-08 有更新），与公司场景（华为知识工程）直接相关，frontmatter 采用 okf.v1，与 OKF 同属一个体系。地位见 docs/overview.md §6。
+> ⭐ **设计核心参考**：本项目知识运营流程的**流程锚点**（生产 → 治理 → 消费 → 反馈全生命周期）。昇腾官方活跃维护项目（2026-08 有更新），与公司场景（华为知识工程）直接相关，frontmatter 采用 okf.v1，与 OKF 同属一个体系。地位见 设计/项目概述.md §6。
 > 调研日期：2026-08-20
 > 仓库：https://gitcode.com/cann/cannbot-skills/tree/master/plugins-community/cannbot-knowledge
 > 定位：面向 AscendC / 昇腾 NPU 算子开发知识库的**社区插件**，提供知识编译、治理、检索、Issue 整理与勘误流程
@@ -22,7 +22,7 @@
 | 代码可用 | 有 |
 | 来源机构 | 华为 CANN 社区 |
 | **综合置信度** | **✅ 高** |
-| 需谨慎点 | 昇腾官方生态，与公司场景（华为）直接相关；**设计核心参考**（见 docs/overview.md §6），不受公开仓库 star 门槛约束 |
+| 需谨慎点 | 昇腾官方生态，与公司场景（华为）直接相关；**设计核心参考**（见 设计/项目概述.md §6），不受公开仓库 star 门槛约束 |
 -|------|
 | `ops-knowledge-ingest` | 通用知识入库（含图谱构建 okf_graph.py、judge 聚合） |
 | `ops-knowledge-reference-ingest` | reference/ API 依据知识入库 |
