@@ -1,13 +1,15 @@
 #!/usr/bin/env python3
-"""真 LLM 端到端（tiling 模块）：知识生成保留桩，Coder/Review 走真实 DeepSeek。
+"""全流程真 LLM 端到端（tiling 模块）：知识生成 / Coder / Review 全部走真实 DeepSeek。
 
-对比 demo_tiling.py（全桩）：
-- 知识生成 : StubKnowledgeGen（用户指定保留桩：从源码提取函数）
-- Coder    : LLMCoder（DeepSeek 真写代码，只看知识+接口头文件，不读源码实现）
-- Review   : LLMReview（DeepSeek 真归因，看失败用例详情）
+严格按飞轮流程：
+- 知识生成 Agent（LLMKnowledgeGen）：读源码 → 生成**解释型知识文档（无源码原文）**
+- Coder Agent（LLMCoder）：只读知识 + 接口头文件 → 写代码（不接触源码实现）
+- 评测闭环（代码）：编译必过 + 测试主判（探针真实输出）
+- Review Agent（LLMReview）：失败详情 → 归因 + 修订指令
+- 修订：知识版本 +1 → 重新生成代码 → 重测
 
 用法:
-  python3 demo_llm.py                # 忠实模式：知识生成桩 + LLM Coder + LLM Review
+  python3 demo_llm_full.py
 """
 
 import shutil
@@ -18,15 +20,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from fw.config import Config
 from fw.runner import KnowledgeFlywheel
-from roles.llm_roles import LLMCoder, LLMReview
-from roles.stubs import StubKnowledgeGen
+from roles.llm_roles import LLMCoder, LLMKnowledgeGen, LLMReview
 
 BASE = Path(__file__).resolve().parent
 
 
 def main():
-    # 产物持久化到固定目录（与桩跑的 run/ 分开，便于对比）
-    work = BASE / "samples/tiling/run_llm"
+    work = BASE / "samples/tiling/run_llm_full"
     if work.exists():
         shutil.rmtree(work)
     cfg = Config(
@@ -40,19 +40,18 @@ def main():
 
     fw = KnowledgeFlywheel(
         cfg,
-        knowledge_gen=StubKnowledgeGen(),   # 保留桩
-        coder=LLMCoder(),                   # 真 LLM 写码
-        review=LLMReview(),                 # 真 LLM 归因
+        knowledge_gen=LLMKnowledgeGen(),   # 真 LLM：源码 → 解释型知识（无源码）
+        coder=LLMCoder(),                  # 真 LLM：知识 → 代码
+        review=LLMReview(),                # 真 LLM：失败 → 归因
     )
 
     src_file = BASE / "samples/tiling/src/add_custom_tiling.cpp"
     result = fw.run("tiling", src_file)
 
     print("=" * 60)
-    print("知识飞轮 · tiling 端到端（知识=桩，Coder/Review=真实 DeepSeek）")
+    print("知识飞轮 · 全流程真 LLM（知识生成/Coder/Review = DeepSeek）")
     print("=" * 60)
     print(f"被测源码 : samples/tiling/src/add_custom_tiling.cpp")
-    print(f"评测集   : samples/tiling/evalset/test_tiling.cpp（探针真实输出）")
     print(f"最终决策 : {result['decision']}")
     print(f"迭代轮数 : {result['rounds']}")
     print()
@@ -69,7 +68,8 @@ def main():
         for f in tr.failures[:5]:
             print(f"  {f}")
     print()
-    print(f"知识文档 : {cfg.knowledge_dir / ('tiling_v%d.md' % result['doc'].version)}")
+    doc = result["doc"]
+    print(f"知识文档 : {cfg.knowledge_dir / ('tiling_v%d.md' % doc.version)}")
     print(f"LLM 生成代码 : {result['code_path']}")
 
 

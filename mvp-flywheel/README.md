@@ -18,7 +18,7 @@
 | 路径 | 内容 |
 |------|------|
 | `fw/` | 编排层（config / runner 状态机） |
-| `roles/` | 角色接口（可插拔）+ 桩实现（stubs.py）+ **真实 LLM 实现（llm_roles.py，DeepSeek）** |
+| `roles/` | 角色接口（可插拔）+ 桩实现（stubs.py，管道自检）+ **真实 LLM 实现（llm_roles.py，DeepSeek）** |
 | `eval/` | 评测闭环（编译必过 + 测试主判 + 相似度辅助）+ holdout 分层 |
 | `revise/` | 修订闭环（pending_corrections 队列 + 版本控制/回滚） |
 | `samples/` | 示例被测源码（calc / tiling 模块）+ 评测集（探针跑源码拿期望输出） |
@@ -32,23 +32,31 @@ python3 demo.py                    # 端到端：calc 模块（示例），一�
 python3 demo.py --bad-coder        # calc + 缺陷 Coder，演示修订闭环（R1 失败→R2 通过）
 python3 demo_tiling.py             # 端到端：tiling 模块（算子平台真实算法），一轮通过
 python3 demo_tiling.py --bad-coder # tiling + 缺陷 Coder，演示修订闭环
-python3 demo_llm.py                # 真 LLM：Coder/Review 走 DeepSeek（知识=源码摘录桩）
-python3 demo_llm_stale.py          # 真 LLM + 过时文档：知识=解释型文档（无源码），LLM 必须理解算法
+python3 demo_llm_full.py           # 全流程真 LLM：知识生成/Coder/Review 全走 DeepSeek
+python3 demo_llm_stale.py          # 真 LLM + 过时文档：知识=预置解释型文档（无源码）
 ```
 
-## 真实 LLM 端到端（DeepSeek，非桩）
+## 全流程真 LLM 端到端（DeepSeek，非桩）
 
-`roles/llm_roles.py` 提供真实 LLM 实现：**LLMCoder**（知识 → 代码，只看知识+接口头文件，不读源码实现）与 **LLMReview**（评测报告含失败详情 → 归因 JSON）。知识生成可保留桩（`StubKnowledgeGen` 或 `DocKnowledgeGen`）。
+`roles/llm_roles.py` 提供真实 LLM 实现，严格按飞轮流程：
+
+| 角色 | 实现 | 说明 |
+|------|------|------|
+| 知识生成 | `LLMKnowledgeGen` | 读源码 → **解释型知识文档（强制不含源码原文）**，标注边界缺陷 |
+| Coder | `LLMCoder` | 只读知识 + 接口头文件 → 写代码（信息隔离，不接触源码实现） |
+| Review | `LLMReview` | 评测失败详情 → 归因 JSON + 修订指令 |
 
 ```bash
-python3 demo_llm.py       # 知识=源码摘录桩，Coder/Review=DeepSeek → 一轮过（8/8）
-python3 demo_llm_stale.py # 知识=预置解释型文档（无源码、含过时点）→ LLM 理解+补全 → 一轮过（8/8）
+python3 demo_llm_full.py  # 全流程真 LLM：源码 → 知识(LLM,无源码) → 代码(LLM) → 评测 → 一轮过
+python3 demo_llm_stale.py # 知识=预置过时文档（无源码）：LLM 理解+补全 → 一轮过（8/8）
 ```
+
+**知识文档形态（红线）**：原始知识文档**不得包含源代码**——只允许签名、职责、算法步骤（自然语言/伪代码）、边界条件。LLM 知识生成 prompt 强制该约束；产物已做泄漏检查（源码特征串零命中）。
 
 实测发现（真实数据）：
 - deepseek-v4-flash 约 **40% 概率返回空 content**（已加 `_chat_retry` 空输出重试）
 - 生成代码可能混入 Markdown 围栏 / 被 max_tokens 截断（已加 `_extract_code` 健壮清洗 + 8192 tokens）
-- 过时文档场景：LLM 基于解释型知识独立实现算法（similarity 0.29，非抄源码），并**自带零长度防御与 uint64 溢出防护**（比模板源码更健壮）
+- 全流程真 LLM 一轮过 8/8（similarity 0.14，非抄源码）；LLM 知识生成**准确标注源码缺陷**（totalLength=0 除零、uint32 回绕），Coder **采纳建议**实现防御（零长分支 + uint64 中间计算）
 
 ## 真实业务代码验证（tiling 模块）
 
@@ -104,7 +112,7 @@ fw = KnowledgeFlywheel(cfg, knowledge_gen=YourAgent(), coder=YourCoder(), review
 
 ## 已知限制（MVP）
 
-- 知识生成仍为桩：`StubKnowledgeGen`（源码摘录）或 `DocKnowledgeGen`（预置文档）；LLM 版知识生成未接（下一步）
+- 桩场景（demo.py / demo_tiling.py）仅为管道自检：知识=源码摘录，**不符合飞轮知识形态**（真实流程用 demo_llm_full.py）
 - 测试驱动生成仅支持 int/double 参数与返回值（可扩展 schema）
 - 单模块评测；相似度为文本级（AST 级在 P1）
 - 评测集期望输出必须来自源码实际行为（红线），示例集已用探针程序验证

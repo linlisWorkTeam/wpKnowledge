@@ -137,6 +137,54 @@ class DocKnowledgeGen(KnowledgeGenAgent):
         return doc
 
 
+class LLMKnowledgeGen(KnowledgeGenAgent):
+    """知识生成 Agent（真实 LLM）：源码 → 解释型知识文档。
+
+    严格按飞轮流程：知识为解释型 Markdown（签名/职责/算法步骤/边界/伪代码），
+    **禁止包含源码原文**（Coder 只能依赖知识理解，不得直接拿到实现）。
+    """
+
+    def __init__(self, model: str | None = None):
+        self.model = model
+
+    def generate(self, module: str, src_file: Path, sources: list) -> KnowledgeDoc:
+        src_text = src_file.read_text()
+        header = ""
+        for h in sorted(src_file.parent.glob("*.h")):
+            header = h.read_text()
+            break
+        sys_prompt = (
+            "你是一名资深 C/C++ 工程师，在知识飞轮流程中担任知识生成 Agent（唯一执笔者）。\n"
+            "你的任务：阅读【源码】与【接口头文件】，为后续 Coder Agent 生成一份**解释型知识文档**。\n"
+            "硬性要求：\n"
+            "1. **严禁输出源码原文**：不得复制/摘录函数体实现代码；\n"
+            "2. 必须包含：函数签名、职责说明、输入参数语义、输出字段语义、算法步骤（用自然语言或伪代码描述，不贴实现）、边界条件与特殊处理；\n"
+            "3. 伪代码允许，但必须是重新组织过的描述，不能是源码逐行复制；\n"
+            "4. 若源码存在边界缺陷（如除零、溢出风险），在文档中标注出来；\n"
+            "5. 输出 Markdown 格式，含溯源（文件路径）。"
+        )
+        user_prompt = (
+            f"# 接口头文件\n\n```cpp\n{header}\n```\n\n"
+            f"# 源码（仅知识生成 Agent 可见，不得写入输出）\n\n```cpp\n{src_text}\n```\n\n"
+            f"请生成模块 {module} 的解释型知识文档（Markdown，禁止包含源码原文）。"
+        )
+        reply = _chat_retry([
+            {"role": "system", "content": sys_prompt},
+            {"role": "user", "content": user_prompt},
+        ], temperature=0.2, model=self.model)
+        content = reply.strip()
+        if not content:
+            raise RuntimeError("LLM 知识生成输出为空")
+        return KnowledgeDoc(module=module, content=content, sources=sources, version=1)
+
+    def revise(self, doc: KnowledgeDoc, corrections: list) -> KnowledgeDoc:
+        content = doc.content
+        for c in corrections:
+            content += f"\n## 修订补丁 {c.id}\n\n- 判据：{c.criterion}\n- 详情：{c.detail}\n"
+        doc.content = content
+        return doc
+
+
 class LLMCoder(CoderAgent):
     """Coder Agent（真实 LLM）：知识 → 临时代码。
 

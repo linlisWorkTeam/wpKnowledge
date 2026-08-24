@@ -6,8 +6,8 @@
   "passed": 8,
   "total": 8,
   "confidence": 1.0,
-  "similarity": 0.7263397947548461,
+  "similarity": 0.13590449954086317,
   "decision": "pass",
-  "attribution": "置信度 1.00，相似度 0.73",
+  "attribution": "置信度 1.00，相似度 0.14",
   "weak_spots": []
 }
