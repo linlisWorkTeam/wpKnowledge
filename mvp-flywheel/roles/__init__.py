@@ -40,6 +40,7 @@ class EvalReport:
     similarity: float = 0.0
     confidence: float = 0.0  # passed / total
     split: str = "train"     # train / holdout
+    failures: list = field(default_factory=list)  # 失败用例详情（Review 归因依据）
 
     @property
     def passed_gate(self) -> bool:

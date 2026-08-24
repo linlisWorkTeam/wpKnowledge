@@ -215,6 +215,7 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
         return report
 
     passed, total = 0, 0
+    failures: list = []
     for tf in test_files:
         bin_file = work_dir / f"native_{tf.stem}"
         is_cpp = tf.suffix in (".cpp", ".cc", ".cxx")
@@ -240,12 +241,18 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
                     tf_total = int(parts[1])
                     tf_passed = max(tf_passed, int(parts[0]))
                     break
+        # 捕获失败详情（一次运行即可；Review 归因用）
+        run = subprocess.run([str(bin_file)], capture_output=True, text=True, timeout=60)
+        for line in run.stdout.splitlines():
+            if line.startswith("FAIL"):
+                failures.append(f"{tf.name}: {line}")
         passed += tf_passed
         total += tf_total
 
     report.passed = passed
     report.total = total
     report.confidence = (passed / total) if total else 0.0
+    report.failures = failures
     if src_text:
         report.similarity = similarity(src_text, code_path.read_text())
     return report
