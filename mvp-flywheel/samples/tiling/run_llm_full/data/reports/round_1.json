@@ -3,11 +3,14 @@
   "module": "tiling",
   "compile_ok": true,
   "compile_errors": [],
-  "passed": 8,
+  "passed": 0,
   "total": 8,
-  "confidence": 1.0,
-  "similarity": 0.13590449954086317,
-  "decision": "pass",
-  "attribution": "置信度 1.00，相似度 0.14",
-  "weak_spots": []
+  "confidence": 0.0,
+  "similarity": 0.2370757180156658,
+  "decision": "iterate",
+  "attribution": "Tiling测试全部失败的根本原因是构造AddTilingData返回结构体时字段赋值错位，将numPerCore和tailNumLastCore误赋给blockNum和numPerCore，并将tailNumLastCore置0，导致期望与实测完全错位。",
+  "weak_spots": [
+    "AddTilingData结构体字段赋值顺序错误",
+    "tailNumLastCore被错误地置为0"
+  ]
 }

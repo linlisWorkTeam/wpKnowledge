@@ -93,6 +93,25 @@ cfg.evalset_format = "auto"                    # auto 自动检测；也可强�
 - **holdout**：按模块名哈希分层（holdout_ratio=0.2），holdout 只报告不写回
 - **修订闭环**：Review 归因 → pending_corrections 队列 → 修订（版本+1）→ 重测；门禁通过才合并；分数下降回滚
 
+## 实战问题修复（codeagent 运行反馈 → 代码层防护）
+
+针对 codeagent 实际运行暴露的 4 个问题，已在代码层修复（`verify_sandbox.py` / 单测覆盖）：
+
+| 问题 | 代码层修复 | 位置 |
+|------|-----------|------|
+| ① Coder 需要沙箱防作弊 | 路径白名单沙箱：Coder 只读 knowledge/interfaces/work，src_dir 永远禁止；`..` 穿越被 resolve 拦截；输出路径同样校验 | `fw/sandbox.py`，`LLMCoder` |
+| ② 文档太大超时 | 知识文档按 `max_doc_chars` 截断（头 60% + 尾 30%，省略处打标记），Coder/Review 输入不再超长 | `_truncate_doc` |
+| ③ 知识生成超时 | 源码超阈值（4000 字符）自动分块：先列函数清单 → 逐函数生成段落 → 拼装，单次调用只处理一个函数 | `LLMKnowledgeGen` |
+| ④ Coder 输出说明文字 | prompt 强化（few-shot 唯一输出形态）+ 后处理剥离：JSON `{"code":...}` 优先 → 代码块 → 逐行剥离说明文字 | `_extract_code` / `_looks_like_code` |
+
+验证：
+```bash
+python3 verify_sandbox.py        # 沙箱隔离验证（src-biz 布局）
+python3 verify_isolation_layout.py  # 评测只用 interfaces/，不依赖 src-biz
+python3 demo_llm_full.py         # 全流程真 LLM（知识生成分块 + Coder 沙箱）
+python3 demo_llm_stale.py        # 过时文档场景
+```
+
 ## 接入 codeagent（替换桩）
 
 实现 `roles/__init__.py` 的三个接口（KnowledgeGenAgent / CoderAgent / ReviewAgent），构造时传入：
@@ -107,4 +126,4 @@ fw = KnowledgeFlywheel(cfg, knowledge_gen=YourAgent(), coder=YourCoder(), review
 - 测试驱动生成仅支持 int/double 参数与返回值（可扩展 schema）
 - 单模块评测；相似度为文本级（AST 级在 P1）
 - 评测集期望输出必须来自源码实际行为（红线），示例集已用探针程序验证
-- LLM API 依赖网络与 key（`DEEPSEEK_API_KEY`，环境变量或 ~/.hermes/.env）；空输出已自动重试 3 次
+- LLM API 依赖网络与 key（`DEEPSEEK_API_KEY`，环境变量或 ~/.hermes/.env）；空输出已自动重试 4 次（含 temperature 抖动）

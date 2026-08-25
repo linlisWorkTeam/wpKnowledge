@@ -121,3 +121,22 @@ AddTilingData compute_tiling(uint32_t totalLength, uint32_t availableCoreNum);
 
 - 接口头文件：`add_custom_tiling.h`（常量、`AddTilingData` 结构体、`compute_tiling` 声明）
 - 算法逻辑来源：cannbot `add_custom` 模板 `main.cpp` 中的 Tiling 计算部分（本文档仅描述逻辑，未包含实现源码）
+## 修订补丁 tiling-field-assignment-1
+
+- 判据：8个tiling测试全部通过（tiling-default、tiling-multicore-2、tiling-multicore-8、tiling-exact-1、tiling-exact-2、tiling-small、tiling-big、tiling-zero-core）
+- 详情：检查compute_tiling中构造AddTilingData的代码，确保返回的blockNum是算法计算出的实际任务块数、numPerCore是每块数据量、tailNumLastCore是最后一个块的实际数据量，且tailNumLastCore不为0（除非totalLength为0的边界）。具体做法：使用结构体列表初始化，按声明顺序返回{totalLength, blockNum, numPerCore, tailNumLastCore}，或显式逐字段赋值；不要将numPerCore赋给blockNum，不要将tailNumLastCore赋给numPerCore，也不要将tailNumLastCore硬编码为0。若有中间变量命名相似，请重命名以区分。
+
+## 修订补丁 tiling-field-assignment-1
+
+- 判据：8 个 tiling 测试全部通过；所有 totalLength>0 用例的 tailNumLastCore 均大于 0，且 blockNum 与 numPerCore 不再相等
+- 详情：检查 compute_tiling 中返回 AddTilingData 的代码，确保按算法步骤依次计算 totalTiles、tilesPerCore、blockNum、numPerCore、tailNumLastCore，并使用结构体列表初始化按声明顺序返回 {totalLength, blockNum, numPerCore, tailNumLastCore}。严禁将 numPerCore 赋给 blockNum，严禁将 tailNumLastCore 硬编码为 0。若代码中使用了与算法中间变量同名的局部变量（如 totalTiles、tilesPerCore），请确认变量含义，必要时重命名避免混淆。
+
+## 修订补丁 tiling-zero-boundary
+
+- 判据：tiling-zero-core 用例通过；totalLength==0 时不会发生除零或未定义行为
+- 详情：在 compute_tiling 入口增加对 totalLength==0 的保护：若为 0，应返回 blockNum=0、numPerCore=0、tailNumLastCore=0 的 AddTilingData，或直接返回全零结构体，避免后续除法除零。
+
+## 修订补丁 tiling-field-assignment-1
+
+- 判据：8 个 tiling 测试全部通过（tiling-default、tiling-multicore-2、tiling-multicore-8、tiling-exact-1、tiling-exact-2、tiling-small、tiling-big、tiling-zero-core），且所有 totalLength>0 用例的 tailNumLastCore 大于 0，blockNum 与 numPerCore 不再相等。
+- 详情：检查 compute_tiling 中构造 AddTilingData 的代码，严格按算法顺序计算 totalTiles、tilesPerCore、blockNum、numPerCore、tailNumLastCore，并使用结构体列表初始化按声明顺序返回 {totalLength, blockNum, numPerCore, tailNumLastCore}。严禁将 numPerCore 赋给 blockNum，严禁将 tailNumLastCore 硬编码为 0。若存在与算法中间变量同名的局部变量，请重命名以区分，确保各字段语义准确。

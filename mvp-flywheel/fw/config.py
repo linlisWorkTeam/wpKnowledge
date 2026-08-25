@@ -29,6 +29,16 @@ class Config:
     max_rounds: int = 5                          # 迭代轮次上限
     repeat_eval: int = 3                         # 重复评测次数（设计建议 ≥5，MVP 用 3 节省时间）
 
+    # --- 沙箱隔离（Coder 防作弊）---
+    # allowed_read_dirs: Coder 进程允许读取的目录白名单（知识库/接口/工作区）。
+    #   不传时默认只允许 knowledge_dir + interfaces_dir + work_dir；src_dir（源码）永远禁止。
+    allowed_read_dirs: list = field(default_factory=list)
+
+    # --- LLM 调用（超时与文档大小防护）---
+    api_timeout: int = 180                       # 单次 LLM 调用超时（秒）
+    max_doc_chars: int = 6000                    # Coder 输入知识文档上限（超限截断，防超时）
+    knowledge_chunk: bool = True                 # 知识生成分块（源码过大时逐函数生成，防超时）
+
     # --- 评测集兼容（用户本地测试集）---
     # evalset_format:
     #   auto   - 自动检测（有 cases/*.json → json；有 test_*.c/.cpp → native）

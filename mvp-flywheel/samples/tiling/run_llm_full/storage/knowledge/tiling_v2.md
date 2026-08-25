@@ -121,3 +121,7 @@ AddTilingData compute_tiling(uint32_t totalLength, uint32_t availableCoreNum);
 
 - 接口头文件：`add_custom_tiling.h`（常量、`AddTilingData` 结构体、`compute_tiling` 声明）
 - 算法逻辑来源：cannbot `add_custom` 模板 `main.cpp` 中的 Tiling 计算部分（本文档仅描述逻辑，未包含实现源码）
+## 修订补丁 tiling-field-assignment-1
+
+- 判据：8个tiling测试全部通过（tiling-default、tiling-multicore-2、tiling-multicore-8、tiling-exact-1、tiling-exact-2、tiling-small、tiling-big、tiling-zero-core）
+- 详情：检查compute_tiling中构造AddTilingData的代码，确保返回的blockNum是算法计算出的实际任务块数、numPerCore是每块数据量、tailNumLastCore是最后一个块的实际数据量，且tailNumLastCore不为0（除非totalLength为0的边界）。具体做法：使用结构体列表初始化，按声明顺序返回{totalLength, blockNum, numPerCore, tailNumLastCore}，或显式逐字段赋值；不要将numPerCore赋给blockNum，不要将tailNumLastCore赋给numPerCore，也不要将tailNumLastCore硬编码为0。若有中间变量命名相似，请重命名以区分。

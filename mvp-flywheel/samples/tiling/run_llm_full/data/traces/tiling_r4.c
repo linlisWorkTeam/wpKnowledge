@@ -2,7 +2,7 @@
 
 AddTilingData compute_tiling(uint32_t totalLength, uint32_t availableCoreNum) {
     if (totalLength == 0) {
-        return {0, 0, 0, 0};
+        return AddTilingData{0, 0, 0, 0};
     }
 
     uint32_t actualCores = (availableCoreNum == 0) ? 1 : availableCoreNum;
@@ -13,9 +13,10 @@ AddTilingData compute_tiling(uint32_t totalLength, uint32_t availableCoreNum) {
     uint64_t numPerCore = tilesPerCore * TILE_LENGTH;
     uint64_t tailNumLastCore = static_cast<uint64_t>(totalLength) - numPerCore * (blockNum - 1);
 
-    return {
-        static_cast<uint32_t>(blockNum),
-        static_cast<uint32_t>(numPerCore),
-        static_cast<uint32_t>(tailNumLastCore)
-    };
+    AddTilingData data;
+    data.totalLength = totalLength;
+    data.blockNum = static_cast<uint32_t>(blockNum);
+    data.numPerCore = static_cast<uint32_t>(numPerCore);
+    data.tailNumLastCore = static_cast<uint32_t>(tailNumLastCore);
+    return data;
 }

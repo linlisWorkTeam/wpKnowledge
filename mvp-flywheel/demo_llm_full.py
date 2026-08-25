@@ -40,9 +40,10 @@ def main():
 
     fw = KnowledgeFlywheel(
         cfg,
-        knowledge_gen=LLMKnowledgeGen(),   # 真 LLM：源码 → 解释型知识（无源码）
-        coder=LLMCoder(),                  # 真 LLM：知识 → 代码
-        review=LLMReview(),                # 真 LLM：失败 → 归因
+        knowledge_gen=LLMKnowledgeGen(chunk=cfg.knowledge_chunk,
+                                      api_timeout=cfg.api_timeout),  # 真 LLM：源码 → 解释型知识（无源码）
+        coder=LLMCoder(cfg=cfg, api_timeout=cfg.api_timeout),        # 真 LLM：知识 → 代码（沙箱隔离）
+        review=LLMReview(cfg=cfg, api_timeout=cfg.api_timeout),      # 真 LLM：失败 → 归因
     )
 
     src_file = BASE / "samples/tiling/src/add_custom_tiling.cpp"
