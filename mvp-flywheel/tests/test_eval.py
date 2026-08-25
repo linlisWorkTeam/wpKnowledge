@@ -17,8 +17,8 @@ BASE = Path(__file__).resolve().parents[1]
 @pytest.fixture()
 def cfg(tmp_path):
     c = Config(
-        src_dir=BASE / "samples/src",
-        evalset_dir=BASE / "samples/evalset",
+        src_dir=BASE / "tests/fixtures/calc/src",
+        evalset_dir=BASE / "tests/fixtures/calc/evalset",
         work_dir=tmp_path / "data",
         knowledge_dir=tmp_path / "storage/knowledge",
     ).resolve(BASE)
@@ -26,7 +26,7 @@ def cfg(tmp_path):
 
 
 def test_compile_check_ok(cfg):
-    ok, errors = compile_check(BASE / "samples/src/calc.c", cfg)
+    ok, errors = compile_check(BASE / "tests/fixtures/calc/src/calc.c", cfg)
     assert ok is True
     assert errors == []
 
@@ -68,8 +68,8 @@ def test_is_holdout_hash_based(cfg):
 def test_evaluate_full_pass(cfg):
     """真实源码作为被测代码 → 全部通过。"""
     cases = [c for c in load_cases(cfg.evalset_dir) if c.get("split") != "holdout"]
-    report = evaluate("calc", BASE / "samples/src/calc.c", cases, cfg,
-                      src_text=(BASE / "samples/src/calc.c").read_text())
+    report = evaluate("calc", BASE / "tests/fixtures/calc/src/calc.c", cases, cfg,
+                      src_text=(BASE / "tests/fixtures/calc/src/calc.c").read_text())
     assert report.compile_ok is True
     assert report.passed == report.total
     assert report.confidence == pytest.approx(1.0)

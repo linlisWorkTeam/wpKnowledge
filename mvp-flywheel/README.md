@@ -21,7 +21,8 @@
 | `roles/` | 角色接口（可插拔）+ 桩实现（stubs.py，管道自检）+ **真实 LLM 实现（llm_roles.py，DeepSeek）** |
 | `eval/` | 评测闭环（编译必过 + 测试主判 + 相似度辅助）+ holdout 分层 |
 | `revise/` | 修订闭环（pending_corrections 队列 + 版本控制/回滚） |
-| `samples/` | 示例被测源码（calc / tiling 模块）+ 评测集（探针跑源码拿期望输出） |
+| `samples/` | 示例被测源码（tiling 算子真实算法）+ 评测集（探针跑源码拿期望输出） |
+| `tests/fixtures/calc/` | 测试夹具（calc 加减乘除，仅供单测，不误导 agent） |
 | `tests/` | pytest 单测（27 个） |
 
 ## 快速开始
@@ -82,7 +83,7 @@ cfg.evalset_format = "auto"                    # auto 自动检测；也可强�
 - native 模式约定：测试文件含 main，运行后打印 `PASS n/total`（与 JSON 模式同约定；gtest 用户可在测试框架外再打印一行 PASS 汇总）
 - native 模式不做 holdout 切分（本地测试集整体作为评测信号，防止误切）
 - `native_test_glob` 可配置匹配规则（默认 `test_*.c`，可改 `*.c`/`test_*.cpp`）
-- 示例：`samples/evalset_native/test_calc.c`（模拟用户本地测试集形态）
+- 示例：`tests/fixtures/calc/evalset_native/test_calc.c`（测试夹具，模拟用户本地测试集形态）
 
 ## 评测方法（对应执行手册 §3/§4/§5）
 

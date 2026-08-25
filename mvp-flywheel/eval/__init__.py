@@ -47,7 +47,9 @@ int main(void) {{
 
 def compile_check(code_path: Path, cfg: Config) -> tuple:
     """编译检查（必过门槛）。返回 (ok, errors)。"""
-    flags = [f.replace("{src_dir}", str(cfg.src_dir)) for f in cfg.compile_flags]
+    inc = cfg.eval_include_dir()
+    flags = [f.replace("{src_dir}", str(inc)).replace("{interfaces_dir}", str(inc))
+             for f in cfg.compile_flags]
     cmd = [cfg.compiler] + flags + ["-c", str(code_path), "-o", "/dev/null"]
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
     errors = [l for l in proc.stderr.splitlines() if "error" in l.lower()]
@@ -119,7 +121,7 @@ def evaluate(module: str, code_path: Path, cases: list, cfg: Config,
         return report
 
     # 3.2 测试执行（主信号）
-    decls = _collect_funcs(cfg.src_dir)
+    decls = _collect_funcs(cfg.eval_include_dir())
     if not decls:
         decls = {c["function"]: f"int {c['function']}(void);" for c in cases}
     decl_str = "\n".join(decls.values())
@@ -130,7 +132,7 @@ def evaluate(module: str, code_path: Path, cases: list, cfg: Config,
     compile_cmd = [
         cfg.compiler, "-Wall", "-std=c11",
         str(driver_file), str(code_path),
-        "-I", str(cfg.src_dir), "-lm", "-o", str(bin_file),
+        "-I", str(cfg.eval_include_dir()), "-lm", "-o", str(bin_file),
     ]
     proc = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=60)
     if proc.returncode != 0:
@@ -224,7 +226,7 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
         compile_cmd = [
             compiler, "-Wall", std_flag,
             str(tf), str(code_path),
-            "-I", str(cfg.src_dir), "-lm", "-o", str(bin_file),
+            "-I", str(cfg.eval_include_dir()), "-lm", "-o", str(bin_file),
         ]
         proc = subprocess.run(compile_cmd, capture_output=True, text=True, timeout=60)
         if proc.returncode != 0:

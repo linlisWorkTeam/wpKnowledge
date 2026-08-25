@@ -20,8 +20,8 @@ BASE = Path(__file__).resolve().parents[1]
 @pytest.fixture()
 def cfg(tmp_path):
     return Config(
-        src_dir=BASE / "samples/src",
-        evalset_dir=BASE / "samples/evalset",
+        src_dir=BASE / "tests/fixtures/calc/src",
+        evalset_dir=BASE / "tests/fixtures/calc/evalset",
         work_dir=tmp_path / "data",
         knowledge_dir=tmp_path / "storage/knowledge",
     ).resolve(BASE)
@@ -68,7 +68,7 @@ def test_decide_compile_fail_not_pass(cfg):
 def test_flywheel_end_to_end_pass(cfg):
     """真实源码作为知识来源 + 忠实 Coder → 一轮通过。"""
     fw = KnowledgeFlywheel(cfg)
-    result = fw.run("calc", BASE / "samples/src/calc.c")
+    result = fw.run("calc", BASE / "tests/fixtures/calc/src/calc.c")
     assert result["decision"] == "pass"
     assert result["rounds"] == 1
     assert result["train_report"].confidence == pytest.approx(1.0)
@@ -85,7 +85,7 @@ def test_flywheel_iterates_on_bad_coder(cfg):
                    .replace("if (x < lo) return lo;\n    if (x > hi) return hi;", "")
 
     fw = KnowledgeFlywheel(cfg, coder=StubCoder(defect_fn=broken))
-    result = fw.run("calc", BASE / "samples/src/calc.c")
+    result = fw.run("calc", BASE / "tests/fixtures/calc/src/calc.c")
     # R1 有缺陷失败 → 修订 → R2 知识含补丁 → Coder 修正 → 通过
     assert result["decision"] == "pass"
     assert result["rounds"] == 2
@@ -101,7 +101,7 @@ def test_flywheel_holdout_reported(cfg):
     assert len(splits["holdout"]) == 2
 
     fw = KnowledgeFlywheel(cfg)
-    result = fw.run("calc", BASE / "samples/src/calc.c")
+    result = fw.run("calc", BASE / "tests/fixtures/calc/src/calc.c")
     assert result["holdout_report"] is not None
     assert result["holdout_report"].module == "calc"
     # 真实源码 → holdout 也全过

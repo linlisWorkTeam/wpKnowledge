@@ -13,15 +13,16 @@ from pathlib import Path
 @dataclass
 class Config:
     # --- 路径 ---
-    src_dir: Path = Path("samples/src")          # 被测源码（C/C++）
-    evalset_dir: Path = Path("samples/evalset")  # 评测集
+    src_dir: Path = Path("samples/tiling/src")   # 被测源码（C/C++，飞轮外 src-biz/；仅知识生成读取）
+    interfaces_dir: Path | None = None           # 接口头文件副本（评测编译 -I 用）；None 回退 src_dir
+    evalset_dir: Path = Path("samples/tiling/evalset")  # 评测集（只放测试文件，不放源码实现）
     work_dir: Path = Path("data")                # 运行时产物
     knowledge_dir: Path = Path("storage/knowledge")  # 知识库（OKF 知识卡）
 
     # --- 评测 ---
-    compiler: str = "gcc"                        # C 编译器；C++ 用 g++
+    compiler: str = "g++"                        # C/C++ 编译器（C 项目可改 gcc）
     compile_flags: list = field(
-        default_factory=lambda: ["-Wall", "-Werror", "-std=c11", "-I{src_dir}"]
+        default_factory=lambda: ["-Wall", "-Werror", "-std=c++11", "-I{src_dir}"]
     )
     holdout_ratio: float = 0.2                   # holdout 比例
     pass_threshold: float = 0.8                  # 门禁阈值（置信度 ≥ 0.8 通过）
@@ -45,4 +46,10 @@ class Config:
             p = getattr(self, name)
             if not p.is_absolute():
                 setattr(self, name, base / p)
+        if self.interfaces_dir is not None and not self.interfaces_dir.is_absolute():
+            self.interfaces_dir = base / self.interfaces_dir
         return self
+
+    def eval_include_dir(self) -> Path:
+        """评测编译用的头文件目录：interfaces_dir 优先，回退 src_dir。"""
+        return self.interfaces_dir or self.src_dir
