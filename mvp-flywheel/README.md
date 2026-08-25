@@ -28,10 +28,6 @@
 
 ```bash
 python3 -m pytest tests/ -v        # 跑全部单测（27 个）
-python3 demo.py                    # 端到端：calc 模块（示例），一轮通过
-python3 demo.py --bad-coder        # calc + 缺陷 Coder，演示修订闭环（R1 失败→R2 通过）
-python3 demo_tiling.py             # 端到端：tiling 模块（算子平台真实算法），一轮通过
-python3 demo_tiling.py --bad-coder # tiling + 缺陷 Coder，演示修订闭环
 python3 demo_llm_full.py           # 全流程真 LLM：知识生成/Coder/Review 全走 DeepSeek
 python3 demo_llm_stale.py          # 真 LLM + 过时文档：知识=预置解释型文档（无源码）
 ```
@@ -76,13 +72,7 @@ python3 demo_llm_stale.py # 知识=预置过时文档（无源码）：LLM 理�
 | **JSON cases** | `evalset/cases/*.json` | case 带 module/function/args/expected，自动生成 C 测试驱动 |
 | **原生测试文件** | `evalset/test_*.c`（或 .cpp） | 用户本地测试集直接编译运行（含 main，逐用例断言，打印 `PASS n/total`） |
 
-**使用本地测试集**（不改代码）：
-
-```bash
-python3 demo.py --evalset /你的路径/evalset
-```
-
-或代码里配置：
+**使用本地测试集**（不改代码，配置即可）：
 
 ```python
 cfg.evalset_dir = Path("/你的路径/evalset")   # 指向本地测试集目录
@@ -112,7 +102,7 @@ fw = KnowledgeFlywheel(cfg, knowledge_gen=YourAgent(), coder=YourCoder(), review
 
 ## 已知限制（MVP）
 
-- 桩场景（demo.py / demo_tiling.py）仅为管道自检：知识=源码摘录，**不符合飞轮知识形态**（真实流程用 demo_llm_full.py）
+- 桩实现（stubs.py）仅用于单测与管道自检：知识=源码摘录，**不符合飞轮知识形态**（真实流程用 demo_llm_full.py / demo_llm_stale.py）
 - 测试驱动生成仅支持 int/double 参数与返回值（可扩展 schema）
 - 单模块评测；相似度为文本级（AST 级在 P1）
 - 评测集期望输出必须来自源码实际行为（红线），示例集已用探针程序验证
