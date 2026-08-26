@@ -9,9 +9,9 @@
 ## 0. 结论摘要（可直接引用）
 
 1. **主 Agent 不需要**。编排层用确定性状态机（代码）承担规划/委派/决策，比 LLM 主 Agent 更可靠、可审计、不烧 token。Anthropic 实测：多 Agent 系统 token 消耗约为普通对话的 **15 倍**，且"大多数编码任务并行度低，LLM 尚不擅长实时协调委派"，与我们场景直接相关。
-2. **文档生成后是否需要 subagent 检索定位：需要，分两档**。① 超大代码库/多模块生成：按函数/模块分块，每块独立 subagent 并行生成（subagent = 上下文压缩器）；② 迭代修订：按修订指令的 knowledge_path 精准定位段落，不重读全文。
+2. **文档生成后是否需要 subagent 检索定位：需要，分两档**。① 超大代码库/多模块生成：DocGenAgent 分块 + DocWorkerAgent 并行（每块独立上下文，subagent = 上下文压缩器）；② 迭代修订：按修订指令的 knowledge_path 精准定位段落，不重读全文。
 3. **Review 选型：独立上下文审查（CCR）是硬结论，但不需要辩论式多 Review**。跨上下文独立审查 F1 28.6% vs 同会话自审 24.6%；同会话重复审两次无增益（p=0.11），优势来自"上下文分离"本身。我们的 Coder/Review 分离已天然满足，继续保持。
-4. **spec→TDD + spec→code + 独立检查的设想成立，但测试来源有优先级**。同一 spec 派生的 TDD 测试与代码共享盲区，只能做冒烟/需求澄清；门禁主判必须用探针跑真实源码的期望输出。独立检查 agent 用 CCR 模式（全新 session + 只读 + 判据清单）。
+4. **TestGenAgent + CodeAgent + CheckAgent 的设想成立，但测试来源有优先级**。同一知识文档派生的 TDD 测试与代码共享盲区，只能做冒烟/需求澄清；门禁主判必须用探针跑真实源码的期望输出。CheckAgent 用 CCR 模式（全新 session + 只读 + 判据清单）。
 5. **框架选型：不引入 LangGraph/CrewAI/AutoGen/MetaGPT**。我们的流水线固定、状态机简单、产物文件交接，自研编排层已覆盖；重型框架带来的是状态管理/图执行复杂度与厂商绑定，收益为负。
 
 ---
@@ -126,7 +126,7 @@ Reviewer 与 Maker 的 5 个结构分离维度：
 
 ---
 
-## 3. spec→TDD + spec→code + 独立检查：设想评估
+## 3. TestGenAgent + CodeAgent + CheckAgent：设想评估
 
 ### 3.1 相关实证
 
@@ -189,93 +189,112 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
 
 ---
 
-## 4.5 本项目目标 agent 架构（用户设想）
+## 4.5 本项目目标 Agent 架构（定稿：Agent 清单 + 工作流程）
 
-> 本节按用户设想的完整链路绘制：主 agent 统筹 + 文档分块 subagent 检索定位（防上下文超长）+ spec→TDD / spec→code / 独立检查三 agent 分工 + Review 独立上下文。这是**目标架构**，尚未全部落地（mvp-flywheel 现状对照见文末表格）。
+> 本节是目标架构的**最终定义**：明确的 Agent 数量、命名（统一 `xxxAgent`）、职责边界、工作流程。技术栈统一 **TypeScript**。论文依据仅采用 2025 年及以后的研究（见 §4.6）。
+> 语言约定：所有 Agent 命名后缀统一为 `Agent`，如 `CodeAgent`；代码接口用 TypeScript 定义。
 
-### 4.5.1 总体架构（主 agent + 分块生成 + spec 三 agent + Review）
+### 4.5.0 Agent 清单（共 7 类，3 类可选实例）
+
+| # | Agent | 职责 | 输入 | 输出 | 类型 |
+|---|---|---|---|---|---|
+| 1 | **OrchestratorAgent** | 统筹：规划任务/拆解模块/委派 subagent/汇总/决策 | 用户需求、评测报告 | 任务计划、决策（pass/iterate/rollback/stopped） | 核心（必选） |
+| 2 | **DocGenAgent** | 知识文档生成（读源码→解释型知识），唯一执笔者 | 源码文件、模块清单 | 知识文档（OKF 格式，sources 溯源） | 核心（必选） |
+| 3 | **DocWorkerAgent** | 分块并行生成知识（每块独立上下文），DocGenAgent 的并行实例 | 模块子集、依赖图 | 分块知识片段（回传结构化摘要+溯源） | 可选（大库才开） |
+| 4 | **TestGenAgent** | TDD：知识文档→测试/冒烟用例（需求澄清） | 知识文档 | 测试用例集（候选测试池） | 核心（必选） |
+| 5 | **CodeAgent** | 知识文档+接口头文件→实现代码（物理隔离源码） | 知识文档、接口 | 实现代码文件 | 核心（必选） |
+| 6 | **CheckAgent** | 独立检查（CCR 模式）：语义层审查代码/测试 | 代码 diff、判据清单 | 检查报告（发现清单，非打分） | 核心（必选） |
+| 7 | **ReviewAgent** | 评测失败归因 + 修订指令（readlist 三字段） | 评测报告、知识文档 | 归因报告（weak_spots/corrections） | 核心（必选） |
+
+> 非 Agent 组件（确定性程序，不算 Agent）：**EvalRunner**（编译+探针测试+相似度，门禁主判）、**Sandbox**（路径白名单隔离）、**Protection**（SHA-256 写保护）、**KnowledgeStore**（知识库落盘/版本/ledger）。
+
+### 4.5.1 总体工作流程（纯文本流程图）
 
 ```text
-流程图：知识飞轮目标 agent 架构（用户设想）
-                 ┌────────────────────────────────────────────────────┐
-                 │              主 Agent（Lead / Orchestrator）        │
-                 │    规划任务 / 拆解 / 委派 subagent / 汇总 / 决策     │
-                 │    （可 LLM 动态规划，或确定性代码，二选一待定）       │
-                 └───────┬──────────────────────┬─────────────────────┘
+流程图：知识飞轮目标架构工作流程（Agent 统一 xxxAgent 命名）
+                 ┌──────────────────────────────────────────────────┐
+                 │            OrchestratorAgent（主 Agent）          │
+                 │   规划任务 / 拆解模块 / 委派 / 汇总 / 决策          │
+                 │   （确定性代码为主，必要时 LLM 动态规划）            │
+                 └───────┬──────────────────────┬───────────────────┘
                          │                      │
-   源码 src_dir          │                      │
-   （只读）               │ 委派文档生成任务        │ 委派代码生成任务
-        │               ▼                      ▼
-        │   ┌────────────────────────┐  ┌──────────────────────────┐
-        │   │ 文档生成（分块 + subagent）│  │ spec 驱动代码生成（三 agent）│
-        │   │  ········ 见 4.5.2 ···· │  │  ········ 见 4.5.3 ······ │
-        │   └────────────────────────┘  └──────────────────────────┘
-        │               │                      │
-        │               ▼                      ▼
-        │   ┌────────────────────────┐  ┌──────────────────────────┐
-        │   │  知识文档（分块产物汇总）  │  │  TDD 测试集 + 实现代码     │
-        │   │  sources 溯源锚点        │  │  + 独立检查报告            │
-        │   └────────────────────────┘  └──────────────────────────┘
-        │               │                      │
-        │               └──────────┬───────────┘
-        │                          ▼
-        │                 ┌────────────────────┐
-        │                 │ 评测闭环（编译+测试） │
-        │                 │  + 相似度（仅归因）   │
-        │                 └─────────┬──────────┘
-        │                           │ 评测报告
-        │                           ▼
-        │                 ┌────────────────────┐
-        │                 │ Review Agent       │
-        │                 │ 独立上下文（CCR）    │
-        │                 │ 只读：归因+修订指令  │
-        │                 └─────────┬──────────┘
-        │                           │ 归因/修订
-        │                           ▼
-        │                 ┌────────────────────┐
-        │                 │ 主 Agent 决策        │
-        │                 │ pass / iterate /    │
-        │                 │ rollback / stopped  │
-        │                 └─────────┬──────────┘
-        │              迭代（修订指令）│        通过
-        └───────────────────────────┘         ▼
-                                    知识发布（verified）
+   源码 src_dir          │ 委派文档生成           │ 委派代码生成
+   （只读）               ▼                      ▼
+        │      ┌────────────────────┐  ┌──────────────────────────┐
+        │      │  DocGenAgent        │  │  TestGenAgent + CodeAgent │
+        │      │  读源码→知识文档      │  │  知识文档→测试 + 实现      │
+        │      │  （大库时 spawn      │  │  （两 agent 并行，独立上下文）│
+        │      │   DocWorkerAgent×N） │  │                           │
+        │      └─────────┬──────────┘  └─────────────┬────────────┘
+        │                │ 知识文档 .md               │ 测试集 + 实现代码
+        │                ▼                           ▼
+        │      ┌────────────────────┐  ┌──────────────────────────┐
+        │      │  KnowledgeStore     │  │  CheckAgent（CCR 独立检查） │
+        │      │  （候选区+版本+ledger）│  │  只读 diff+判据，语义层审查 │
+        │      └────────────────────┘  └─────────────┬────────────┘
+        │                                            │ 检查报告
+        │                                            ▼
+        │      ┌──────────────────────────────────────────────────┐
+        │      │        EvalRunner（确定性程序，非 Agent）           │
+        │      │  编译必过（g++ -Werror）+ 探针测试 + 相似度（仅归因）  │
+        │      └───────────────────────┬──────────────────────────┘
+        │                              │ 评测报告 .json
+        │                              ▼
+        │      ┌──────────────────────────────────────────────────┐
+        │      │  ReviewAgent（独立上下文 CCR，只读）                 │
+        │      │  归因：失败用例→定位知识段落→修订指令（三字段）        │
+        │      └───────────────────────┬──────────────────────────┘
+        │                              │ 归因/修订 .json
+        │                              ▼
+        │      ┌──────────────────────────────────────────────────┐
+        │      │  OrchestratorAgent 决策（decide 状态机）            │
+        │      │  pass / iterate / rollback / stopped              │
+        │      └──────────────┬───────────────────────────────────┘
+        │        iterate（修订指令→DocGenAgent 修订→重测）│        pass
+        └─────────────────────────────────────────────┘         ▼
+                                                  知识发布 KnowledgeStore
+                                                  （verified，SHA-256 快照）
 
-   分工边界：谁生成谁可改，谁评测谁不改；生成与验证分离；
-             Coder 物理看不到源码（沙箱）；主 agent 有决策权不执笔
+   分工边界（硬规则）：
+   - 谁生成谁可改，谁评测谁不改（生成与验证分离）
+   - CodeAgent 物理看不到源码（Sandbox 强制）
+   - OrchestratorAgent 有决策权不执笔
+   - 全部产物文件交接，可审计、可断点续跑
 ```
 
-### 4.5.2 文档生成阶段（分块 + subagent 检索定位，防上下文超长）
+### 4.5.2 文档生成阶段（DocGenAgent 分块 + DocWorkerAgent 检索定位）
 
 ```text
-流程图：文档生成分块 + subagent 检索定位
-   ┌─────────────┐   按依赖拓扑拆块   ┌─────────────────┐
-   │ 源码仓库      │ ────────────────►│ 主 Agent 规划分块 │
-   │ 30万行/仓     │  (include/依赖图)  └────────┬────────┘
-   └─────────────┘                             │ 每块一个独立上下文
-                                    ┌──────────┼──────────┐
-                                    ▼          ▼          ▼
-                            ┌──────────┐┌──────────┐┌──────────┐
-                            │ SubAgent1 ││ SubAgent2 ││ SubAgent3 │
+流程图：文档生成分块 + DocWorkerAgent 检索定位
+   ┌─────────────┐   按依赖拓扑拆块   ┌─────────────────────┐
+   │ 源码仓库      │ ────────────────►│ OrchestratorAgent    │
+   │ 30万行/仓     │  (include/依赖图)  │  规划分块（≤5 块并行） │
+   └─────────────┘                   └──────────┬──────────┘
+                                                │ 每块一个独立上下文
+                                    ┌───────────┼───────────┐
+                                    ▼           ▼           ▼
+                            ┌───────────┐┌───────────┐┌───────────┐
+                            │DocWorker  ││DocWorker  ││DocWorker  │
+                            │Agent_1    ││Agent_2    ││Agent_3    │
                             │ 模块A知识  ││ 模块B知识  ││ 模块C知识  │
-                            └────┬─────┘└────┬─────┘└────┬─────┘
-                                 │           │           │
-                                 ▼           ▼           ▼
-                            ┌─────────────────────────────────┐
-                            │ 主 Agent 汇总 / 一致性检查 / 拼接  │
-                            │ → 知识文档（带 sources 溯源）       │
-                            └─────────────────────────────────┘
+                            └────┬──────┘└────┬──────┘└────┬──────┘
+                                 │            │            │
+                                 ▼            ▼            ▼
+                            ┌────────────────────────────────────┐
+                            │ DocGenAgent 汇总/一致性检查/拼接      │
+                            │ → 知识文档（OKF + sources 溯源）      │
+                            └────────────────────────────────────┘
 
    检索定位（迭代修订时，不重读全文）：
-   修订指令 ──► 按 knowledge_path 定位段落 ──► 只取命中段落给生成 agent
-   每个 subagent 独立上下文 = 防上下文超长的核心手段
+   修订指令 ──► 按 knowledge_path 定位段落 ──► 只取命中段落给 DocGenAgent
+   每个 DocWorkerAgent 独立上下文 = 防上下文超长的核心手段
    （Anthropic 实证：subagent 本质是压缩器，各自窗口并行探索后压缩回传）
 ```
 
-### 4.5.3 知识文档驱动代码生成（三 agent：TDD / Code / 独立检查）
+### 4.5.3 代码生成阶段（TestGenAgent + CodeAgent + CheckAgent 三 Agent）
 
 ```text
-流程图：知识文档→TDD + 知识文档→code + 独立检查（三 agent 分工）
+流程图：TestGenAgent + CodeAgent + CheckAgent（三 Agent 分工）
                     ┌──────────────────┐
                     │  知识文档（spec）   │
                     └────────┬─────────┘
@@ -283,7 +302,7 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
               ┌──────────────┼──────────────┐
               ▼              ▼              ▼
    ┌────────────────┐ ┌────────────────┐ ┌────────────────────────┐
-   │ Agent1: TDD    │ │ Agent2: Code   │ │ Agent3: 独立检查        │
+   │ TestGenAgent   │ │ CodeAgent      │ │ CheckAgent             │
    │ 生成测试/冒烟    │ │ 生成实现代码    │ │ （CCR 模式，全新 session）│
    │ 需求澄清        │ │ 只读知识+接口   │ │ 只读：diff+判据清单      │
    │ 输出：测试用例   │ │ 输出：实现 .cpp │ │ 检查：语义/边界/一致性    │
@@ -291,31 +310,31 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
            │                  │                      │
            ▼                  ▼                      ▼
    ┌─────────────────────────────────────────────────────┐
-   │ 评测闭环：编译必过 + 探针测试（期望输出来源=探针跑真实源码）│
-   │ TDD 冒烟用例 → 候选测试池（不直接进门禁，人工审过才固化） │
+   │ EvalRunner：编译必过 + 探针测试（期望输出来源=探针跑真实源码）│
+   │ TestGenAgent 冒烟用例 → 候选测试池（不直接进门禁，人工审过才固化）│
    │ 门禁主判 = 探针期望输出测试，不依赖任何 agent 自我感觉     │
    └─────────────────────────────────────────────────────┘
 
-   注（共享盲区）：Agent1 和 Agent2 从同一份知识文档推导，共享对文档
-   的理解盲区，Agent1 的测试只验证"它理解的文档"，代码全绿但双方
-   可能共同误解。因此：
-   - TDD 测试定位 = 需求澄清 + 冒烟（防"完全跑偏"）
+   注（共享盲区）：TestGenAgent 和 CodeAgent 从同一份知识文档推导，
+   共享对文档的理解盲区，TestGenAgent 的测试只验证"它理解的文档"，
+   代码全绿但双方可能共同误解。因此：
+   - TestGenAgent 定位 = 需求澄清 + 冒烟（防"完全跑偏"）
    - 门禁主判 = 探针期望输出（独立于任何 agent 的理解）
-   - Agent3 独立检查 = 语义层补充（测试覆盖不到的：命名/边界/设计）
+   - CheckAgent 独立检查 = 语义层补充（测试覆盖不到的：命名/边界/设计）
 ```
 
-### 4.5.4 Review 阶段（独立上下文，CCR）
+### 4.5.4 Review 阶段（ReviewAgent 独立上下文 CCR）
 
 ```text
-流程图：Review 阶段（CCR 独立上下文模式）
+流程图：ReviewAgent（CCR 独立上下文模式）
    ┌─────────────────┐
    │ 评测报告（客观信号）│
    └────────┬────────┘
             ▼
    ┌─────────────────────────────────────┐
-   │ Review Agent（全新 session，无生成历史）│
+   │ ReviewAgent（全新 session，无生成历史）│
    │  · 只给：工件 + 评测失败详情 + 判据清单  │
-   │  · 不给：Coder 的推理过程/设计取舍      │
+   │  · 不给：CodeAgent 的推理过程/设计取舍  │
    │  · 只读权限（Read/Grep），无写权限      │
    │  · 不知道作者是谁（消除自我偏好）        │
    └────────┬────────────────────────────┘
@@ -327,21 +346,127 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
 
    可选增强（P1，关键模块才开）：
    - 跨模型家族二查（GLM + DeepSeek 同查，补同族盲区）
-   - 对抗式（primary reviewer + challenger + arbiter）
-   实证：CCR F1 28.6% vs 同会话自审 24.6%；同会话重复审两次无增益
+   - 对抗式（PrimaryReviewer + Challenger + Arbiter）
+   实证（CCR，2026）：F1 28.6% vs 同会话自审 24.6%；同会话重复审两次无增益
 ```
 
-### 4.5.5 与 mvp-flywheel 现状对照（目标 vs 现状差距）
+### 4.5.5 Agent 接口定义（TypeScript）
 
-| 环节 | 目标架构（用户设想） | mvp-flywheel 现状 | 差距 |
+```typescript
+// 知识飞轮目标架构 · Agent 接口（TypeScript）
+// 约定：所有 Agent 命名后缀统一为 Agent；产物全部文件交接（可审计/断点续跑）
+
+/** 统一 Agent 基类：输入 → 输出（产物落盘路径） */
+interface Agent<I, O> {
+  readonly name: string;
+  run(input: I): Promise<O>;
+}
+
+// ---------- 产物类型（文件交接的契约） ----------
+interface KnowledgeDoc {
+  module: string;
+  version: number;
+  content: string;          // OKF Markdown
+  sources: SourceRef[];     // 溯源锚点（file + symbol + commit）
+  status: "draft" | "verified" | "rejected";
+  sha256: string;
+}
+
+interface SourceRef {
+  file: string;
+  symbol: string;
+  commit: string;
+}
+
+interface TestCase { id: string; description: string; expected: string; }
+interface CodeArtifact { path: string; language: "c" | "cpp"; }
+
+interface EvalReport {
+  compileOk: boolean;
+  passed: number;
+  total: number;
+  confidence: number;       // passed / total
+  repetitions: { mean: number; variance: number; unstable: boolean };
+  similarity: number;       // 仅归因，不进门禁
+  failures: string[];
+  reasonCodes: string[];
+}
+
+interface Correction {
+  id: string;               // 修订指令 ID
+  knowledgePath: string;    // 知识段落路径
+  criterion: string;        // 可执行验证判据
+}
+
+interface AttributionReport {
+  summary: string;
+  weakSpots: string[];
+  corrections: Correction[];
+}
+
+// ---------- Agent 接口（7 类） ----------
+interface OrchestratorAgent extends Agent<{
+  request: string;
+  moduleGraph: ModuleGraph;
+}, {
+  plan: TaskPlan;
+  decision: "pass" | "iterate" | "rollback" | "stopped";
+}> {}
+
+interface DocGenAgent extends Agent<{
+  module: string;
+  srcFile: string;
+  sources: SourceRef[];
+  corrections?: Correction[];   // 修订时传入
+}, KnowledgeDoc> {}
+
+interface DocWorkerAgent extends Agent<{
+  moduleSubset: string[];
+  depGraph: DepGraph;
+}, { chunk: string; sources: SourceRef[] }> {}
+
+interface TestGenAgent extends Agent<{
+  doc: KnowledgeDoc;
+}, { testCases: TestCase[] }> {}
+
+interface CodeAgent extends Agent<{
+  doc: KnowledgeDoc;
+  interfaceHeader: string;    // 只读接口，物理看不到源码
+}, CodeArtifact> {}
+
+interface CheckAgent extends Agent<{
+  diff: string;               // 只给 diff，不给生成历史（CCR）
+  criteria: string[];
+}, { findings: string[] }> {} // 发现清单，非打分
+
+interface ReviewAgent extends Agent<{
+  doc: KnowledgeDoc;
+  report: EvalReport;         // 客观评测结果
+}, AttributionReport> {}
+
+// ---------- 非 Agent 组件（确定性程序） ----------
+interface EvalRunner {
+  compile(code: CodeArtifact): { ok: boolean; errors: string[] };
+  runTests(code: CodeArtifact, cases: TestCase[]): EvalReport;
+}
+interface Sandbox { assertReadAllowed(path: string): void; }
+interface Protection { snapshot(paths: string[]): void; verify(paths: string[]): void; }
+interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): KnowledgeDoc; }
+```
+
+### 4.5.6 与 mvp-flywheel 现状对照（目标 vs 现状差距）
+
+| 环节 | 目标架构（Agent） | mvp-flywheel 现状 | 差距 |
 |---|---|---|---|
-| 统筹 | 主 Agent（LLM 或代码） | 确定性编排层（代码） | 主 agent 选型未定（README 决策点 2） |
-| 文档生成 | 分块 + subagent 并行 + 检索定位 | 单知识生成 agent（chunk 雏形） | 需补 subagent 并行（README 决策点 3） |
-| 代码生成 | spec→TDD + spec→code 双 agent | 单 Coder agent | 需补 TDD agent（README 决策点 5） |
-| 独立检查 | Agent3 独立检查（CCR） | 无独立检查 agent，靠 Review | 需新增（README 决策点 4） |
-| Review | 独立上下文（CCR）+ 可选跨模型 | Review 独立 session（已满足 CCR） | 跨模型二查为 P1 |
-| 门禁 | 探针期望输出主判 + TDD 冒烟辅助 | 探针期望输出主判（已满足） | TDD 冒烟未接入 |
-| 发布 | 主 Agent 决策 + 门禁通过 | decide() 确定性决策（已满足） | 一致 |
+| 统筹 | OrchestratorAgent | 确定性编排层（代码） | 命名对齐；主 agent 选型未定（README 决策点 2） |
+| 文档生成 | DocGenAgent + DocWorkerAgent（分块并行 + 检索定位） | 单知识生成 agent（chunk 雏形） | 需补 DocWorkerAgent 并行（README 决策点 3） |
+| 测试生成 | TestGenAgent（TDD 冒烟） | 无（评测集直接来自探针） | 需新增（README 决策点 5） |
+| 代码生成 | CodeAgent | 单 Coder agent | 命名对齐 |
+| 独立检查 | CheckAgent（CCR） | 无独立检查 agent，靠 Review | 需新增（README 决策点 4） |
+| 归因修订 | ReviewAgent | Review 独立 session（已满足 CCR） | 命名对齐；跨模型二查为 P1 |
+| 门禁 | EvalRunner 探针期望输出主判 + TDD 冒烟辅助 | 探针期望输出主判（已满足） | TDD 冒烟未接入 |
+| 发布 | OrchestratorAgent 决策 + 门禁通过 | decide() 确定性决策（已满足） | 一致 |
+| 语言 | TypeScript | Python | **全量迁移**（用户定） |
 
 ---
 
@@ -349,185 +474,182 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
 
 > 按 §4 的形式逐环节展开：每个环节为什么这么设计、参考了什么论文/工作、论文的优缺点、哪些值得借鉴、哪些需要规避。论文详情见 [02-编排模式调研.md](02-编排模式调研.md) 与 [03-开源编排框架.md](03-开源编排框架.md)，已有笔记见 2.wiki/研究/。
 
-### 4.6.1 主 Agent（Lead / Orchestrator）
+### 4.6.1 OrchestratorAgent（主 Agent）
 
 **为什么这么设计**：需要一个统筹者负责"任务拆解、委派、汇总、决策"。两种实现路径：LLM orchestrator（动态规划，灵活）或确定性编排层（代码状态机，可控）。我们的判断是"外层确定性 + 内层 agent 自治"。
 
-**参考论文/工作**：
-- Anthropic《Building Effective Agents》（2024.12）：workflow vs agent 的分界是"控制权归代码还是归模型"，官方建议"能用 workflow 就不用 agent"
-- Anthropic《Multi-Agent Research System》（2025.06）：orchestrator-worker 实证，多 agent 比单 agent 提升 90.2%，但 token 消耗 ≈ 15 倍
-- MetaGPT（arXiv:2308.00352）：SOP 层级（PM→架构→工程师→QA）
+**参考论文/工作（2025+）**：
+- Anthropic《Multi-Agent Research System》（2025.06）：orchestrator-worker 实证，多 agent 比单 agent 提升 90.2%，但 token 消耗 ≈ 15 倍；subagent 滥用教训（50 个 → 成本爆炸）
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：Agent 框架/记忆/技能/模型/工作流五类进化对象的分类框架
+- Google ADK（2025-2026）：SequentialAgent/ParallelAgent/LoopAgent 等可组合工作流 agent 基元
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| Anthropic Building Effective Agents | 给出"先 workflow 后 agent"的演进原则，可评测才谈优化 | 偏原则性，无具体代码模式 | 主干保持确定性编排层，主 agent 仅在"开放任务分解"时启用 |
-| Anthropic Research System | 查询分解、并行 subagent、结果综合的完整模式 | 早期教训：简单查询 spawn 50 个 subagent 成本爆炸；限制并行数（约 5 个）+ token 预算 | 主 agent 委派必须设并行上限与预算闸门 |
-| MetaGPT | SOP 固化 = 固定流水线的学术背书；消息池解耦 | 面向从零生成新项目，对改造已有超大仓库支持弱；token 开销大 | 借鉴"SOP 编码"思想（我们的门禁/修订指令就是 SOP），不引入框架 |
+| Anthropic Research System | 查询分解、并行 subagent、结果综合的完整模式 | 早期教训：简单查询 spawn 50 个 subagent 成本爆炸；限制并行数（约 5 个）+ token 预算 | OrchestratorAgent 委派必须设并行上限与预算闸门 |
+| 自进化综述 | 软件特有证据分类（结果/环境/轨迹） | 综述性质，无实现细节 | OrchestratorAgent 决策只用客观证据，不依赖自我感觉 |
+| Google ADK | 工作流 agent 基元（Sequential/Parallel/Loop） | 绑定 Google Cloud | 借鉴基元思想，用 TypeScript 自研实现 |
 
-**结论**：主 agent 用"确定性编排层为主 + 需要时 LLM 动态规划"的混合形态；控制并行度（≤5）、设 token 预算、决策可审计。
+**结论**：OrchestratorAgent 用"确定性编排层为主 + 需要时 LLM 动态规划"的混合形态；控制并行度（≤5）、设 token 预算、决策可审计。
 
 ---
 
-### 4.6.2 文档生成分块 + subagent 检索定位
+### 4.6.2 DocGenAgent + DocWorkerAgent（文档生成分块 + 检索定位）
 
-**为什么这么设计**：30 万行/仓、总量上亿行的源码不可能一次塞进上下文。两个手段：① 生成阶段按依赖拓扑分块，每块一个独立 subagent 上下文；② 修订阶段按 knowledge_path 检索定位，只取命中段落，不重读全文。
+**为什么这么设计**：30 万行/仓、总量上亿行的源码不可能一次塞进上下文。两个手段：① 生成阶段按依赖拓扑分块，每块一个独立 DocWorkerAgent 上下文；② 修订阶段按 knowledge_path 检索定位，只取命中段落，不重读全文。
 
-**参考论文/工作**：
-- DocAgent（Facebook，arXiv:2504.08725）：5 角色 + 拓扑代码处理 + 增量上下文构建 + 验证-重写闭环
-- RepoAgent（OpenBMB）：AST 解析 → LLM 生成文档 → 代码知识图谱 → 文档落盘 + pre-commit 增量更新
-- Anthropic Research System：subagent 本质是"上下文压缩器"，各自窗口并行探索后压缩回传
-- 上下文工程（Context Engineering）共识：chunk 级检索 > 整文档注入
+**参考论文/工作（2025+）**：
+- DocAgent（Facebook，arXiv:2504.08725，2025.04）：拓扑代码处理 + 增量上下文构建 + 验证-重写闭环
+- Anthropic Research System（2025.06）：subagent 本质是"上下文压缩器"，各自窗口并行探索后压缩回传
+- 上下文工程（Context Engineering）2025 共识：chunk 级检索 > 整文档注入
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| DocAgent | 拓扑排序天然适配 C/C++ include 依赖；增量上下文防爆炸；Verifier 保证 truthfulness | 5 角色偏多，编排有学习成本 | 直接采用拓扑排序 + 增量上下文；角色合并（Reader/Searcher→知识生成 subagent，Writer→主 agent 拼接，Verifier→评测/Review） |
-| RepoAgent | 知识图谱跨文件上下文；增量更新随提交触发 | 图谱构建依赖 AST，C/C++ 宏/模板场景准确率存疑 | 图谱作为 P1 增强；先用依赖图（include 解析） |
-| Anthropic 压缩器思想 | subagent 独立上下文 = 防超长的核心手段 | 汇总环节信息有损 | 每块 subagent 只回传结构化摘要 + 溯源锚点 |
+| DocAgent | 拓扑排序天然适配 C/C++ include 依赖；增量上下文防爆炸；Verifier 保证 truthfulness | 5 角色偏多，编排有学习成本 | 采用拓扑排序 + 增量上下文；角色合并（Reader/Searcher→DocWorkerAgent，Writer→DocGenAgent 拼接，Verifier→EvalRunner/ReviewAgent） |
+| Anthropic 压缩器思想 | DocWorkerAgent 独立上下文 = 防超长的核心手段 | 汇总环节信息有损 | 每块 DocWorkerAgent 只回传结构化摘要 + 溯源锚点 |
+| 上下文工程 | chunk 级检索 > 整文档注入 | 检索质量依赖索引 | 修订时按 knowledge_path 精准定位，不重读全文 |
 
-**结论**：分块粒度按"函数/模块级"（沿用现有 chunk 雏形），subagent 并行上限 5；修订时按修订指令的 knowledge_path 精准定位。
+**结论**：分块粒度按"函数/模块级"（沿用现有 chunk 雏形），DocWorkerAgent 并行上限 5；修订时按修订指令的 knowledge_path 精准定位。
 
 ---
 
-### 4.6.3 Agent1：TDD（知识文档 → 测试生成）
+### 4.6.3 TestGenAgent（知识文档 → 测试生成，TDD）
 
-**为什么这么设计**：让测试生成与代码生成分离。TDD agent 从知识文档（=spec）先产出测试/冒烟用例，作用是"需求澄清 + 定义可执行边界"，把知识文档的模糊处逼出来。
+**为什么这么设计**：让测试生成与代码生成分离。TestGenAgent 从知识文档（=spec）先产出测试/冒烟用例，作用是"需求澄清 + 定义可执行边界"，把知识文档的模糊处逼出来。
 
-**参考论文/工作**：
-- TDD-Agent（arXiv:2608.16742）：test-first reasoning，LiveCodeBench 上持续优于纯推理基线（GPT 70.04 vs 68.48）；dual-track 代码+测试共精化
-- Spec-Driven Test Gen（Google，arXiv:2608.17177）：先显式文档化前置/后置条件再生成测试，bug 检出 +9.8pp（p=0.0352）
-- AgentCoder（Huang et al. 2024）：programmer/tester 角色分离提升正确性
+**参考论文/工作（2025+）**：
+- TDD-Agent（arXiv:2608.16742，2026.08）：test-first reasoning，LiveCodeBench 上持续优于纯推理基线（GPT 70.04 vs 68.48）；dual-track 代码+测试共精化
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：先显式文档化前置/后置条件再生成测试，bug 检出 +9.8pp（p=0.0352）
+- MASTOR（arXiv:2606.10465，2026.06）：多 agent 从源码提取约束生成测试 oracle，提升 mutation score
 - 2.wiki 研究笔记：TDD-Agent、Spec-Driven Test Gen、覆盖率引导测试生成、变异测试与测试集质量
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| TDD-Agent | test-first 是推理框架而非流程摆设；测试是"演化的推理工件" | 单 agent 双轨（测试+代码同一个 agent 写），盲区不消除 | 借鉴 test-first 推理价值；但**拆成独立 agent** 以消除盲区 |
-| Spec-Driven Test Gen | 显式文档化 pre/post-condition 提升测试质量 9.8pp | 只解决测试生成，不解决代码生成 | 要求 TDD agent 先输出"前置/后置条件理解"再写用例（认知脚手架） |
-| AgentCoder | 角色分离方向正确 | 对话式协作，可控性弱 | 采用文件交接式分离，不用对话 |
+| TDD-Agent | test-first 是推理框架而非流程摆设；测试是"演化的推理工件" | 单 agent 双轨（测试+代码同一个 agent 写），盲区不消除 | 借鉴 test-first 推理价值；但**拆成独立 TestGenAgent** 以消除盲区 |
+| Spec-Driven Test Gen | 显式文档化 pre/post-condition 提升测试质量 9.8pp | 只解决测试生成，不解决代码生成 | 要求 TestGenAgent 先输出"前置/后置条件理解"再写用例（认知脚手架） |
+| MASTOR | 从源码/契约提取约束生成 oracle | 面向 REST API 场景，需改造 | P1 参考：从接口头文件提取约束 |
 
-**关键约束（来自 Chen et al. 2025 self-generated test bias）**：TDD agent 与 Code agent 共享对知识文档的理解盲区。**TDD 产出定位为"需求澄清 + 冒烟"，不直接进门禁**；门禁主判用探针期望输出（独立于任何 agent 的理解）。
+**关键约束（来自 Chen et al. 2025 self-generated test bias）**：TestGenAgent 与 CodeAgent 共享对知识文档的理解盲区。**TestGenAgent 产出定位为"需求澄清 + 冒烟"，不直接进门禁**；门禁主判用探针期望输出（独立于任何 agent 的理解）。
 
 ---
 
-### 4.6.4 Agent2：Code（知识文档 → 代码生成）
+### 4.6.4 CodeAgent（知识文档 → 代码生成）
 
-**为什么这么设计**：代码生成是"开放任务"（目标明确但实现路径未知），由独立 Coder 从知识文档 + 接口头文件生成实现；物理隔离源码（沙箱），防止抄源码作弊。
+**为什么这么设计**：代码生成是"开放任务"（目标明确但实现路径未知），由独立 CodeAgent 从知识文档 + 接口头文件生成实现；物理隔离源码（Sandbox），防止抄源码作弊。
 
-**参考论文/工作**：
-- Spec2RTL-Agent（2.wiki 研究笔记）：严格规格 → 代码有效，规格越精确生成越可靠
-- SDAD（arXiv:2608.20341）：spec-driven agentic development，合成权与发布权分离
-- spec-kit（GitHub，⭐130k）：规格驱动开发的工业实践
-- CRITIC（2.wiki 研究笔记）：外部验证强于内部反思，生成与验证分离
-- 2.wiki 研究笔记：Spec2RTL、SDAD、知识图谱驱动仓库级代码生成
+**参考论文/工作（2025+）**：
+- SDAD（arXiv:2608.20341，2026.05）：spec-driven agentic development，合成权与发布权分离
+- spec-kit（GitHub，2025+，⭐130k）：规格驱动开发的工业实践
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约是"认知脚手架"
+- Claude Code / Codex CLI（2025-2026）：在真实仓库里做代码生成/评审/测试的终端 agent 执行层
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| Spec2RTL | 规格严格度分级（spec-first/anchored/as-source），不搞一刀切 | 面向硬件 RTL，C/C++ 场景需改造 | 核心模块按可执行规格标准写知识，边缘模块放宽 |
 | SDAD | 合成与发布权分离；显式门禁 + 可审计溯源 | 报告性质，无开源实现细节 | 直接采用"谁生成谁可改，谁评测谁不改"原则（已落地） |
-| spec-kit | 工业界规格驱动规模化验证 | 面向新项目，非存量仓库 | 借鉴"spec 是唯一事实源"思想 |
+| spec-kit | 工业界规格驱动规模化验证 | 面向新项目，非存量仓库 | 借鉴"知识文档是唯一事实源"思想 |
+| Spec-Driven Test Gen | 规格契约提升测试质量 | 面向测试生成，非代码生成 | CodeAgent 输入=知识文档+接口，输出实现 |
+| Claude Code/Codex | 上下文隔离执行层，超大型仓库刚需 | 绑定特定模型/计费 | 作为 CodeAgent 的 LLM 后端接入（公司 GLM 5.1 经 codeagent CLI） |
 
-**结论**：Code agent 只读知识+接口（沙箱强制），输出实现；不直接评测、不自我验证（生成与验证分离）。
+**结论**：CodeAgent 只读知识+接口（Sandbox 强制），输出实现；不直接评测、不自我验证（生成与验证分离）。
 
 ---
 
-### 4.6.5 Agent3：独立检查（CCR 模式）
+### 4.6.5 CheckAgent（独立检查，CCR 模式）
 
 **为什么这么设计**：测试覆盖不到语义层（命名、边界设计、与知识文档的一致性、隐藏缺陷）。需要一个"不知道作者是谁"的独立审查者，用全新 session + 只读 + 判据清单做检查。
 
-**参考论文/工作**：
-- Cross-Context Review（arXiv:2603.12123）：跨上下文独立审查 F1 28.6% vs 同会话自审 24.6%；**同会话重复审两次无增益（p=0.11）**
+**参考论文/工作（2025+）**：
+- Cross-Context Review（arXiv:2603.12123，2026.03）：跨上下文独立审查 F1 28.6% vs 同会话自审 24.6%；**同会话重复审两次无增益（p=0.11）**
 - Adversarial Code Review（Augment Code，2026-07）：maker-checker 五维分离（上下文/prompt/模型/工具/输出）
-- LLM-as-Judge 研究（CodeJudgeBench arXiv:2507.10535）：位置偏差 14%、自我偏好
+- LLM-as-Judge 研究（CodeJudgeBench arXiv:2507.10535，2025.07）：位置偏差 14%、自我偏好
 - 2.wiki 研究笔记：CodeJudgeBench-LLM裁判可靠性
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| CCR | 方法极简（新 session 而已），收益显著，任意模型可用 | F1 绝对值仍不高（28.6%），不能替代客观测试 | 直接采用：Agent3 全新 session + 只给 diff+判据 |
+| CCR | 方法极简（新 session 而已），收益显著，任意模型可用 | F1 绝对值仍不高（28.6%），不能替代客观测试 | 直接采用：CheckAgent 全新 session + 只给 diff+判据 |
 | Adversarial Review | 五维分离清单可操作；跨模型家族补盲区（libfuse 案例） | SWR-Bench 警告：架构本身不保证更强，prompt 决定效果 | 工具只读（Read/Grep）；跨模型二查留 P1 |
-| LLM-as-Judge 研究 | 提示词设计要规避位置/详尽度偏差 | LLM 打分不可靠 | Agent3 输出"发现清单"而非"打分"；不进通过/失败判定 |
+| LLM-as-Judge 研究 | 提示词设计要规避位置/详尽度偏差 | LLM 打分不可靠 | CheckAgent 输出"发现清单"而非"打分"；不进通过/失败判定 |
 
-**结论**：Agent3 是"语义层补充检查"，输出结构化发现；门禁判定仍由客观测试决定。
+**结论**：CheckAgent 是"语义层补充检查"，输出结构化发现；门禁判定仍由客观测试决定。
 
 ---
 
-### 4.6.6 Review Agent（归因 + 修订指令）
+### 4.6.6 ReviewAgent（归因 + 修订指令）
 
-**为什么这么设计**：评测失败后需要定位"知识文档哪段写错了"，产出修订指令（readlist 三字段：ID + 段落路径 + 可执行判据），驱动知识修订。Review 独立上下文（CCR），只读，不知道生成者。
+**为什么这么设计**：评测失败后需要定位"知识文档哪段写错了"，产出修订指令（readlist 三字段：ID + 段落路径 + 可执行判据），驱动知识修订。ReviewAgent 独立上下文（CCR），只读，不知道生成者。
 
-**参考论文/工作**：
-- CCR（arXiv:2603.12123）：同上，上下文分离是核心
-- Reflexion / Self-Debugging（2.wiki 研究笔记）：执行反馈最有效；结构化信号 + 自然语言解读两层反馈
-- Feedback Over Form（2.wiki 研究笔记）：反馈质量 > 流程拓扑
-- CRITIC：外部验证 > 内部反思
-- 2.wiki 研究笔记：大语言模型自调试、反馈优先于流程拓扑
+**参考论文/工作（2025+）**：
+- CCR（arXiv:2603.12123，2026.03）：上下文分离是核心
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据分类（结果/环境/轨迹），反馈证据组合
+- SDAD（arXiv:2608.20341，2026.05）：修订指令需可执行判据，纯 NL 建议不能驱动合并
+- 2.wiki 研究笔记：反馈优先于流程拓扑（Feedback Over Form，2025 版）
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| Reflexion | 反思记忆 = 轻量强化学习 | 单 agent 自反思有确认偏误 | 反思由独立 Review 做，非生成者自省 |
-| Self-Debugging | 执行反馈最有效（+12%+） | 反馈结构不统一则效果打折 | 反馈 = 结构化信号（失败用例/diff/通过率）+ NL 解读两层 |
-| Feedback Over Form | 反馈质量优先于流程拓扑 | 无具体实现 | 修订指令三字段保证可执行性，纯 NL 建议不能驱动合并 |
-| CCR | 上下文分离消除自我偏好 | 同上 | Review 不给 Coder 推理历史 |
+| 自进化综述 | 反馈证据分类（结果/环境/轨迹） | 综述性质，无实现细节 | ReviewAgent 输入 = 客观评测报告（结果证据），不掺主观 |
+| SDAD | 修订需可执行判据 | 报告性质 | 修订指令三字段（ID+段落路径+可执行判据），纯 NL 不能驱动合并 |
+| Feedback Over Form | 反馈质量优先于流程拓扑 | 无具体实现 | 反馈 = 结构化信号（失败用例/diff/通过率）+ NL 解读两层 |
+| CCR | 上下文分离消除自我偏好 | F1 绝对值有限 | ReviewAgent 不给 CodeAgent 推理历史 |
 
-**结论**：Review 只读评测报告 + 工件，输出结构化归因（summary/weak_spots/corrections）；修订指令必须含可执行判据。
+**结论**：ReviewAgent 只读评测报告 + 工件，输出结构化归因（summary/weak_spots/corrections）；修订指令必须含可执行判据。
 
 ---
 
-### 4.6.7 评测闭环（探针期望输出主判）
+### 4.6.7 EvalRunner（探针期望输出主判）
 
 **为什么这么设计**：门禁主判必须是客观的、独立于任何 agent 理解的信号。期望输出来自"探针程序跑真实源码"，禁止 LLM 编造；编译必过 + 测试通过率主判 + 相似度仅归因。
 
-**参考论文/工作**：
-- EvalPlus（NeurIPS 2023）：差分测试扩 80x/35x，ChatGPT 65.8%→46.6%（暴露过拟合）
-- Code-QA-Bench（2.wiki 研究笔记）：区分真读代码 vs 背训练数据，防作弊
-- Spec-Driven Test Gen（Google，2608.17177）：规格契约测试驱动
-- 变异测试 / 覆盖率引导测试生成（2.wiki 研究笔记）：评测集自身强度度量
-- 2.wiki 研究笔记：EvalPlus、Code-QA-Bench、变异测试、执行式评测与表面形式评测
+**参考论文/工作（2025+）**：
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约测试驱动，bug 检出 +9.8pp
+- MASTOR（arXiv:2606.10465，2026.06）：从源码/契约提取语义 oracle，提升 mutation score
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据（结果/环境/轨迹）分类，评测六维（正确性/鲁棒性/成本/安全/泛化）
+- 2.wiki 研究笔记：变异测试与测试集质量（2025 版）、覆盖率引导测试生成（2025 版）
 
 **论文优缺点与借鉴点**：
 
 | 来源 | 优点（值得借鉴） | 缺点（需要规避） | 我们的取舍 |
 |---|---|---|---|
-| EvalPlus | 差分测试是防"背题"的强手段 | 需要大量真实用例，成本高 | 探针跑真实源码拿期望输出 = 轻量版差分测试，已落地 |
-| Code-QA-Bench | 评测集独立 + 私有/变换代码是门禁生命线 | 构造私有评测集工作量大 | 评测集只读 + 写保护 + Coder 不可见（沙箱） |
-| 变异测试 | 量化评测集强度（注入 bug 抓不出 = 评测集太弱） | 变异执行成本高 | P1 引入，验证评测集本身合格 |
-| Spec-Driven Test Gen | 契约测试提升检出率 9.8pp | 面向测试生成，非门禁体系 | 门禁主判 = 探针期望输出；TDD 冒烟辅助 |
+| Spec-Driven Test Gen | 契约测试提升检出率 9.8pp | 面向测试生成，非门禁体系 | 门禁主判 = 探针期望输出；TestGenAgent 冒烟辅助 |
+| MASTOR | 语义 oracle 提升 fault detection | 面向 REST API，需改造 | P1 参考：从接口头文件提取约束 |
+| 自进化综述 | 评测六维清单（正确性/鲁棒性/成本/安全/泛化） | 综述性质 | 作为验收检查清单，不只盯通过率 |
+| 变异测试/覆盖率 | 量化评测集强度（注入 bug 抓不出 = 评测集太弱） | 变异执行成本高 | P1 引入，验证评测集本身合格 |
 
-**结论**：评测闭环保持"编译 + 探针测试 + 相似度（仅归因）"三信号；重复评测 5 次均值±方差防随机；评测集独立受写保护。
+**结论**：EvalRunner 保持"编译 + 探针测试 + 相似度（仅归因）"三信号；重复评测 5 次均值±方差防随机；评测集独立受写保护。
 
 ---
 
-## 5. 推荐架构（最终定稿）
+## 5. 推荐架构（最终定稿，TypeScript）
 
-```
-┌─ 编排层（确定性状态机，代码实现，不烧 token）──────────────┐
-│  决策 / 回滚 / 预算 / 审计 / 断点续跑                       │
+```text
+┌─ OrchestratorAgent（确定性编排为主 + 必要时 LLM 规划）────────┐
+│  决策 / 回滚 / 预算 / 审计 / 断点续跑（TypeScript 实现）      │
 ├───────────────────────────────────────────────────────────┤
-│ 知识生成阶段：                                              │
-│   [单模块] 1 个知识生成 agent（现有）                        │
-│   [超大库] 分块 + N 个 subagent 并行（每函数/模块独立上下文） │
-│            主 agent 只做拼接与一致性检查                    │
+│ 文档生成阶段：                                              │
+│   [单模块] DocGenAgent（读源码 → 知识文档）                   │
+│   [超大库] DocGenAgent + DocWorkerAgent×N（每函数/模块独立    │
+│            上下文，≤5 并行；修订按 knowledge_path 检索定位）   │
 ├───────────────────────────────────────────────────────────┤
 │ 迭代阶段（每轮）：                                          │
-│   Coder agent（只读知识+接口 → 写代码）                     │
-│   评测闭环（编译 + 探针测试 + 相似度）← 门禁主判            │
-│   Review agent（CCR 模式：全新 session + 只读 + 判据）      │
-│     ├─ 确定性信号（编译/测试/相似度）                       │
-│     └─ LLM 语义检查（可选：关键模块开跨模型/对抗模式）       │
-│   知识修订（按 knowledge_path 定位段落，版本 +1）           │
+│   TestGenAgent（知识文档 → 冒烟测试，需求澄清）               │
+│   CodeAgent（知识文档+接口 → 实现代码，Sandbox 隔离源码）     │
+│   CheckAgent（CCR：全新 session + 只读 + 判据，语义层检查）   │
+│   EvalRunner（编译 + 探针测试 + 相似度）← 门禁主判            │
+│   ReviewAgent（CCR：归因 + 修订指令三字段）                   │
+│   知识修订（DocGenAgent 按 knowledge_path 定位，版本 +1）    │
 ├───────────────────────────────────────────────────────────┤
 │ P1 可选项：                                                 │
-│   pass@k 多候选（fan-out）· 跨模型 review · 薄弱点地图       │
+│   pass@k 多候选（fan-out）· 跨模型检查 · 薄弱点地图           │
 └───────────────────────────────────────────────────────────┘
 ```
 
@@ -535,36 +657,38 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
 
 | 场景 | 动作 | 不做的代价 |
 |---|---|---|
-| 文档 > 单上下文可处理（如 >6000 字符后仍超） | 分块 + subagent 并行 | 知识质量下降、截断丢信息 |
-| 核心/高危模块 | 独立检查 agent（CCR）或跨模型 review | 语义缺陷漏网 |
-| 反复触发失败的薄弱点 | 薄弱点地图 + 优先重写（可加对抗 review） | 迭代不收敛 |
-| 普通模块常规迭代 | 维持最小集，不加 agent | — |
+| 文档 > 单上下文可处理（如 >6000 字符后仍超） | DocGenAgent 分块 + DocWorkerAgent 并行 | 知识质量下降、截断丢信息 |
+| 核心/高危模块 | CheckAgent（CCR）或跨模型检查 | 语义缺陷漏网 |
+| 反复触发失败的薄弱点 | 薄弱点地图 + 优先重写（可加对抗检查） | 迭代不收敛 |
+| 普通模块常规迭代 | 维持最小集（TestGenAgent + CodeAgent + ReviewAgent） | — |
 
 ---
 
-## 6. 文献索引
+## 6. 文献索引（2025+ 仅收录）
 
 | 编号 | 文献 | 关键结论 |
 |---|---|---|
-| [1] | Anthropic: How we built our multi-agent research system (2025) | orchestrator-worker；多 agent ≈ 15× token；编码任务并行度低 |
-| [2] | Cross-Context Review (arXiv 2603.12123) | 上下文分离审查 F1 28.6% vs 自审 24.6%；重复审无增益 |
+| [1] | Anthropic: How we built our multi-agent research system (2025.06) | orchestrator-worker；多 agent ≈ 15× token；subagent 滥用成本爆炸 |
+| [2] | Cross-Context Review (arXiv 2603.12123, 2026.03) | 上下文分离审查 F1 28.6% vs 自审 24.6%；重复审无增益 |
 | [3] | Augment Code: Adversarial Code Review (2026-07) | maker-checker 5 维分离；跨家族补盲区；SWR-Bench 警告 |
-| [4] | TDD-Agent (arXiv 2608.16742) | test-first reasoning + dual-track 代码/测试共精化 |
-| [5] | Spec-Driven Test Gen, Google (arXiv 2608.17177) | spec 脚手架 bug 检出 +9.8pp |
-| [6] | SDAD (arXiv 2608.20341) | 合成与发布权分离；独立多 agent 验证 + 人工签字 |
-| [7] | CodeJudgeBench (arXiv 2507.10535) | LLM 裁判位置偏差 14%、自我偏好 |
-| [8] | Blackboard 多 agent (arXiv 2507.01701) | 黑板架构探索（我们不引入，文件交接已等效） |
-| [9] | ARIS (arXiv 2605.03042) | 跨模型对抗协作：executor + 外部模型 critique |
-| [10] | Multi-Agent Orchestration Patterns (glukhov.org) | 六模式 + 决策框架 + 失败模式 |
-| [11] | 自进化代码 Agent 综述 (arXiv 2608.03392) | 软件特有证据分类；进化对象框架 |
+| [4] | TDD-Agent (arXiv 2608.16742, 2026.08) | test-first reasoning + dual-track 代码/测试共精化 |
+| [5] | Spec-Driven Test Gen, Google (arXiv 2608.17177, 2026.08) | spec 脚手架 bug 检出 +9.8pp |
+| [6] | SDAD (arXiv 2608.20341, 2026.05) | 合成与发布权分离；独立多 agent 验证 + 人工签字 |
+| [7] | CodeJudgeBench (arXiv 2507.10535, 2025.07) | LLM 裁判位置偏差 14%、自我偏好 |
+| [8] | DocAgent (arXiv 2504.08725, 2025.04) | 拓扑代码处理 + 增量上下文 + 验证闭环（C/C++ 最相关） |
+| [9] | MASTOR (arXiv 2606.10465, 2026.06) | 从源码/契约提取语义 oracle，提升 mutation score |
+| [10] | 自进化代码 Agent 综述 (arXiv 2608.03392, 2026.08) | 软件特有证据分类；进化对象框架；评测六维 |
+| [11] | Google ADK (2025-2026) | Sequential/Parallel/Loop 工作流 agent 基元 |
+| [12] | Claude Code subagents / Codex CLI (2025-2026) | 进程级委派执行层，上下文隔离适合超大仓库 |
 
-> 📎 相关已有笔记：研究/反馈闭环/CRITIC工具交互式自我纠错.md、自进化Agent脆弱性.md、研究/评测/CodeJudgeBench-LLM裁判可靠性.md、研究/评测/Pass@k无偏评测指标.md
+> 📎 相关已有笔记：研究/反馈闭环/自进化Agent脆弱性.md、研究/评测/CodeJudgeBench-LLM裁判可靠性.md（2025 版）
 
 ---
 
 ## 7. 待定问题（需 PoC 数据）
 
-1. 分块阈值：多大文档该开 subagent 并行？（当前 4000 字符分块阈值是经验值）
-2. 跨模型 review 是否值得：公司内网若有 GLM 之外的第二模型（如 DeepSeek），用对比实验量化盲区补充收益
-3. spec→TDD 的冒烟测试固化进评测集的比例：人工审过的测试进 holdout 还是 train？
+1. 分块阈值：多大文档该开 DocWorkerAgent 并行？（当前 4000 字符分块阈值是经验值）
+2. 跨模型检查是否值得：公司内网若有 GLM 之外的第二模型（如 DeepSeek），用对比实验量化盲区补充收益
+3. TestGenAgent 冒烟测试固化进评测集的比例：人工审过的测试进 holdout 还是 train？
 4. pass@k 多候选（fan-out）的 k 值与聚合策略（P1）
+5. OrchestratorAgent 的 LLM 动态规划 vs 纯确定性代码：以首个 PoC 的收敛数据决定
