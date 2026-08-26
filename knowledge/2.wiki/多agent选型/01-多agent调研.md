@@ -22,8 +22,8 @@
 
 | 模式 | 结构 | 典型代表 | 优势 | 劣势 |
 |---|---|---|---|---|
-| Orchestrator-Worker（主从） | 主 Agent 规划委派，subagent 并行执行 | Anthropic Research、Claude Code | 上下文隔离、并行压缩、可扩展 | token 消耗大、协调复杂 |
-| Pipeline（流水线） | 固定顺序接力，产物交接 | ChatDev、软件工厂 | 简单可审计、每步独立 | 无并行、单点失败 |
+| Orchestrator-Worker（主从） | 主 Agent 规划委派，subagent 并行执行 | Anthropic Research、Claude Agent SDK | 上下文隔离、并行压缩、可扩展 | token 消耗大、协调复杂 |
+| Pipeline（流水线） | 固定顺序接力，产物交接 | gpt-engineer、DocAgent | 简单可审计、每步独立 | 无并行、单点失败 |
 | Fan-out（扇出） | 同一任务分发给多个 agent，聚合结果 | 投票/加权/LLM 合成 | 广度覆盖、多样性 | 成本线性增长 |
 | Hierarchical（分层） | 多级主从，上级管下级 | HALO | 规模化、职责清晰 | 延迟高、调试难 |
 | Debate（辩论） | 多 agent 对抗论证 | Multi-Agent Debate、ARIS | 暴露单 agent 盲区、降幻觉 | 昂贵、可能不收敛、位置偏差 |
@@ -181,11 +181,11 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
 | **AutoGen** | 对话式多 agent | 我们**刻意不用对话**（文件交接，防上下文污染），与 AutoGen 范式冲突 |
 | **MetaGPT** | SOP 驱动软件工厂 | SOP 思想可借鉴（角色手册），但整体太重；我们的 3 角色已收敛 |
 | **OpenAI Swarm** | 轻量多 agent 路由 | 无状态、难追踪，与"可审计"冲突 |
-| **Claude Code / Codex CLI** | 单 agent 编码工具 | P0-D 目标 codeagent CLI 属此类；作为"执行终端"接入而非编排框架 |
+| **Claude Agent SDK / Codex CLI** | 单 agent 编码工具（开源） | P0-D 目标 codeagent CLI 属此类；作为"执行终端"接入而非编排框架（Claude Code 本体闭源黑盒不选，用开源 SDK 版） |
 
 **唯一值得借鉴的思想**（不引入代码）：
 - MetaGPT 的 SOP/角色手册：把知识生成 skill 写成可执行手册（已有 ADAPT_PROMPT.md 雏形）
-- ChatDev 的"阶段化移交"：每个阶段产物有明确验收标准（我们的门禁已做）
+- gpt-engineer/DocAgent 的"阶段化移交"：每个阶段产物有明确验收标准（我们的门禁已做）
 
 ---
 
@@ -546,7 +546,7 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 - SDAD（arXiv:2608.20341，2026.05）：spec-driven agentic development，合成权与发布权分离
 - spec-kit（GitHub，2025+，⭐130k）：规格驱动开发的工业实践
 - Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约是"认知脚手架"
-- Claude Code / Codex CLI（2025-2026）：在真实仓库里做代码生成/评审/测试的终端 agent 执行层
+- Claude Agent SDK / Codex CLI（2025-2026，开源）：在真实仓库里做代码生成/评审/测试的终端 agent 执行层
 
 **论文优缺点与借鉴点**：
 
@@ -555,7 +555,7 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 | SDAD | 合成与发布权分离；显式门禁 + 可审计溯源 | 报告性质，无开源实现细节 | 直接采用"谁生成谁可改，谁评测谁不改"原则（已落地） |
 | spec-kit | 工业界规格驱动规模化验证 | 面向新项目，非存量仓库 | 借鉴"知识文档是唯一事实源"思想 |
 | Spec-Driven Test Gen | 规格契约提升测试质量 | 面向测试生成，非代码生成 | CodeAgent 输入=知识文档+接口，输出实现 |
-| Claude Code/Codex | 上下文隔离执行层，超大型仓库刚需 | 绑定特定模型/计费 | 作为 CodeAgent 的 LLM 后端接入（公司 GLM 5.1 经 codeagent CLI） |
+| Claude Agent SDK/Codex | 上下文隔离执行层，超大型仓库刚需 | 绑定特定模型/计费 | 作为 CodeAgent 的 LLM 后端接入（公司 GLM 5.1 经 codeagent CLI） |
 
 **结论**：CodeAgent 只读知识+接口（Sandbox 强制），输出实现；不直接评测、不自我验证（生成与验证分离）。
 
@@ -679,7 +679,7 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 | [9] | MASTOR (arXiv 2606.10465, 2026.06) | 从源码/契约提取语义 oracle，提升 mutation score |
 | [10] | 自进化代码 Agent 综述 (arXiv 2608.03392, 2026.08) | 软件特有证据分类；进化对象框架；评测六维 |
 | [11] | Google ADK (2025-2026) | Sequential/Parallel/Loop 工作流 agent 基元 |
-| [12] | Claude Code subagents / Codex CLI (2025-2026) | 进程级委派执行层，上下文隔离适合超大仓库 |
+| [12] | Claude Agent SDK subagents / Codex CLI (2025-2026, 开源) | 进程级委派执行层，上下文隔离适合超大仓库（Claude Code 本体闭源黑盒不选） |
 
 > 📎 相关已有笔记：研究/反馈闭环/自进化Agent脆弱性.md、研究/评测/CodeJudgeBench-LLM裁判可靠性.md（2025 版）
 
