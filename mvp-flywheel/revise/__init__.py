@@ -76,12 +76,15 @@ def apply_revision(doc: KnowledgeDoc, corrections: list, revision_fn) -> Knowled
 
 
 def decide(report, prev_confidence: "float | None", cfg: Config) -> str:
-    """编排层决策（状态机）：通过 / 迭代 / 回滚。
+    """编排层决策（状态机）：通过 / 迭代 / 回滚 / 不稳定。
 
+    - unstable（方差超阈值）→ 不判通过，进入迭代（新门禁 §2.3：方差过大标记 UNSTABLE）
     - confidence >= 门限 → 通过
     - confidence < 门限 且 > 上一轮 → 迭代
     - confidence < 上一轮 → 回滚（防污染）
     """
+    if report.compile_ok and getattr(report, "unstable", False):
+        return "unstable"
     if report.confidence >= cfg.pass_threshold:
         return "pass"
     if prev_confidence is None or report.confidence >= prev_confidence:

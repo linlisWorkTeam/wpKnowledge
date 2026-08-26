@@ -106,6 +106,38 @@ def _collect_funcs(src_dir: Path) -> dict:
     return decls
 
 
+def _summarize_reps(confidences: list, cfg: Config) -> dict:
+    """重复评测统计：均值、方差、最差值、不稳定标记（新门禁 §2.3）。
+
+    - confidence 取每次运行的通过率，不再取最大（禁止"多次取最好成绩即通过"）
+    - 方差 = 总体方差；方差 > variance_threshold 判 UNSTABLE
+    - 最终 confidence = 均值（报告最差值供编排层参考）
+    """
+    n = len(confidences)
+    if n == 0:
+        return {"mean": 0.0, "variance": 0.0, "min": 0.0, "unstable": False}
+    mean = sum(confidences) / n
+    variance = sum((c - mean) ** 2 for c in confidences) / n
+    return {
+        "mean": mean,
+        "variance": variance,
+        "min": min(confidences),
+        "unstable": variance > getattr(cfg, "variance_threshold", 0.02),
+    }
+
+
+def _apply_reps(report: EvalReport, confidences: list, cfg: Config) -> EvalReport:
+    """把重复评测统计写入报告。"""
+    stats = _summarize_reps(confidences, cfg)
+    report.reps_count = len(confidences)
+    report.reps_mean = stats["mean"]
+    report.reps_variance = stats["variance"]
+    report.reps_min = stats["min"]
+    report.unstable = stats["unstable"]
+    report.confidence = stats["mean"]
+    return report
+
+
 def evaluate(module: str, code_path: Path, cases: list, cfg: Config,
              src_text: str = "", work_dir: "Path | None" = None) -> EvalReport:
     """完整评测闭环：编译 → 测试 → 相似度 → 置信度。"""
@@ -140,15 +172,20 @@ def evaluate(module: str, code_path: Path, cases: list, cfg: Config,
         report.compile_errors = proc.stderr.splitlines()[:10]
         return report
 
+    # 3.2 测试执行（主信号）——重复评测：每次记录通过率，最终取均值±方差（新门禁 §2.3）
     passed, total = 0, len(cases)
+    confidences = []
     for _ in range(cfg.repeat_eval):
         run = subprocess.run([str(bin_file)], capture_output=True, text=True, timeout=60)
         for line in run.stdout.splitlines():
             if line.startswith("PASS "):
-                passed = max(passed, int(line.split()[1].split("/")[0]))
+                p = int(line.split()[1].split("/")[0])
+                confidences.append(p / total if total else 0.0)
+                passed = max(passed, p)
+                break
     report.passed = passed
     report.total = total
-    report.confidence = (passed / total) if total else 0.0
+    report = _apply_reps(report, confidences, cfg)
 
     # 3.3 相似度（辅助归因）
     if src_text:
@@ -218,6 +255,7 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
 
     passed, total = 0, 0
     failures: list = []
+    confidences: list = []
     for tf in test_files:
         bin_file = work_dir / f"native_{tf.stem}"
         is_cpp = tf.suffix in (".cpp", ".cc", ".cxx")
@@ -233,15 +271,18 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
             report.compile_ok = False
             report.compile_errors = proc.stderr.splitlines()[:10]
             return report
-        # 重复评测取最大通过数；total 以单次为准（用例数）
+        # 重复评测：记录每次通过率，最终取均值±方差（新门禁 §2.3）
         tf_total, tf_passed = 0, 0
+        tf_conf = []
         for _ in range(cfg.repeat_eval):
             run = subprocess.run([str(bin_file)], capture_output=True, text=True, timeout=60)
             for line in run.stdout.splitlines():
                 if line.startswith("PASS "):
                     parts = line.split()[1].split("/")
                     tf_total = int(parts[1])
-                    tf_passed = max(tf_passed, int(parts[0]))
+                    p = int(parts[0])
+                    tf_conf.append(p / tf_total if tf_total else 0.0)
+                    tf_passed = max(tf_passed, p)
                     break
         # 捕获失败详情（一次运行即可；Review 归因用）
         run = subprocess.run([str(bin_file)], capture_output=True, text=True, timeout=60)
@@ -250,10 +291,11 @@ def evaluate_native(module: str, code_path: Path, test_files: list, cfg: Config,
                 failures.append(f"{tf.name}: {line}")
         passed += tf_passed
         total += tf_total
+        confidences.extend(tf_conf)
 
     report.passed = passed
     report.total = total
-    report.confidence = (passed / total) if total else 0.0
+    report = _apply_reps(report, confidences, cfg)
     report.failures = failures
     if src_text:
         report.similarity = similarity(src_text, code_path.read_text())

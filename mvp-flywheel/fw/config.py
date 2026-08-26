@@ -27,7 +27,8 @@ class Config:
     holdout_ratio: float = 0.2                   # holdout 比例
     pass_threshold: float = 0.8                  # 门禁阈值（置信度 ≥ 0.8 通过）
     max_rounds: int = 5                          # 迭代轮次上限
-    repeat_eval: int = 3                         # 重复评测次数（设计建议 ≥5，MVP 用 3 节省时间）
+    repeat_eval: int = 5                         # 重复评测次数（新门禁：≥5，报告均值±方差）
+    variance_threshold: float = 0.02             # 方差超此阈值判 UNSTABLE（待 PoC 校准）
 
     # --- 沙箱隔离（Coder 防作弊）---
     # allowed_read_dirs: Coder 进程允许读取的目录白名单（知识库/接口/工作区）。

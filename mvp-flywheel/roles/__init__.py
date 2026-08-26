@@ -41,6 +41,12 @@ class EvalReport:
     confidence: float = 0.0  # passed / total
     split: str = "train"     # train / holdout
     failures: list = field(default_factory=list)  # 失败用例详情（Review 归因依据）
+    # 重复评测统计（新门禁：报告均值±方差，禁止取多次最好成绩即通过）
+    reps_count: int = 0          # 重复次数
+    reps_mean: float = 0.0       # 置信度均值
+    reps_variance: float = 0.0   # 置信度方差
+    reps_min: float = 0.0        # 最差值
+    unstable: bool = False       # 方差过大 → UNSTABLE 标记
 
     @property
     def passed_gate(self) -> bool:

@@ -62,6 +62,9 @@ def main():
     print()
     print(f"train 评测: passed={tr.passed}/{tr.total} confidence={tr.confidence:.2f} "
           f"similarity={tr.similarity:.2f}")
+    print(f"重复评测 : {tr.reps_count} 次  mean={tr.reps_mean:.3f} "
+          f"var={tr.reps_variance:.4f} min={tr.reps_min:.2f} "
+          f"unstable={tr.unstable}")
     if tr.failures:
         print("失败详情 :")
         for f in tr.failures[:5]:

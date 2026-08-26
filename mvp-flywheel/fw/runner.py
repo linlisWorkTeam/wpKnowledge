@@ -93,7 +93,9 @@ class KnowledgeFlywheel:
             decision = decide(report, prev_confidence, self.cfg)
             prev_confidence = report.confidence
             self.history.append({"round": r, "confidence": report.confidence,
-                                 "compile_ok": report.compile_ok, "decision": decision})
+                                 "compile_ok": report.compile_ok, "decision": decision,
+                                 "variance": report.reps_variance,
+                                 "unstable": report.unstable})
 
             self._save_report(report_dir, r, report, attribution, decision)
 
@@ -146,6 +148,9 @@ class KnowledgeFlywheel:
             "passed": report.passed,
             "total": report.total,
             "confidence": report.confidence,
+            "reps": {"count": report.reps_count, "mean": report.reps_mean,
+                     "variance": report.reps_variance, "min": report.reps_min,
+                     "unstable": report.unstable},
             "similarity": report.similarity,
             "decision": decision,
             "attribution": attribution.summary,

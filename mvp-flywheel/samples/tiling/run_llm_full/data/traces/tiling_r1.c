@@ -1,21 +1,18 @@
 #include "add_custom_tiling.h"
 
 AddTilingData compute_tiling(uint32_t totalLength, uint32_t availableCoreNum) {
-    if (totalLength == 0) {
-        return {0, 0, 0, 0};
-    }
+    uint32_t cores = (availableCoreNum == 0) ? 1 : availableCoreNum;
 
-    uint32_t actualCores = (availableCoreNum == 0) ? 1 : availableCoreNum;
+    uint32_t totalTiles = (totalLength + TILE_LENGTH - 1) / TILE_LENGTH;
+    uint32_t tilesPerCore = (totalTiles + cores - 1) / cores;
+    uint32_t blockNum = (totalTiles + tilesPerCore - 1) / tilesPerCore;
+    uint32_t numPerCore = tilesPerCore * TILE_LENGTH;
+    uint32_t tailNumLastCore = totalLength - numPerCore * (blockNum - 1);
 
-    uint64_t totalTiles = (static_cast<uint64_t>(totalLength) + TILE_LENGTH - 1) / TILE_LENGTH;
-    uint64_t tilesPerCore = (totalTiles + actualCores - 1) / actualCores;
-    uint64_t blockNum = (totalTiles + tilesPerCore - 1) / tilesPerCore;
-    uint64_t numPerCore = tilesPerCore * TILE_LENGTH;
-    uint64_t tailNumLastCore = static_cast<uint64_t>(totalLength) - numPerCore * (blockNum - 1);
-
-    return {
-        static_cast<uint32_t>(blockNum),
-        static_cast<uint32_t>(numPerCore),
-        static_cast<uint32_t>(tailNumLastCore)
-    };
+    AddTilingData result;
+    result.totalLength = totalLength;
+    result.blockNum = blockNum;
+    result.numPerCore = numPerCore;
+    result.tailNumLastCore = tailNumLastCore;
+    return result;
 }
