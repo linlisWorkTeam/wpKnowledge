@@ -20,6 +20,7 @@ from fw.sandbox import SandboxViolation, build_sandbox, read_header
 from roles import (Attribution, Correction, CoderAgent, EvalReport, KnowledgeDoc,
                    KnowledgeGenAgent, ReviewAgent)
 from roles.providers import CodeAgentProvider, DeepSeekProvider
+from fw.error_codes import EMPTY_MODEL_OUTPUT, INCOMPLETE_CONTEXT
 
 DEFAULT_MODEL = "deepseek-v4-flash"
 DEFAULT_BASE = "https://api.deepseek.com/v1"
@@ -70,6 +71,7 @@ def _chat_retry(messages: list, temperature: float = 0.2, max_tokens: int = 8192
     """通过显式 provider 调用模型，空输出做有限重试。
 
     连续空输出时微调 temperature 抖动（0.1→0.3），提高重试成功率。
+    重试耗尽仍为空 → 抛 RuntimeError（错误码 EMPTY_MODEL_OUTPUT，契约 §6）。
     """
     last = ""
     for i in range(attempts):
@@ -80,7 +82,8 @@ def _chat_retry(messages: list, temperature: float = 0.2, max_tokens: int = 8192
         if reply and reply.strip():
             return reply
         last = reply
-    return last
+    raise RuntimeError(
+        f"模型连续 {attempts} 次返回空输出（{EMPTY_MODEL_OUTPUT}）")
 
 
 # C/C++ 代码行特征：以这些开头的行视为代码，否则视为说明文字（问题4 剥离用）

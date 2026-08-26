@@ -87,6 +87,8 @@ class EvalReport:
     environment: dict = field(default_factory=dict)
     decision: str = ""
     reason_codes: list = field(default_factory=list)
+    # EVAL-008 探针证据（期望输出来源，禁止 LLM 编造）
+    probe_evidence: dict = field(default_factory=dict)
 
     @property
     def valid(self) -> bool:
@@ -133,6 +135,7 @@ class EvalReport:
             },
             "failures": report.failures,
             "diagnostics": {"text_similarity": report.similarity},
+            "probe_evidence": report.probe_evidence,
             "decision": report.decision,
             "reason_codes": report.reason_codes,
         }

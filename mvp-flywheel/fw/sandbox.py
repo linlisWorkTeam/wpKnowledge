@@ -2,9 +2,21 @@
 
 from pathlib import Path
 
+from fw.error_codes import EVALSET_LEAK, SOURCE_ACCESS_VIOLATION
+
 
 class SandboxViolation(PermissionError):
-    pass
+    """路径访问被沙箱拦截。
+
+    error_code 区分拦截原因（契约 §6）：
+    - SOURCE_ACCESS_VIOLATION：触达源码区（src_dir）
+    - EVALSET_LEAK：触达评测集/golden/holdout
+    - 其他：不在白名单（默认 EVALSET_LEAK 语义由调用方按需覆盖）
+    """
+
+    def __init__(self, message: str, error_code: str = EVALSET_LEAK):
+        super().__init__(message)
+        self.error_code = error_code
 
 
 def _resolve(path) -> Path:
@@ -44,9 +56,12 @@ class Sandbox:
         return sorted(str(path) for path in self.allowed_read)
 
     def _assert_not_denied(self, path: Path) -> None:
-        for denied in self.denied:
+        denied_src = {_resolve(d) for d in self.denied}
+        for denied in denied_src:
             if _within(path, denied):
-                raise SandboxViolation(f"沙箱拦截：{path} 位于禁止目录 {denied}")
+                raise SandboxViolation(
+                    f"沙箱拦截：{path} 位于禁止目录 {denied}",
+                    error_code=SOURCE_ACCESS_VIOLATION)
 
     def assert_readable(self, path) -> Path:
         target = _resolve(path)

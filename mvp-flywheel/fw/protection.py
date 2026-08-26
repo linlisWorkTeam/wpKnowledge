@@ -5,9 +5,15 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from fw.error_codes import PROTECTION_MISMATCH
+
 
 class ProtectionMismatch(RuntimeError):
-    pass
+    """受保护文件哈希变化（契约 §6：PROTECTION_MISMATCH）。"""
+
+    def __init__(self, message: str, error_code: str = PROTECTION_MISMATCH):
+        super().__init__(message)
+        self.error_code = error_code
 
 
 def sha256_file(path: Path) -> str:

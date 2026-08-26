@@ -248,6 +248,14 @@ class KnowledgeFlywheel:
             "provider": self.cfg.model_provider,
             "prompt_version": self.cfg.prompt_version,
         }
+        # EVAL-008 探针证据：期望输出来源必须可追溯（探针/人工推导），禁止 LLM 编造
+        report.probe_evidence = {
+            "provenance": "probe",
+            "source_commit": doc.source_commit,
+            "evalset_version": self.cfg.evalset_version,
+            "note": "期望输出必须来自探针运行真实源码或明确的人工推导依据；"
+                    "若为人工推导须在评测集 manifest 的 golden_note 中说明",
+        }
 
     def _save_report(self, report_dir, report, attribution):
         payload = report.as_dict()
