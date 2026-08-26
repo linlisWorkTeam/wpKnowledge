@@ -1,92 +1,120 @@
-"""修订闭环：pending_corrections 队列 + revise 流程 + 版本控制/回滚。
+"""修订队列、不可丢历史 ledger 与确定性门禁状态机。"""
 
-对应《codeagent执行手册》§5：
-1. Review 归因报告入 pending_corrections 队列
-2. fw revise 流程：读反馈 → sources 反查 → 修订 → 走评测 → 通过则版本升级，未过则不合并
-3. 修订指令结构化（readlist 三字段：ID + 路径 + 判据）
-验收：修订后重测；门禁通过才合并；分数下降自动回滚。
-"""
-
+import copy
 import json
-from pathlib import Path
+from dataclasses import asdict
 
 from fw.config import Config
 from roles import Attribution, KnowledgeDoc
 
 
 class CorrectionQueue:
-    """pending_corrections 队列（持久化到 ledger.json）。"""
-
-    def __init__(self, cfg: Config):
+    def __init__(self, cfg: Config, run_id: str = ""):
         self.cfg = cfg
+        self.run_id = run_id
         self.ledger_path = cfg.ledger_path
-        self._items = []
+        self._active = []
+        self._history = []
         self._load()
 
     def _load(self):
-        if self.ledger_path.exists():
-            data = json.loads(self.ledger_path.read_text())
-            self._items = data.get("pending", [])
+        if not self.ledger_path.exists():
+            return
+        data = json.loads(self.ledger_path.read_text(encoding="utf-8"))
+        self._active = data.get("active", data.get("pending", []))
+        self._history = data.get("history", [])
 
     def _save(self):
         self.ledger_path.parent.mkdir(parents=True, exist_ok=True)
-        self.ledger_path.write_text(json.dumps({"pending": self._items}, ensure_ascii=False, indent=2))
+        payload = {"schema_version": "correction-ledger.v1", "active": self._active, "history": self._history}
+        temp = self.ledger_path.with_suffix(self.ledger_path.suffix + ".tmp")
+        temp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        temp.replace(self.ledger_path)
 
-    def push(self, attribution: Attribution):
-        for c in attribution.corrections:
+    def push(self, attribution: Attribution, round_number: int = 0, knowledge_version: int = 0):
+        for correction in attribution.corrections:
             item = {
-                "id": c.id,
-                "knowledge_path": c.knowledge_path,
-                "criterion": c.criterion,
-                "detail": c.detail,
+                "schema_version": "correction.v1",
+                "run_id": self.run_id,
+                "round": round_number,
+                "id": correction.id,
+                "knowledge_version": knowledge_version,
+                "knowledge_path": correction.knowledge_path,
+                "criterion": correction.criterion,
+                "detail": correction.detail,
                 "module": attribution.module,
                 "status": "pending",
+                "evidence": [],
             }
-            self._items.append(item)
+            self._active.append(item)
+            self._history.append(dict(item, event="created"))
         self._save()
 
     def pop_pending(self) -> list:
-        """返回待处理修订（Correction 对象）。"""
         from roles import Correction
-        return [Correction(id=i["id"],
-                           knowledge_path=i["knowledge_path"],
-                           criterion=i["criterion"],
-                           detail=i["detail"])
-                for i in self._items if i["status"] == "pending"]
+        return [
+            Correction(id=item["id"], knowledge_path=item["knowledge_path"],
+                       criterion=item["criterion"], detail=item.get("detail", ""))
+            for item in self._active if item["status"] == "pending"
+        ]
 
-    def mark_done(self, corr_id: str, ok: bool):
-        for i in self._items:
-            if i["id"] == corr_id:
-                i["status"] = "done" if ok else "failed"
+    def mark_done(self, corr_id: str, ok: bool, evidence: list | None = None):
+        status = "done" if ok else "failed"
+        for item in self._active:
+            if item["id"] == corr_id and item["status"] == "pending":
+                item["status"] = status
+                item["evidence"] = list(evidence or [])
+                self._history.append(dict(item, event="resolved"))
+        self._active = [item for item in self._active if item["status"] == "pending"]
         self._save()
 
     def clear(self):
-        self._items = []
+        """关闭活动队列但保留审计历史。"""
+        for item in self._active:
+            if item["status"] == "pending":
+                item["status"] = "cancelled"
+                self._history.append(dict(item, event="cancelled"))
+        self._active = []
         self._save()
+
+    @property
+    def history(self) -> list:
+        return copy.deepcopy(self._history)
 
 
 def apply_revision(doc: KnowledgeDoc, corrections: list, revision_fn) -> KnowledgeDoc:
-    """执行修订：调用知识生成 Agent 的 revise，版本 +1。"""
     if not corrections:
-        return doc
-    new_doc = revision_fn(doc, corrections)
-    new_doc.version = doc.version + 1
-    new_doc.status = "draft"
-    return new_doc
+        return doc.clone()
+    parent = doc.clone()
+    working = doc.clone()
+    revised = revision_fn(working, corrections)
+    return revised.clone(
+        version=parent.version + 1,
+        parent_version=parent.version,
+        status="draft",
+    )
 
 
-def decide(report, prev_confidence: "float | None", cfg: Config) -> str:
-    """编排层决策（状态机）：通过 / 迭代 / 回滚 / 不稳定。
-
-    - unstable（方差超阈值）→ 不判通过，进入迭代（新门禁 §2.3：方差过大标记 UNSTABLE）
-    - confidence >= 门限 → 通过
-    - confidence < 门限 且 > 上一轮 → 迭代
-    - confidence < 上一轮 → 回滚（防污染）
-    """
-    if report.compile_ok and getattr(report, "unstable", False):
-        return "unstable"
+def decide(report, prev_confidence: "float | None", cfg: Config,
+           budget_exhausted: bool = False) -> str:
+    """确定性状态机：pass / iterate / rollback / unstable / stopped。"""
+    if "ZERO_CASES" in report.reason_codes or "INCONSISTENT_TOTAL" in report.reason_codes:
+        report.reason_codes.append("INVALID_EVALUATION")
+        return "stopped"
+    if not report.compile_ok:
+        return "stopped" if budget_exhausted else "iterate"
+    if not report.valid:
+        report.reason_codes.append("INVALID_EVALUATION")
+        return "stopped"
+    if report.unstable:
+        return "stopped" if budget_exhausted else "unstable"
+    if prev_confidence is not None and report.confidence < prev_confidence:
+        report.reason_codes.append("REGRESSION")
+        return "rollback"
     if report.confidence >= cfg.pass_threshold:
         return "pass"
-    if prev_confidence is None or report.confidence >= prev_confidence:
-        return "iterate"
-    return "rollback"
+    if budget_exhausted:
+        report.reason_codes.append("MAX_BUDGET")
+        return "stopped"
+    report.reason_codes.append("TRAIN_BELOW_THRESHOLD")
+    return "iterate"

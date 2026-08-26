@@ -69,7 +69,7 @@ def test_evaluate_full_pass(cfg):
     """真实源码作为被测代码 → 全部通过。"""
     cases = [c for c in load_cases(cfg.evalset_dir) if c.get("split") != "holdout"]
     report = evaluate("calc", BASE / "tests/fixtures/calc/src/calc.c", cases, cfg,
-                      src_text=(BASE / "tests/fixtures/calc/src/calc.c").read_text())
+                      src_text=(BASE / "tests/fixtures/calc/src/calc.c").read_text(encoding="utf-8"))
     assert report.compile_ok is True
     assert report.passed == report.total
     assert report.confidence == pytest.approx(1.0)

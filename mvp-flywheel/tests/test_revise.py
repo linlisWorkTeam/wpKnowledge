@@ -47,15 +47,15 @@ def test_correction_queue_roundtrip(cfg):
 
 def test_decide_pass_iterate_rollback(cfg):
     r_pass = EvalReport(module="calc", compile_ok=True, passed=9, total=9,
-                        confidence=1.0)
+                        confidence=1.0, reps_count=5)
     assert decide(r_pass, prev_confidence=0.5, cfg=cfg) == "pass"
 
     r_mid = EvalReport(module="calc", compile_ok=True, passed=6, total=9,
-                       confidence=0.67)
+                       confidence=0.67, reps_count=5)
     assert decide(r_mid, prev_confidence=0.5, cfg=cfg) == "iterate"
 
     r_down = EvalReport(module="calc", compile_ok=True, passed=4, total=9,
-                        confidence=0.44)
+                        confidence=0.44, reps_count=5)
     assert decide(r_down, prev_confidence=0.67, cfg=cfg) == "rollback"
 
 

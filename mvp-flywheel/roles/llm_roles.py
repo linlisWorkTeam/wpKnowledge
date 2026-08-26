@@ -19,6 +19,7 @@ from pathlib import Path
 from fw.sandbox import SandboxViolation, build_sandbox, read_header
 from roles import (Attribution, Correction, CoderAgent, EvalReport, KnowledgeDoc,
                    KnowledgeGenAgent, ReviewAgent)
+from roles.providers import CodeAgentProvider, DeepSeekProvider
 
 DEFAULT_MODEL = "deepseek-v4-flash"
 DEFAULT_BASE = "https://api.deepseek.com/v1"
@@ -64,15 +65,18 @@ def _chat(messages: list, temperature: float = 0.2, max_tokens: int = 8192,
 
 
 def _chat_retry(messages: list, temperature: float = 0.2, max_tokens: int = 8192,
-                model: str | None = None, attempts: int = 4, timeout: int = 180) -> str:
-    """调用 DeepSeek，空输出自动重试（实测 flash 模型约 40% 概率返回空 content）。
+                model: str | None = None, attempts: int = 4, timeout: int = 180,
+                provider=None) -> str:
+    """通过显式 provider 调用模型，空输出做有限重试。
 
     连续空输出时微调 temperature 抖动（0.1→0.3），提高重试成功率。
     """
     last = ""
     for i in range(attempts):
         t = temperature + (0.1 * (i % 2))  # 抖动，避免同样参数重复空
-        reply = _chat(messages, t, max_tokens, model, timeout=timeout)
+        if provider is None:
+            raise RuntimeError("必须显式提供模型 provider；生产使用 CodeAgentProvider")
+        reply = provider.chat(messages, temperature=t, max_tokens=max_tokens, timeout=timeout)
         if reply and reply.strip():
             return reply
         last = reply
@@ -198,13 +202,13 @@ def _find_header(doc: KnowledgeDoc, cfg=None) -> str:
     没有 cfg 时回退到 doc.sources 同目录（向后兼容旧调用）。
     """
     if cfg is not None:
-        header = read_header(cfg)
+        header = read_header(cfg, doc.module, sandbox=build_sandbox(cfg))
         if header:
             return header
     for s in doc.sources or []:
         src = Path(s["file"])
         for h in sorted(src.parent.glob("*.h")):
-            return h.read_text()
+            return h.read_text(encoding="utf-8")
     return ""
 
 
@@ -219,7 +223,7 @@ class DocKnowledgeGen(KnowledgeGenAgent):
         self.doc_path = Path(doc_path)
 
     def generate(self, module: str, src_file: Path, sources: list) -> KnowledgeDoc:
-        content = self.doc_path.read_text()
+        content = self.doc_path.read_text(encoding="utf-8")
         return KnowledgeDoc(module=module, content=content, sources=sources, version=1)
 
     def revise(self, doc: KnowledgeDoc, corrections: list) -> KnowledgeDoc:
@@ -243,10 +247,11 @@ class LLMKnowledgeGen(KnowledgeGenAgent):
     CHUNK_SRC_CHARS = 4000   # 源码超此阈值启用分块
 
     def __init__(self, model: str | None = None, chunk: bool = True,
-                 api_timeout: int = 180):
+                 api_timeout: int = 180, provider=None):
         self.model = model
         self.chunk = chunk
         self.api_timeout = api_timeout
+        self.provider = provider
 
     def _sys_prompt(self) -> str:
         return (
@@ -283,17 +288,17 @@ class LLMKnowledgeGen(KnowledgeGenAgent):
         reply = _chat_retry([
             {"role": "system", "content": self._sys_prompt()},
             {"role": "user", "content": user_prompt},
-        ], temperature=0.2, model=self.model, timeout=self.api_timeout)
+        ], temperature=0.2, model=self.model, timeout=self.api_timeout, provider=self.provider)
         content = reply.strip()
         if not content:
             raise RuntimeError(f"LLM 知识生成输出为空（段落：{scope_desc}）")
         return content
 
     def generate(self, module: str, src_file: Path, sources: list) -> KnowledgeDoc:
-        src_text = src_file.read_text()
+        src_text = src_file.read_text(encoding="utf-8")
         header = ""
         for h in sorted(src_file.parent.glob("*.h")):
-            header = h.read_text()
+            header = h.read_text(encoding="utf-8")
             break
 
         if self.chunk and len(src_text) > self.CHUNK_SRC_CHARS:
@@ -317,7 +322,7 @@ class LLMKnowledgeGen(KnowledgeGenAgent):
             reply = _chat_retry([
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": user_prompt},
-            ], temperature=0.2, model=self.model, timeout=self.api_timeout)
+            ], temperature=0.2, model=self.model, timeout=self.api_timeout, provider=self.provider)
             content = reply.strip()
             if not content:
                 raise RuntimeError("LLM 知识生成输出为空")
@@ -338,17 +343,19 @@ class LLMCoder(CoderAgent):
     不读源码实现文件；所有路径读取经沙箱白名单校验，源码目录永远拒绝。
     """
 
-    def __init__(self, model: str | None = None, cfg=None, api_timeout: int = 180):
+    def __init__(self, model: str | None = None, cfg=None, api_timeout: int = 180,
+                 provider=None):
         self.model = model
         self.cfg = cfg
         self.api_timeout = api_timeout
+        self.provider = provider
         self.sandbox = build_sandbox(cfg) if cfg is not None else None
 
     def generate_code(self, doc: KnowledgeDoc, out_path: Path) -> Path:
         # 沙箱校验：知识文档必须可读（白名单内）
         if self.sandbox is not None:
             try:
-                self.sandbox.assert_readable(out_path.parent)
+                self.sandbox.assert_writable(out_path)
             except SandboxViolation as e:
                 raise SandboxViolation(f"Coder 输出路径被沙箱拦截: {e}")
         header = _find_header(doc, self.cfg)
@@ -383,22 +390,24 @@ class LLMCoder(CoderAgent):
         reply = _chat_retry([
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": user_prompt},
-        ], temperature=0.1, model=self.model, timeout=self.api_timeout)
+        ], temperature=0.1, model=self.model, timeout=self.api_timeout, provider=self.provider)
         code = _extract_code(reply)
         if not code:
             raise RuntimeError("LLM Coder 输出为空，无法生成代码")
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(code)
+        out_path.write_text(code, encoding="utf-8")
         return out_path
 
 
 class LLMReview(ReviewAgent):
     """Review Agent（真实 LLM）：评测报告 → 归因 + 修订指令。只读。"""
 
-    def __init__(self, model: str | None = None, cfg=None, api_timeout: int = 180):
+    def __init__(self, model: str | None = None, cfg=None, api_timeout: int = 180,
+                 provider=None):
         self.model = model
         self.cfg = cfg
         self.api_timeout = api_timeout
+        self.provider = provider
 
     def attribute(self, module: str, doc: KnowledgeDoc, report: EvalReport) -> Attribution:
         # 全过 + 编译过：无归因，直接 pass（与桩语义一致，不浪费 LLM 调用）
@@ -435,7 +444,7 @@ class LLMReview(ReviewAgent):
         reply = _chat_retry([
             {"role": "system", "content": sys_prompt},
             {"role": "user", "content": user_prompt},
-        ], temperature=0.1, model=self.model, timeout=self.api_timeout)
+        ], temperature=0.1, model=self.model, timeout=self.api_timeout, provider=self.provider)
         try:
             parsed = _extract_json(reply)
         except Exception as e:
@@ -466,3 +475,20 @@ class LLMReview(ReviewAgent):
             summary=parsed.get("summary", ""),
             weak_spots=parsed.get("weak_spots", []),
         )
+
+
+def build_llm_roles(cfg):
+    """按配置构建显式 provider；生产模式不会回退外部 API。"""
+    cfg.validate()
+    if cfg.model_provider == "codeagent":
+        provider = CodeAgentProvider(cfg.codeagent_command, cfg.model_id)
+    elif cfg.model_provider == "deepseek":
+        provider = DeepSeekProvider(model=cfg.model_id)
+    else:
+        raise RuntimeError(f"不支持的 LLM provider: {cfg.model_provider}")
+    return (
+        LLMKnowledgeGen(model=cfg.model_id, chunk=cfg.knowledge_chunk,
+                        api_timeout=cfg.api_timeout, provider=provider),
+        LLMCoder(model=cfg.model_id, cfg=cfg, api_timeout=cfg.api_timeout, provider=provider),
+        LLMReview(model=cfg.model_id, cfg=cfg, api_timeout=cfg.api_timeout, provider=provider),
+    )

@@ -50,11 +50,12 @@ def test_evaluate_native_pass(cfg, tmp_path):
     """原生测试文件 + 真实源码 → 全过。"""
     files = find_native_tests(BASE / "tests/fixtures/calc/evalset_native", cfg, "calc")
     report = evaluate_native("calc", BASE / "tests/fixtures/calc/src/calc.c", files, cfg,
-                             src_text=(BASE / "tests/fixtures/calc/src/calc.c").read_text(),
+                             src_text=(BASE / "tests/fixtures/calc/src/calc.c").read_text(encoding="utf-8"),
                              work_dir=tmp_path)
     assert report.compile_ok is True
     assert report.passed == report.total
-    assert report.total == 9  # 9 用例；重复评测取最大通过数，total 以单次为准
+    assert report.total == 9
+    assert len(report.repetitions) == cfg.repeat_eval
     assert report.confidence == pytest.approx(1.0)
 
 

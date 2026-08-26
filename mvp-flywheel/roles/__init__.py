@@ -1,80 +1,160 @@
-"""角色接口定义（可插拔）。
+"""角色接口和跨组件数据契约。"""
 
-MVP 用确定性桩实现（roles/stubs.py）；接入 codeagent 时实现同一接口即可替换。
-对应《知识飞轮实现方案.md》§3 角色分工：
-- 知识生成 Agent：源码 → 知识文档；唯一执笔者
-- Coder Agent：知识 → 临时代码；不迭代、不验证、不读源码
-- Review Agent：diff 定位 + 溯源归因 + 生成反馈；只读
-"""
-
+import copy
+import hashlib
+import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from pathlib import Path
 
 
-# ---------- 数据结构 ----------
-
 @dataclass
 class KnowledgeDoc:
-    """知识文档（OKF 知识卡，解释型 Markdown）。"""
+    """带稳定溯源与版本关系的知识候选。"""
+
     module: str
     version: int = 1
     content: str = ""
-    sources: list = field(default_factory=list)  # [{file, symbol, lines}]
-    score: float = 0.0
-    status: str = "draft"  # draft / verified
+    sources: list = field(default_factory=list)
+    status: str = "draft"  # draft | verified | rejected
+    source_commit: str = ""
+    parent_version: int | None = None
+    run_id: str = ""
 
     @property
     def path(self) -> str:
         return f"storage/knowledge/{self.module}_v{self.version}.md"
 
+    @property
+    def sha256(self) -> str:
+        return hashlib.sha256(self.render().encode("utf-8")).hexdigest()
+
+    def clone(self, **changes) -> "KnowledgeDoc":
+        result = copy.deepcopy(self)
+        for name, value in changes.items():
+            setattr(result, name, value)
+        return result
+
+    def render(self) -> str:
+        """渲染最小 OKF 风格 frontmatter；正文保持 Markdown。"""
+        metadata = {
+            "title": self.module,
+            "status": self.status,
+            "version": self.version,
+            "source_commit": self.source_commit,
+            "parent_version": self.parent_version,
+            "run_id": self.run_id,
+            "sources": self.sources,
+        }
+        # JSON 是 YAML 1.2 的合法子集，避免引入额外依赖。
+        return "---\n" + json.dumps(metadata, ensure_ascii=False, indent=2) + "\n---\n\n" + self.content
+
 
 @dataclass
 class EvalReport:
-    """评测报告（自动化闭环产出）。"""
+    """自动评测报告；门禁必须显式传入配置阈值。"""
+
     module: str
     compile_ok: bool = False
     compile_errors: list = field(default_factory=list)
     passed: int = 0
     total: int = 0
     similarity: float = 0.0
-    confidence: float = 0.0  # passed / total
-    split: str = "train"     # train / holdout
-    failures: list = field(default_factory=list)  # 失败用例详情（Review 归因依据）
-    # 重复评测统计（新门禁：报告均值±方差，禁止取多次最好成绩即通过）
-    reps_count: int = 0          # 重复次数
-    reps_mean: float = 0.0       # 置信度均值
-    reps_variance: float = 0.0   # 置信度方差
-    reps_min: float = 0.0        # 最差值
-    unstable: bool = False       # 方差过大 → UNSTABLE 标记
+    confidence: float = 0.0
+    split: str = "train"
+    failures: list = field(default_factory=list)
+
+    # 重复执行统计
+    repetitions: list = field(default_factory=list)
+    reps_count: int = 0
+    reps_mean: float = 0.0
+    reps_variance: float = 0.0
+    reps_min: float = 0.0
+    unstable: bool = False
+
+    # 多次生成统计
+    generation_results: list = field(default_factory=list)
+    generation_count: int = 0
+
+    # 审计
+    schema_version: str = "eval-report.v1"
+    run_id: str = ""
+    round: int = 0
+    knowledge_version: int = 0
+    knowledge_sha256: str = ""
+    evalset_version: str = "unversioned"
+    source_commit: str = ""
+    environment: dict = field(default_factory=dict)
+    decision: str = ""
+    reason_codes: list = field(default_factory=list)
 
     @property
-    def passed_gate(self) -> bool:
-        return self.compile_ok and self.confidence >= 0.8
+    def valid(self) -> bool:
+        return self.total > 0 and self.reps_count > 0
+
+    def passes(self, threshold: float) -> bool:
+        return self.valid and self.compile_ok and not self.unstable and self.confidence >= threshold
+
+    def public_copy(self) -> "EvalReport":
+        """给 Review 的脱敏报告；holdout 只保留聚合结果。"""
+        result = copy.deepcopy(self)
+        if self.split == "holdout":
+            result.failures = []
+            result.repetitions = []
+            result.generation_results = []
+        return result
+
+    def as_dict(self, public: bool = False) -> dict:
+        report = self.public_copy() if public else self
+        return {
+            "schema_version": report.schema_version,
+            "run_id": report.run_id,
+            "round": report.round,
+            "module": report.module,
+            "knowledge": {"version": report.knowledge_version, "sha256": report.knowledge_sha256},
+            "evalset": {
+                "version": report.evalset_version,
+                "source_commit": report.source_commit,
+                "split": report.split,
+            },
+            "environment": report.environment,
+            "compile": {"passed": report.compile_ok, "errors": report.compile_errors},
+            "passed": report.passed,
+            "total": report.total,
+            "confidence": report.confidence,
+            "repetitions": report.repetitions,
+            "generation_repetitions": report.generation_results,
+            "statistics": {
+                "count": report.reps_count,
+                "mean": report.reps_mean,
+                "variance": report.reps_variance,
+                "min": report.reps_min,
+                "unstable": report.unstable,
+            },
+            "failures": report.failures,
+            "diagnostics": {"text_similarity": report.similarity},
+            "decision": report.decision,
+            "reason_codes": report.reason_codes,
+        }
 
 
 @dataclass
 class Correction:
-    """修订指令（readlist 三字段：ID + 路径 + 判据）。"""
     id: str
-    knowledge_path: str   # 知识段落路径
-    criterion: str        # 验证判据
-    detail: str = ""      # 自然语言解读
+    knowledge_path: str
+    criterion: str
+    detail: str = ""
 
 
 @dataclass
 class Attribution:
-    """Review 归因报告。"""
     module: str
     corrections: list = field(default_factory=list)
     summary: str = ""
-    weak_spots: list = field(default_factory=list)  # 薄弱点
+    weak_spots: list = field(default_factory=list)
 
-
-# ---------- 角色接口 ----------
 
 class KnowledgeGenAgent(ABC):
-    """知识生成 Agent：源码 → 知识文档。唯一执笔者。"""
     @abstractmethod
     def generate(self, module: str, src_file: Path, sources: list) -> KnowledgeDoc:
         ...
@@ -85,14 +165,12 @@ class KnowledgeGenAgent(ABC):
 
 
 class CoderAgent(ABC):
-    """Coder Agent：知识 → 临时代码。不读源码。"""
     @abstractmethod
     def generate_code(self, doc: KnowledgeDoc, out_path: Path) -> Path:
         ...
 
 
 class ReviewAgent(ABC):
-    """Review Agent：diff 定位 + 溯源归因 + 反馈。只读。"""
     @abstractmethod
     def attribute(self, module: str, doc: KnowledgeDoc, report: EvalReport) -> Attribution:
         ...

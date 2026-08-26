@@ -22,7 +22,7 @@ class StubKnowledgeGen(KnowledgeGenAgent):
     """
 
     def generate(self, module: str, src_file: Path, sources: list) -> KnowledgeDoc:
-        src_text = src_file.read_text()
+        src_text = src_file.read_text(encoding="utf-8")
         funcs = _extract_functions(src_text)
         content = f"# {module} 模块知识\n\n"
         content += f"> 来源：{src_file}（sources: {', '.join(s['file'] for s in sources)}）\n\n"
@@ -62,7 +62,7 @@ class StubCoder(CoderAgent):
         for s in doc.sources or []:
             src_path = Path(s["file"])
             if src_path.suffix in (".c", ".cpp", ".cc"):
-                head = src_path.read_text()
+                head = src_path.read_text(encoding="utf-8")
                 includes = re.findall(r'#include\s+"[^"]+"', head)
                 for inc in includes:
                     if inc not in code:
@@ -71,7 +71,7 @@ class StubCoder(CoderAgent):
         if self.defect_fn and "修订补丁" not in doc.content:
             code = self.defect_fn(code)
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        out_path.write_text(code)
+        out_path.write_text(code, encoding="utf-8")
         return out_path
 
 

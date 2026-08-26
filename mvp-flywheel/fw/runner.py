@@ -1,175 +1,341 @@
-"""知识飞轮编排层（确定性状态机）。
+"""知识飞轮确定性编排层。"""
 
-对应《知识飞轮实现方案.md》§2/§3 与《codeagent执行手册》：
-- 固定流水线 + 文件交接 + 编排层状态机
-- 每轮：知识生成 → Coder 写码 → 评测闭环 → Review 归因 → 决策（通过/迭代/回滚）
-- 信息隔离：Coder 不读源码（桩内不传 src）
-- 写保护：知识库路径受保护（MVP 简化：只写 storage/）
-"""
-
+import hashlib
 import json
-import shutil
-from dataclasses import asdict
+import subprocess
+import time
+import uuid
 from pathlib import Path
 
-from eval import detect_format, evaluate, evaluate_native, find_native_tests, load_cases
+from eval import (aggregate_generation_reports, detect_format, evaluate,
+                  evaluate_native, find_native_tests, load_cases)
 from eval.holdout import split_cases
-from fw.config import Config
-from revise import CorrectionQueue, decide
-from roles import EvalReport, KnowledgeDoc
+from fw.config import Config, ConfigError
+from fw.protection import ProtectionMismatch, snapshot, verify, write_snapshot
+from revise import CorrectionQueue, apply_revision, decide
+from roles import Attribution, EvalReport, KnowledgeDoc
 from roles.stubs import StubCoder, StubKnowledgeGen, StubReview
 
 
-class KnowledgeFlywheel:
-    """知识飞轮主循环。"""
+class KnowledgeLeakError(RuntimeError):
+    pass
 
-    def __init__(self, cfg: Config,
-                 knowledge_gen=None, coder=None, review=None):
-        self.cfg = cfg
+
+class KnowledgeFlywheel:
+    def __init__(self, cfg: Config, knowledge_gen=None, coder=None, review=None):
+        self.cfg = cfg.validate()
         self.knowledge_gen = knowledge_gen or StubKnowledgeGen()
         self.coder = coder or StubCoder()
         self.review = review or StubReview()
-        self.queue = CorrectionQueue(cfg)
-        self.history = []          # 每轮 (round, report, decision)
+        if cfg.production and any(isinstance(role, (StubKnowledgeGen, StubCoder, StubReview))
+                                  for role in (self.knowledge_gen, self.coder, self.review)):
+            raise ConfigError("production 模式禁止使用 Stub 角色")
+        self.history = []
         self._round = 0
 
-    # ---------- 主循环 ----------
+    def run(self, module: str, src_file: Path, report_dir: Path | None = None,
+            initial_doc: KnowledgeDoc | None = None) -> dict:
+        """执行有界飞轮；只有通过 train 与所需 holdout 后才发布知识。"""
+        started = time.monotonic()
+        self.history = []
+        self._round = 0
+        src_file = Path(src_file).resolve()
+        run_id = uuid.uuid4().hex
+        run_root = self.cfg.work_dir / "runs" / run_id
+        private_reports = Path(report_dir) if report_dir else run_root / "eval"
+        for directory in (run_root / "knowledge", run_root / "code", private_reports,
+                          run_root / "attribution", run_root / "corrections", run_root / "protection"):
+            directory.mkdir(parents=True, exist_ok=True)
 
-    def run(self, module: str, src_file: Path, report_dir: Path | None = None) -> dict:
-        """跑一次完整飞轮：知识 → 代码 → 评测 → 归因 → 修订 → 重测。
+        self._write_config_snapshot(run_root, run_id)
+        protected_paths = self._protected_paths()
+        before = snapshot(protected_paths)
+        self._protection_before = before
+        write_snapshot(run_root / "protection/before.json", before)
 
-        返回 {doc, code_path, reports, decision, rounds, holdout_report}。
-        """
-        report_dir = report_dir or (self.cfg.work_dir / "reports")
-        report_dir.mkdir(parents=True, exist_ok=True)
+        fmt, train_items, holdout_items = self._load_eval_items(module)
+        source_text = src_file.read_text(encoding="utf-8") if src_file.exists() else ""
+        source_commit = self.cfg.source_commit or "sha256:" + hashlib.sha256(
+            source_text.encode("utf-8")).hexdigest()
+        sources = [{
+            "file": str(src_file),
+            "symbol": module,
+            "lines": "display-only",
+            "commit": source_commit,
+        }]
 
-        # 0. 检测评测集格式并加载
-        fmt = detect_format(self.cfg.evalset_dir, self.cfg)
-        if fmt == "native":
-            # 原生测试文件模式：用户本地测试集，直接编译运行
-            test_files = find_native_tests(self.cfg.evalset_dir, self.cfg, module)
-            if not test_files:
-                raise FileNotFoundError(
-                    f"评测集目录 {self.cfg.evalset_dir} 无匹配测试文件 "
-                    f"(glob: {self.cfg.native_test_glob})")
-            train_cases, holdout_cases = test_files, []
-            # native 模式不做 holdout 切分（本地测试集整体作为评测信号，防止误切）
-            eval_fn = evaluate_native
+        if initial_doc is None:
+            doc = self.knowledge_gen.generate(module, src_file, sources)
         else:
-            # JSON cases 模式
-            all_cases = [c for c in load_cases(self.cfg.evalset_dir)
-                         if c.get("module") == module]
-            splits = split_cases(all_cases, self.cfg.holdout_ratio)
-            train_cases = splits["train"]
-            holdout_cases = splits["holdout"]
-            eval_fn = evaluate
+            doc = initial_doc.clone()
+        doc = doc.clone(module=module, source_commit=source_commit, run_id=run_id, status="draft")
+        if self.cfg.production:
+            assert_no_source_leak(doc.content, source_text)
+        verify(before, protected_paths)
+        self._save_candidate(run_root, doc)
 
-        # 1. 首版知识生成（唯一执笔者）
-        sources = [{"file": str(src_file), "symbol": module, "lines": "0-0"}]
-        doc = self.knowledge_gen.generate(module, src_file, sources)
-        self._save_knowledge(doc)  # v1 落盘，中间产物可核查
-
+        queue = CorrectionQueue(self.cfg, run_id=run_id)
+        doc_history = [doc.clone()]
         prev_confidence = None
+        pending_ids = []
         decision = "iterate"
         last_report = None
-        code_path = None
+        holdout_report = None
+        code_paths = []
 
-        for r in range(1, self.cfg.max_rounds + 1):
-            self._round = r
-            # 2. Coder 写码（信息隔离：只传知识，不传源码）
-            code_path = self.cfg.work_dir / "traces" / f"{module}_r{r}.c"
-            code_path = self.coder.generate_code(doc, code_path)
-
-            # 3. 评测闭环（train 集）
-            src_text = src_file.read_text() if src_file.exists() else ""
-            report = eval_fn(module, code_path, train_cases, self.cfg,
-                             src_text=src_text, work_dir=self.cfg.work_dir / "traces")
+        for round_number in range(1, self.cfg.max_rounds + 1):
+            self._round = round_number
+            reports, code_paths = self._generate_and_evaluate(
+                module, doc, src_file, source_text, fmt, train_items, run_root, round_number
+            )
+            budget_exhausted = round_number >= self.cfg.max_rounds or self._time_exhausted(started)
+            report = aggregate_generation_reports(reports, self.cfg, "train")
+            self._annotate_report(report, doc, run_id, round_number, "train")
             last_report = report
 
-            # 4. Review 归因
-            attribution = self.review.attribute(module, doc, report)
+            public_report = report.public_copy()
+            attribution = self.review.attribute(module, doc.clone(), public_report)
+            verify(before, protected_paths)
 
-            # 5. 决策
-            decision = decide(report, prev_confidence, self.cfg)
+            decision = decide(report, prev_confidence, self.cfg, budget_exhausted=budget_exhausted)
+            report.decision = decision
             prev_confidence = report.confidence
-            self.history.append({"round": r, "confidence": report.confidence,
-                                 "compile_ok": report.compile_ok, "decision": decision,
-                                 "variance": report.reps_variance,
-                                 "unstable": report.unstable})
+            report_path = self._save_report(private_reports, report, attribution)
+            self._save_attribution(run_root, round_number, attribution)
 
-            self._save_report(report_dir, r, report, attribution, decision)
+            if pending_ids:
+                for correction_id in pending_ids:
+                    queue.mark_done(correction_id, ok=decision == "pass", evidence=[str(report_path)])
+                pending_ids = []
+
+            self.history.append({
+                "round": round_number,
+                "confidence": report.confidence,
+                "compile_ok": report.compile_ok,
+                "decision": decision,
+                "variance": report.reps_variance,
+                "unstable": report.unstable,
+                "reason_codes": list(report.reason_codes),
+            })
 
             if decision == "pass":
-                doc.status = "verified"
+                holdout_report = self._evaluate_holdout(
+                    module, code_paths, source_text, fmt, holdout_items, run_root, doc, run_id, round_number
+                )
+                if holdout_report is None:
+                    if self.cfg.require_holdout:
+                        decision = "stopped"
+                        report.reason_codes.append("HOLDOUT_REQUIRED")
+                    else:
+                        decision = "pass"
+                elif holdout_report.passes(self.cfg.pass_threshold):
+                    decision = "pass"
+                else:
+                    decision = "stopped"
+                    report.reason_codes.append("HOLDOUT_BELOW_THRESHOLD")
+                report.decision = decision
+                self.history[-1]["decision"] = decision
+                self._save_report(private_reports, report, attribution)
+                if decision == "pass":
+                    doc = doc.clone(status="verified")
+                    self._publish_knowledge(doc)
+                    self._protection_before = snapshot(protected_paths)
                 break
+
             if decision == "rollback":
-                # 回滚：恢复到上一版知识（MVP：回到 v1）
-                doc = KnowledgeDoc(module=module, content=doc.content, sources=doc.sources,
-                                   version=max(1, doc.version - 1))
+                doc = doc_history[-2].clone() if len(doc_history) >= 2 else doc_history[0].clone()
+                doc = doc.clone(status="draft")
+                break
+            if decision == "stopped":
                 break
 
-            # 6. 迭代：入队列 + 修订（版本 +1）
-            self.queue.push(attribution)
-            from revise import apply_revision
-            doc = apply_revision(doc, self.queue.pop_pending(), self.knowledge_gen.revise)
-            self.queue.clear()
-            self._save_knowledge(doc)  # 修订后版本立即落盘
+            if not attribution.corrections:
+                decision = "stopped"
+                report.decision = decision
+                report.reason_codes.append("INCOMPLETE_FEEDBACK")
+                self.history[-1]["decision"] = decision
+                break
 
-        # holdout 评测（JSON 模式：只报告，不写回；native 模式：无 holdout）
-        holdout_report = None
-        if holdout_cases and code_path:
-            if fmt == "native":
-                holdout_report = None
-            else:
-                holdout_report = evaluate(module, code_path, holdout_cases, self.cfg,
-                                          src_text=src_file.read_text() if src_file.exists() else "",
-                                          work_dir=self.cfg.work_dir / "traces")
+            queue.push(attribution, round_number=round_number, knowledge_version=doc.version)
+            pending_ids = [correction.id for correction in attribution.corrections]
+            doc = apply_revision(doc, attribution.corrections, self.knowledge_gen.revise)
+            doc = doc.clone(run_id=run_id, source_commit=source_commit)
+            if self.cfg.production:
+                assert_no_source_leak(doc.content, source_text)
+            verify(before, protected_paths)
+            doc_history.append(doc.clone())
+            self._save_candidate(run_root, doc)
 
-        self._save_knowledge(doc)
-        return {
+        after = verify(self._protection_before, protected_paths)
+        write_snapshot(run_root / "protection/after.json", after)
+        result = {
+            "schema_version": "flywheel-result.v1",
+            "run_id": run_id,
             "doc": doc,
-            "code_path": code_path,
+            "code_path": code_paths[0] if code_paths else None,
+            "code_paths": code_paths,
             "train_report": last_report,
             "holdout_report": holdout_report,
             "decision": decision,
             "rounds": self._round,
             "history": self.history,
+            "run_root": run_root,
+        }
+        self._save_result(run_root, result)
+        return result
+
+    def _load_eval_items(self, module: str):
+        eval_root = self.cfg.private_evalset_dir or self.cfg.evalset_dir
+        fmt = detect_format(eval_root, self.cfg)
+        if fmt == "native":
+            train_root = eval_root / "train"
+            holdout_root = eval_root / "holdout"
+            if not train_root.exists():
+                train_root = eval_root
+            train = find_native_tests(train_root, self.cfg, module)
+            holdout = find_native_tests(holdout_root, self.cfg, module) if holdout_root.exists() else []
+            return fmt, train, holdout
+        cases = [case for case in load_cases(eval_root) if case.get("module") == module]
+        splits = split_cases(cases, self.cfg.holdout_ratio)
+        return fmt, splits["train"], splits["holdout"]
+
+    def _generate_and_evaluate(self, module, doc, src_file, source_text, fmt,
+                               train_items, run_root, round_number):
+        reports, paths = [], []
+        extension = src_file.suffix if src_file.suffix in {".c", ".cc", ".cpp", ".cxx"} else ".cpp"
+        eval_fn = evaluate_native if fmt == "native" else evaluate
+        for generation in range(1, self.cfg.repeat_generation + 1):
+            code_path = run_root / "code" / f"round_{round_number:03d}_g{generation:03d}{extension}"
+            produced = self.coder.generate_code(doc.clone(), code_path)
+            verify(self._protection_before, self._protected_paths())
+            report = eval_fn(module, produced, train_items, self.cfg, src_text=source_text,
+                             work_dir=run_root / "eval-work" / f"r{round_number}_g{generation}")
+            reports.append(report)
+            paths.append(produced)
+        return reports, paths
+
+    def _evaluate_holdout(self, module, code_paths, source_text, fmt, holdout_items,
+                          run_root, doc, run_id, round_number):
+        if not holdout_items:
+            return None
+        eval_fn = evaluate_native if fmt == "native" else evaluate
+        reports = []
+        for generation, code_path in enumerate(code_paths, 1):
+            report = eval_fn(module, code_path, holdout_items, self.cfg, src_text=source_text,
+                             work_dir=run_root / "eval-work" / f"holdout_g{generation}")
+            reports.append(report)
+        aggregate = aggregate_generation_reports(reports, self.cfg, "holdout")
+        self._annotate_report(aggregate, doc, run_id, round_number, "holdout")
+        aggregate.decision = "pass" if aggregate.passes(self.cfg.pass_threshold) else "stopped"
+        # 私有明细仅写入受控 run 目录，不交给任何生成角色。
+        path = run_root / "eval" / "holdout_final.json"
+        path.write_text(json.dumps(aggregate.as_dict(), ensure_ascii=False, indent=2), encoding="utf-8")
+        return aggregate.public_copy()
+
+    def _annotate_report(self, report, doc, run_id, round_number, split):
+        report.run_id = run_id
+        report.round = round_number
+        report.split = split
+        report.knowledge_version = doc.version
+        report.knowledge_sha256 = doc.sha256
+        report.evalset_version = self.cfg.evalset_version
+        report.source_commit = doc.source_commit
+        report.environment = {
+            "compiler": self.cfg.compiler,
+            "compiler_version": self._compiler_version(),
+            "flags": self.cfg.compile_flags,
+            "model": self.cfg.model_id,
+            "provider": self.cfg.model_provider,
+            "prompt_version": self.cfg.prompt_version,
         }
 
-    # ---------- 持久化 ----------
-
-    def _save_report(self, report_dir: Path, r: int, report: EvalReport,
-                     attribution, decision: str):
-        payload = {
-            "round": r,
-            "module": report.module,
-            "compile_ok": report.compile_ok,
-            "compile_errors": report.compile_errors[:5],
-            "passed": report.passed,
-            "total": report.total,
-            "confidence": report.confidence,
-            "reps": {"count": report.reps_count, "mean": report.reps_mean,
-                     "variance": report.reps_variance, "min": report.reps_min,
-                     "unstable": report.unstable},
-            "similarity": report.similarity,
-            "decision": decision,
-            "attribution": attribution.summary,
+    def _save_report(self, report_dir, report, attribution):
+        payload = report.as_dict()
+        payload["attribution"] = {
+            "summary": attribution.summary,
             "weak_spots": attribution.weak_spots,
+            "corrections": [correction.__dict__ for correction in attribution.corrections],
         }
-        (report_dir / f"round_{r}.json").write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2))
+        path = report_dir / f"train_round_{report.round:03d}.json"
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        return path
 
-    def _save_knowledge(self, doc: KnowledgeDoc):
-        out = self.cfg.knowledge_dir / f"{doc.module}_v{doc.version}.md"
-        out.parent.mkdir(parents=True, exist_ok=True)
-        out.write_text(doc.content)
-        # 写保护（MVP 简化）：记录知识库文件哈希
-        self._write_protection_log()
+    def _save_attribution(self, run_root, round_number, attribution):
+        path = run_root / "attribution" / f"round_{round_number:03d}.json"
+        payload = {
+            "module": attribution.module,
+            "summary": attribution.summary,
+            "weak_spots": attribution.weak_spots,
+            "corrections": [correction.__dict__ for correction in attribution.corrections],
+        }
+        path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    def _write_protection_log(self):
-        import hashlib
-        log = {}
-        for f in (self.cfg.knowledge_dir).glob("*.md"):
-            log[f.name] = hashlib.sha256(f.read_bytes()).hexdigest()[:16]
-        (self.cfg.work_dir / "protection.json").write_text(
-            json.dumps(log, indent=2))
+    def _save_candidate(self, run_root, doc):
+        path = run_root / "knowledge" / f"{doc.module}_v{doc.version}.md"
+        path.write_text(doc.render(), encoding="utf-8")
+
+    def _publish_knowledge(self, doc):
+        self.cfg.knowledge_dir.mkdir(parents=True, exist_ok=True)
+        path = self.cfg.knowledge_dir / f"{doc.module}_v{doc.version}.md"
+        path.write_text(doc.render(), encoding="utf-8")
+
+    def _write_config_snapshot(self, run_root, run_id):
+        def encode(value):
+            if isinstance(value, Path):
+                return str(value)
+            if isinstance(value, list):
+                return [encode(item) for item in value]
+            return value
+        payload = {name: encode(value) for name, value in vars(self.cfg).items()}
+        payload["run_id"] = run_id
+        (run_root / "config.snapshot.json").write_text(
+            json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _save_result(self, run_root, result):
+        payload = {
+            "schema_version": result["schema_version"],
+            "run_id": result["run_id"],
+            "decision": result["decision"],
+            "rounds": result["rounds"],
+            "knowledge": {
+                "module": result["doc"].module,
+                "version": result["doc"].version,
+                "status": result["doc"].status,
+                "sha256": result["doc"].sha256,
+            },
+            "history": result["history"],
+        }
+        (run_root / "result.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    def _protected_paths(self):
+        paths = [self.cfg.src_dir, self.cfg.evalset_dir, self.cfg.knowledge_dir]
+        if self.cfg.interfaces_dir is not None:
+            paths.append(self.cfg.interfaces_dir)
+        if self.cfg.private_evalset_dir is not None:
+            paths.append(self.cfg.private_evalset_dir)
+        paths.extend(self.cfg.protected_paths)
+        return paths
+
+    def _compiler_version(self):
+        try:
+            proc = subprocess.run([self.cfg.compiler, "--version"], capture_output=True,
+                                  text=True, timeout=10, encoding="utf-8", errors="replace")
+            return proc.stdout.splitlines()[0] if proc.stdout else "unknown"
+        except (OSError, subprocess.TimeoutExpired):
+            return "unavailable"
+
+    def _time_exhausted(self, started):
+        return self.cfg.max_seconds is not None and time.monotonic() - started >= self.cfg.max_seconds
+
+
+def assert_no_source_leak(knowledge: str, source: str) -> None:
+    """确定性红线：禁止知识包含连续的源码实现行。"""
+    knowledge_compact = " ".join(knowledge.split())
+    suspicious = []
+    for line in source.splitlines():
+        stripped = " ".join(line.strip().split())
+        if len(stripped) >= 30 and not stripped.startswith(("//", "/*", "*", "#include")):
+            if stripped in knowledge_compact:
+                suspicious.append(stripped)
+    if suspicious:
+        raise KnowledgeLeakError("知识包含源码实现片段: " + suspicious[0][:160])

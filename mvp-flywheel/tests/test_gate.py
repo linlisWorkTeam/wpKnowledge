@@ -60,35 +60,35 @@ def test_apply_reps_writes_report():
 def test_decide_unstable_not_pass():
     """方差大 → 即使均值 ≥ 门限也不判 pass，判 unstable。"""
     rep = EvalReport(module="m", compile_ok=True, confidence=0.9,
-                     unstable=True)
+                     unstable=True, total=1, reps_count=5)
     assert decide(rep, None, _cfg()) == "unstable"
 
 
 def test_decide_unstable_low_conf_iterate():
     """方差大 + 均值低 → unstable（仍进迭代而非 pass）。"""
     rep = EvalReport(module="m", compile_ok=True, confidence=0.4,
-                     unstable=True)
+                     unstable=True, total=1, reps_count=5)
     assert decide(rep, None, _cfg()) == "unstable"
 
 
 def test_decide_pass_when_stable():
     """稳定且均值 ≥ 门限 → pass。"""
     rep = EvalReport(module="m", compile_ok=True, confidence=0.9,
-                     unstable=False)
+                     unstable=False, total=1, reps_count=5)
     assert decide(rep, None, _cfg()) == "pass"
 
 
 def test_decide_iterate_when_unstable_false_low():
     """稳定但均值低 → iterate（且不低于上轮）。"""
     rep = EvalReport(module="m", compile_ok=True, confidence=0.5,
-                     unstable=False)
+                     unstable=False, total=1, reps_count=5)
     assert decide(rep, None, _cfg()) == "iterate"
 
 
 def test_decide_rollback_on_regression():
     """稳定但低于上轮 → rollback。"""
     rep = EvalReport(module="m", compile_ok=True, confidence=0.5,
-                     unstable=False)
+                     unstable=False, total=1, reps_count=5)
     assert decide(rep, 0.7, _cfg()) == "rollback"
 
 

@@ -1,3 +1,242 @@
 {
-  "pending": []
+  "schema_version": "correction-ledger.v1",
+  "active": [],
+  "history": [
+    {
+      "schema_version": "correction.v1",
+      "run_id": "de0251df231144d4ba103f7d99d09141",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 7/9",
+      "detail": "有 2 条用例失败，当前置信度 0.78，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "de0251df231144d4ba103f7d99d09141",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 7/9",
+      "detail": "有 2 条用例失败，当前置信度 0.78，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-1\\test_flywheel_native_iterates0\\data\\runs\\de0251df231144d4ba103f7d99d09141\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "",
+      "round": 0,
+      "id": "calc-1",
+      "knowledge_version": 0,
+      "knowledge_path": "calc 函数",
+      "criterion": "测试通过",
+      "detail": "失败 2 条",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "",
+      "round": 0,
+      "id": "calc-1",
+      "knowledge_version": 0,
+      "knowledge_path": "calc 函数",
+      "criterion": "测试通过",
+      "detail": "失败 2 条",
+      "module": "calc",
+      "status": "done",
+      "evidence": [],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "5c40f1475ba64ca48d760de7d07a4127",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 3/7",
+      "detail": "有 4 条用例失败，当前置信度 0.43，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "5c40f1475ba64ca48d760de7d07a4127",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 3/7",
+      "detail": "有 4 条用例失败，当前置信度 0.43，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-1\\test_flywheel_iterates_on_bad_0\\data\\runs\\5c40f1475ba64ca48d760de7d07a4127\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "980ad0f57e8340939281e7886fbcd510",
+      "round": 1,
+      "id": "tiling-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "tiling 模块函数实现",
+      "criterion": "测试通过率需达 0/8",
+      "detail": "有 8 条用例失败，当前置信度 0.00，需要检查知识中函数实现与源码行为的一致性",
+      "module": "tiling",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "980ad0f57e8340939281e7886fbcd510",
+      "round": 1,
+      "id": "tiling-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "tiling 模块函数实现",
+      "criterion": "测试通过率需达 0/8",
+      "detail": "有 8 条用例失败，当前置信度 0.00，需要检查知识中函数实现与源码行为的一致性",
+      "module": "tiling",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-1\\test_tiling_flywheel_revise_lo0\\data\\runs\\980ad0f57e8340939281e7886fbcd510\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "50704cd0256f4f5892ea7a7f692c2bc0",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 7/9",
+      "detail": "有 2 条用例失败，当前置信度 0.78，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "50704cd0256f4f5892ea7a7f692c2bc0",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 7/9",
+      "detail": "有 2 条用例失败，当前置信度 0.78，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-2\\test_flywheel_native_iterates0\\data\\runs\\50704cd0256f4f5892ea7a7f692c2bc0\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "",
+      "round": 0,
+      "id": "calc-1",
+      "knowledge_version": 0,
+      "knowledge_path": "calc 函数",
+      "criterion": "测试通过",
+      "detail": "失败 2 条",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "",
+      "round": 0,
+      "id": "calc-1",
+      "knowledge_version": 0,
+      "knowledge_path": "calc 函数",
+      "criterion": "测试通过",
+      "detail": "失败 2 条",
+      "module": "calc",
+      "status": "done",
+      "evidence": [],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "96a6a2ad0de14d348ee1f5bdb7123766",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 3/7",
+      "detail": "有 4 条用例失败，当前置信度 0.43，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "96a6a2ad0de14d348ee1f5bdb7123766",
+      "round": 1,
+      "id": "calc-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "calc 模块函数实现",
+      "criterion": "测试通过率需达 3/7",
+      "detail": "有 4 条用例失败，当前置信度 0.43，需要检查知识中函数实现与源码行为的一致性",
+      "module": "calc",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-2\\test_flywheel_iterates_on_bad_0\\data\\runs\\96a6a2ad0de14d348ee1f5bdb7123766\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "9462217651b04a7a868218bb37815356",
+      "round": 1,
+      "id": "tiling-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "tiling 模块函数实现",
+      "criterion": "测试通过率需达 0/8",
+      "detail": "有 8 条用例失败，当前置信度 0.00，需要检查知识中函数实现与源码行为的一致性",
+      "module": "tiling",
+      "status": "pending",
+      "evidence": [],
+      "event": "created"
+    },
+    {
+      "schema_version": "correction.v1",
+      "run_id": "9462217651b04a7a868218bb37815356",
+      "round": 1,
+      "id": "tiling-test-1",
+      "knowledge_version": 1,
+      "knowledge_path": "tiling 模块函数实现",
+      "criterion": "测试通过率需达 0/8",
+      "detail": "有 8 条用例失败，当前置信度 0.00，需要检查知识中函数实现与源码行为的一致性",
+      "module": "tiling",
+      "status": "done",
+      "evidence": [
+        "C:\\Users\\86183\\AppData\\Local\\Temp\\pytest-of-86183\\pytest-2\\test_tiling_flywheel_revise_lo0\\data\\runs\\9462217651b04a7a868218bb37815356\\eval\\train_round_002.json"
+      ],
+      "event": "resolved"
+    }
+  ]
 }

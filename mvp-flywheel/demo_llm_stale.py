@@ -19,6 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fw.config import Config
 from fw.runner import KnowledgeFlywheel
 from roles.llm_roles import DocKnowledgeGen, LLMCoder, LLMReview
+from roles.providers import DeepSeekProvider
 
 BASE = Path(__file__).resolve().parent
 
@@ -28,20 +29,26 @@ def main():
     if work.exists():
         shutil.rmtree(work)
     cfg = Config(
+        mode="experimental",
         src_dir=BASE / "samples/tiling/src",
+        interfaces_dir=BASE / "samples/tiling/interfaces",
         evalset_dir=BASE / "samples/tiling/evalset",
         work_dir=work / "data",
         knowledge_dir=work / "storage/knowledge",
         compiler="g++",
         compile_flags=["-Wall", "-Werror", "-std=c++11", "-I{src_dir}"],
+        model_provider="deepseek",
+        model_id="deepseek-v4-flash",
     ).resolve(BASE)
+
+    provider = DeepSeekProvider(model=cfg.model_id)
 
     stale_doc = BASE / "samples/tiling/knowledge_stale/tiling_v1_stale.md"
     fw = KnowledgeFlywheel(
         cfg,
         knowledge_gen=DocKnowledgeGen(stale_doc),   # 预置解释型文档（桩，非 LLM）
-        coder=LLMCoder(cfg=cfg, api_timeout=cfg.api_timeout),   # 真 LLM 写码（沙箱隔离）
-        review=LLMReview(cfg=cfg, api_timeout=cfg.api_timeout), # 真 LLM 归因
+        coder=LLMCoder(cfg=cfg, api_timeout=cfg.api_timeout, provider=provider),
+        review=LLMReview(cfg=cfg, api_timeout=cfg.api_timeout, provider=provider),
     )
 
     src_file = BASE / "samples/tiling/src/add_custom_tiling.cpp"

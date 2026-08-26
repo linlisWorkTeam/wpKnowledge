@@ -1,85 +1,79 @@
-"""沙箱隔离：Coder 进程的路径访问白名单校验（防作弊核心）。
-
-对应《codeagent执行手册》§0.1 防作弊红线：
-- 源码在飞轮外（src-biz/ 只读），Coder 物理摸不到源码
-- Coder 只能读：知识库（knowledge_dir）+ 接口头文件副本（interfaces_dir）+ 工作区（work_dir）
-- src_dir（源码目录）永远禁止读取
-
-用法：
-    from fw.sandbox import build_sandbox, SandboxViolation
-    sb = build_sandbox(cfg)
-    sb.assert_readable("/flywheel/knowledge/tiling_v1.md")   # OK
-    sb.assert_readable("/src-biz/add_custom_tiling.cpp")     # 抛 SandboxViolation
-"""
+"""Coder 最小权限路径沙箱。"""
 
 from pathlib import Path
 
 
 class SandboxViolation(PermissionError):
-    """Coder 试图读取白名单外路径（视为作弊企图）。"""
+    pass
+
+
+def _resolve(path) -> Path:
+    return Path(path).resolve(strict=False)
+
+
+def _within(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+        return True
+    except ValueError:
+        return False
 
 
 def build_sandbox(cfg) -> "Sandbox":
-    """按 Config 构建沙箱。
+    cfg.validate()
+    read_roots = {_resolve(cfg.knowledge_dir)}
+    if cfg.interfaces_dir is not None:
+        read_roots.add(_resolve(cfg.interfaces_dir))
+    read_roots.update(_resolve(path) for path in cfg.allowed_read_dirs)
 
-    白名单 = allowed_read_dirs（显式配置，优先）∪ knowledge_dir ∪ interfaces_dir ∪ work_dir。
-    src_dir 永远不在白名单（即使配置 allowed_read_dirs 包含也不放行——源码红线）。
-    """
-    allow = set()
-    for d in cfg.allowed_read_dirs or []:
-        allow.add(str(Path(d).resolve()))
-    allow.add(str(Path(cfg.knowledge_dir).resolve()))
-    allow.add(str(Path(cfg.eval_include_dir()).resolve()))  # interfaces_dir 或回退 src_dir
-    allow.add(str(Path(cfg.work_dir).resolve()))
-    deny = {str(Path(cfg.src_dir).resolve())}
-    return Sandbox(allowed=allow, denied=deny)
+    write_roots = {_resolve(cfg.work_dir)}
+    write_roots.update(_resolve(path) for path in cfg.allowed_write_dirs)
+    denied = {_resolve(cfg.src_dir), _resolve(cfg.evalset_dir)}
+    if cfg.private_evalset_dir is not None:
+        denied.add(_resolve(cfg.private_evalset_dir))
+    return Sandbox(read_roots, write_roots, denied)
 
 
 class Sandbox:
-    """路径白名单沙箱。resolve 后比较，防 .. 绕过。"""
-
-    def __init__(self, allowed: set, denied: set):
-        self.allowed = {str(Path(p).resolve()) for p in allowed}
-        self.denied = {str(Path(p).resolve()) for p in denied}
-
-    def _norm(self, p) -> str:
-        return str(Path(p).resolve())
+    def __init__(self, allowed_read: set, allowed_write: set, denied: set):
+        self.allowed_read = {_resolve(path) for path in allowed_read}
+        self.allowed_write = {_resolve(path) for path in allowed_write}
+        self.denied = {_resolve(path) for path in denied}
 
     def allowed_dirs(self) -> list:
-        return sorted(self.allowed)
+        return sorted(str(path) for path in self.allowed_read)
+
+    def _assert_not_denied(self, path: Path) -> None:
+        for denied in self.denied:
+            if _within(path, denied):
+                raise SandboxViolation(f"沙箱拦截：{path} 位于禁止目录 {denied}")
 
     def assert_readable(self, path) -> Path:
-        """校验路径可读：必须在白名单内、且不在黑名单内。返回规范路径。"""
-        p = Path(path)
-        # 文件可能不存在（如生成代码路径），先取父目录判断
-        target = self._norm(p)
-        parent = self._norm(p.parent if p.suffix else p)
-        for denied in self.denied:
-            if target.startswith(denied + "/") or target == denied:
-                raise SandboxViolation(
-                    f"沙箱拦截：{path} 在禁止目录 {denied} 内（源码红线，禁止读取）")
-        for allowed in self.allowed:
-            if parent.startswith(allowed + "/") or parent == allowed:
-                return p
-            # 文件本身在白名单目录内（含不存在的生成路径）
-            if target.startswith(allowed + "/"):
-                return p
-        raise SandboxViolation(
-            f"沙箱拦截：{path} 不在白名单 {sorted(self.allowed)} 内")
+        target = _resolve(path)
+        self._assert_not_denied(target)
+        if any(_within(target, root) for root in self.allowed_read):
+            return target
+        raise SandboxViolation(f"沙箱拦截读取：{target} 不在最小只读白名单内")
+
+    def assert_writable(self, path) -> Path:
+        target = _resolve(path)
+        self._assert_not_denied(target)
+        if any(_within(target, root) for root in self.allowed_write):
+            return target
+        raise SandboxViolation(f"沙箱拦截写入：{target} 不在本轮输出白名单内")
 
     def read_text(self, path, encoding: str = "utf-8") -> str:
-        """白名单内读取文件（带校验）。"""
-        self.assert_readable(path)
-        return Path(path).read_text(encoding=encoding)
+        return self.assert_readable(path).read_text(encoding=encoding)
 
 
-def read_header(cfg, module_hint: str = "") -> str:
-    """从 interfaces_dir（或回退 src_dir）读取接口头文件内容。
-
-    注意：仅读头文件（接口定义，非实现），用于 Coder 的 #include 提示。
-    这是 Coder 唯一允许接触的"源码形态"——头文件是接口契约，不是实现。
-    """
-    inc = Path(cfg.eval_include_dir())
-    for h in sorted(inc.glob("*.h")):
-        return h.read_text()
-    return ""
+def read_header(cfg, module_hint: str = "", sandbox: Sandbox | None = None) -> str:
+    """只从 interfaces_dir 读取公开接口；生产模式禁止源码回退。"""
+    interface_dir = cfg.eval_include_dir()
+    headers = sorted(Path(interface_dir).glob("*.h"))
+    if module_hint:
+        preferred = [header for header in headers if module_hint in header.stem]
+        headers = preferred or headers
+    if not headers:
+        return ""
+    header = headers[0]
+    return (sandbox.read_text(header) if sandbox else header.read_text(encoding="utf-8"))
