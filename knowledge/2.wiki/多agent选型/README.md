@@ -8,7 +8,7 @@
 
 | 文件 | 内容 | 回答的问题 |
 |---|---|---|
-| [01-多agent调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/01-多agent调研.md) | 评审/验证相关实证（CCR、对抗审查、spec→TDD） | Review 该怎么做？多 agent 评审要不要？ |
+| [01-多agent调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/01-多agent调研.md) | Agent 清单 + 工作流程定稿（7 Agent + TypeScript 接口）、评审实证（CCR、对抗审查、TestGenAgent 行为 oracle） | Review 该怎么做？多 agent 评审要不要？ |
 | [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) | 12+3 种编排模式全景（含每种模式的纯文本流程图） | 有哪些模式？各什么时候选？workflow vs orchestration 区别？ |
 | [03-开源编排框架.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/03-开源编排框架.md) | 14 个框架深度对比（LangGraph/CrewAI/Agent Framework/Agents SDK/ADK/CLI agents/MetaGPT/Temporal/Pydantic AI 等；已剔除相关度低与无源码黑盒） | LangGraph 之类框架怎么选？各自代表什么范式？ |
 | [04-开源仓库案例.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/04-开源仓库案例.md) | 17 个业界真实开源项目怎么编排多 agent | 别人实际怎么落地？对"流水线+文件交接"是印证还是反驳？ |
@@ -130,10 +130,10 @@
 | # | 决策点 | 候选 | 倾向（调研倾向，非结论） |
 |---|---|---|---|
 | 1 | 主干架构 | ① 固定流水线+文件交接（自研薄调度）② LangGraph 图执行 ③ Pydantic AI+Temporal ④ Microsoft Agent Framework（开源 LTS） | 案例调研显示文档生成类任务主流是①；框架调研显示②③控制力更强；云托管黑盒（Bedrock/Foundry）已剔除 |
-| 2 | 是否需要主 agent | ① 确定性编排层（现状）② LLM orchestrator ③ supervisor | 编码类任务并行度低，①最省；②③在"开放任务分解"时才需要 |
+| 2 | 是否需要主 agent | ① 确定性调度层（只调度，决策归门禁规则，现状）② LLM orchestrator ③ supervisor | 用户已定：主 Agent **只负责调度**，不执笔不判内容，决策由门禁 decide 状态机给出；①满足 |
 | 3 | 文档生成是否分块并行 | ① 不分块 ② 分块 + subagent 并行（fan-out）③ 增量+拓扑排序（DocAgent） | 超大代码库必须③或②；③对 C/C++ 更契合（include 依赖） |
 | 4 | Review 模式 | ① 独立上下文单 review（CCR，现状）② 辩论式多 review ③ 跨模型对抗 review | CCR 实证最强且成本最低；③做关键模块增强 |
-| 5 | spec→TDD + spec→code + 独立检查 | ① 不用 ② TDD agent 做冒烟 ③ 完整三 agent 分工 | ②可借鉴（需求澄清）；门禁主判仍用探针期望输出 |
+| 5 | TestGenAgent（读源码）+ CodeAgent（读知识文档）+ 独立检查 | ① 不用 ② TestGenAgent 读源码做行为 oracle ③ 测试也读知识文档 | 用户已定：TestGenAgent **输入=源代码**（行为 oracle，期望输出经 EvalRunner 验证），CodeAgent 输入=知识文档；门禁主判=经验证的期望输出 |
 | 6 | 框架引入 | ① 零框架（自研）② LangGraph ③ Agents SDK ④ Temporal 补耐久 | 取决于 1；若选①则②④都不引入，自研状态机已覆盖 |
 
 ## 关键事实速记
