@@ -568,18 +568,21 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 - **Swarm / Mesh 网络式**：无状态、难追踪，与"可审计"基线冲突
 - **Router 路由**：任务路径固定，不需要运行时路由分类
 
-### 8.2 框架层结论（来自 03 开源编排框架）
+### 8.2 框架层结论（来自 03 开源编排框架 + 05 架构评审）
 
-**核心决策：零框架，自研编排层**。理由：流水线固定、状态机简单（pass/iterate/rollback/stopped 已实现）、产物文件交接，重型框架带来的是状态管理复杂度与厂商绑定，收益为负。
+**核心决策（2026-08-20 架构评审修正）：L1 Workflow Runtime 用 Temporal 做底座；L2 Agent Platform / L3 Domain 自研**。原"零框架自研编排"结论仅适用于 PoC 语境，在企业级长期底座语境下推翻（详见 [05-架构评审-Workflow-Runtime底座选型.md](05-架构评审-Workflow-Runtime底座选型.md)）。
 
-从 14 个开源框架中**只借鉴思想、不引入代码**：
+理由（证据见 05 文档）：文件持久化 ≠ 执行持久化；自研必然演化成残缺 runtime；内部 runtime 绑定比框架绑定更严重；Temporal 是 durable execution 成熟底座（LLM 调用官方列为 Activity 场景，重放不重复计费）；LangGraph 定位是 L2 图 DSL 而非 L1 runtime。
 
-| 框架 | 借鉴什么 | 落进本方案哪里 |
-|---|---|---|
-| Claude Agent SDK / Codex CLI（开源） | 子 agent 上下文隔离执行层 | CodeAgent/CheckAgent 的 LLM 后端候选（公司 GLM 5.1 经 codeagent CLI） |
-| Pydantic AI | 类型化结构化输出 | TypeScript 接口定义（4.5.5）：KnowledgeDoc/TestCase/EvalReport 全类型化 |
-| Temporal | 耐久执行/断点续跑思想 | 已由文件交接天然实现（每步产物落盘，可续跑），不引入引擎 |
-| LangGraph | 显式状态机思想 | 我们的 decide 状态机就是"轻量版图"（自研） |
+从 14 个开源框架中**分层取舍**：
+
+| 层 | 框架 | 决策 | 落进本方案哪里 |
+|---|---|---|---|
+| L1 Runtime | Temporal | ✅ **采用**（L1 底座） | Workflow/Activity 骨架：OrchestratorAgent → DocGen/TestGen/Code/Eval/Review 各为 Activity 或 Child Workflow |
+| L2 图 DSL | LangGraph | ⚠️ V2+ 可选 | 未来动态 agent 图（多 agent 自由协作评审）时在 L2 定义图，调度到 Temporal 执行 |
+| L2 执行层 | Claude Agent SDK / Codex CLI（开源） | ✅ 借鉴 | CodeAgent/CheckAgent 的 LLM 后端候选（公司 GLM 5.1 经 codeagent CLI） |
+| L2 结构化 | Pydantic AI | ✅ 借鉴思想 | TypeScript 接口定义（4.5.5）：KnowledgeDoc/TestCase/EvalReport 全类型化 |
+| L1 耐久 | Temporal | ✅ 原生 | 断点续跑/重试/心跳/取消/恢复全由 Temporal 承担，文件交接退为 Artifact 层 |
 
 **明确不选**（理由一句话）：
 - 角色/对话范式（CrewAI、AutoGen→Agent Framework）：自由度是生产事故来源，我们要确定性

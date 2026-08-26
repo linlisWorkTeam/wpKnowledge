@@ -12,6 +12,7 @@
 | [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) | 12+3 种编排模式全景（含每种模式的纯文本流程图） | 有哪些模式？各什么时候选？workflow vs orchestration 区别？ |
 | [03-开源编排框架.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/03-开源编排框架.md) | 14 个框架深度对比（LangGraph/CrewAI/Agent Framework/Agents SDK/ADK/CLI agents/MetaGPT/Temporal/Pydantic AI 等；已剔除相关度低与无源码黑盒） | LangGraph 之类框架怎么选？各自代表什么范式？ |
 | [04-开源仓库案例.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/04-开源仓库案例.md) | 17 个业界真实开源项目怎么编排多 agent | 别人实际怎么落地？对"流水线+文件交接"是印证还是反驳？ |
+| [05-架构评审-Workflow-Runtime底座选型.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/05-架构评审-Workflow-Runtime底座选型.md) | 架构评审：**推翻"零框架"结论，L1 用 Temporal 做底座**（证据链 + 6 质疑回应 + 分层决策） | 自研编排还是成熟 runtime？Temporal 还是 LangGraph？ |
 
 ## 编排选型总览（纯文本流程图）
 
@@ -134,7 +135,7 @@
 | 3 | 文档生成是否分块并行 | ① 不分块 ② 分块 + subagent 并行（fan-out）③ 增量+拓扑排序（DocAgent） | 超大代码库必须③或②；③对 C/C++ 更契合（include 依赖） |
 | 4 | Review 模式 | ① 独立上下文单 review（CCR，现状）② 辩论式多 review ③ 跨模型对抗 review | CCR 实证最强且成本最低；③做关键模块增强 |
 | 5 | TestGenAgent（读源码）+ CodeAgent（读知识文档）+ 独立检查 | ① 不用 ② TestGenAgent 读源码做行为 oracle ③ 测试也读知识文档 | 用户已定：TestGenAgent **输入=源代码**（行为 oracle，期望输出经 EvalRunner 验证），CodeAgent 输入=知识文档；门禁主判=经验证的期望输出 |
-| 6 | 框架引入 | ① 零框架（自研）② LangGraph ③ Agents SDK ④ Temporal 补耐久 | 取决于 1；若选①则②④都不引入，自研状态机已覆盖 |
+| 6 | 框架引入 | ① 零框架（自研）② LangGraph ③ Temporal 做 L1 底座 ④ Temporal + 局部 LangGraph | **已定：Temporal 做 L1 Workflow Runtime 底座**（见 [05-架构评审](05-架构评审-Workflow-Runtime底座选型.md)）；LangGraph 仅 V2+ 动态 agent 图时作 L2 DSL |
 
 ## 关键事实速记
 
