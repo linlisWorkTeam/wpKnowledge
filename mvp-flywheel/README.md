@@ -1,6 +1,8 @@
-# mvp-flywheel · 知识飞轮 MVP（不依托 codeagent）
+# mvp-flywheel · 知识飞轮实验性 MVP
 
-按《knowledge/2.wiki/设计/codeagent执行手册.md》P0 要求实现的**最小可用版本**，三个 LLM 角色用确定性桩替代，验证编排与评测闭环逻辑。接入 codeagent 时实现 `roles/__init__.py` 的接口替换桩即可。
+本目录是知识飞轮的实验性原型，用于验证编排、评测和修订闭环。**规范性约束、验收场景和当前差距以 [docs/](docs/README.md) 为准**；本 README 只介绍当前代码，不代表已经满足生产 P0。
+
+当前真实 LLM 适配使用 DeepSeek，仅属于历史实验实现；收敛后的生产基线要求公司 GLM 5.1 + codeagent/批准的 SDK，详见 [MOD-001/002](docs/01-需求规格.md#2-模型与角色)。
 
 ## 架构
 
@@ -23,17 +25,18 @@
 | `revise/` | 修订闭环（pending_corrections 队列 + 版本控制/回滚） |
 | `samples/` | 示例被测源码（tiling 算子真实算法）+ 评测集（探针跑源码拿期望输出） |
 | `tests/fixtures/calc/` | 测试夹具（calc 加减乘除，仅供单测，不误导 agent） |
-| `tests/` | pytest 单测（27 个） |
+| `tests/` | pytest 单测与 C/C++ 评测夹具 |
+| `docs/` | SDD 规格、架构、行为契约、验收场景、差距清单和追踪矩阵 |
 
 ## 快速开始
 
 ```bash
-python3 -m pytest tests/ -v        # 跑全部单测（27 个）
+python3 -m pytest tests/ -v        # 跑全部单测
 python3 demo_llm_full.py           # 全流程真 LLM：知识生成/Coder/Review 全走 DeepSeek
 python3 demo_llm_stale.py          # 真 LLM + 过时文档：知识=预置解释型文档（无源码）
 ```
 
-## 全流程真 LLM 端到端（DeepSeek，非桩）
+## 实验性真 LLM 端到端（DeepSeek，非生产基线）
 
 `roles/llm_roles.py` 提供真实 LLM 实现，严格按飞轮流程：
 
@@ -93,6 +96,8 @@ cfg.evalset_format = "auto"                    # auto 自动检测；也可强�
 - **holdout**：按模块名哈希分层（holdout_ratio=0.2），holdout 只报告不写回
 - **修订闭环**：Review 归因 → pending_corrections 队列 → 修订（版本+1）→ 重测；门禁通过才合并；分数下降回滚
 
+> 当前已实现至少 5 次重复评测及均值、方差、最差值和 UNSTABLE；仍存在 native 模式跳过 holdout、门禁数据属性固定 0.8、逐次结果未完整落盘等差距，详见[当前差距与实施顺序](docs/05-当前差距与实施顺序.md)。
+
 ## 实战问题修复（codeagent 运行反馈 → 代码层防护）
 
 针对 codeagent 实际运行暴露的 4 个问题，已在代码层修复（`verify_sandbox.py` / 单测覆盖）：
@@ -121,6 +126,8 @@ fw = KnowledgeFlywheel(cfg, knowledge_gen=YourAgent(), coder=YourCoder(), review
 ```
 
 ## 已知限制（MVP）
+
+- 本实现尚未满足全部 SDD P0 约束；不得仅根据 demo 或桩测试结果宣称生产可用，完整差距见 [docs/05-当前差距与实施顺序.md](docs/05-当前差距与实施顺序.md)
 
 - 桩实现（stubs.py）仅用于单测与管道自检：知识=源码摘录，**不符合飞轮知识形态**（真实流程用 demo_llm_full.py / demo_llm_stale.py）
 - 测试驱动生成仅支持 int/double 参数与返回值（可扩展 schema）
