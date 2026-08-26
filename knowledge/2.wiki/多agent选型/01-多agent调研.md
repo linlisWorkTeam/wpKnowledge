@@ -218,52 +218,62 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
                  │            OrchestratorAgent（主 Agent）          │
                  │   只负责调度：规划 / 拆解 / 委派 / 汇总 / 驱动重试  │
                  │   （决策由门禁 decide 状态机给出，不执笔、不判内容）  │
-                 └───────┬──────────────────────┬───────────────────┘
-                         │                      │
-   源码 src_dir          │ 委派文档生成           │ 委派测试+代码生成
-   （只读）               ▼                      ▼
-        │      ┌────────────────────┐  ┌──────────────────────────┐
-        │      │  DocGenAgent        │  │ TestGenAgent（读源码）     │
-        │      │  读源码→知识文档      │  │  CodeAgent（读知识文档）    │
-        │      │  （大库时 spawn      │  │  两 agent 并行、上下文隔离  │
-        │      │   DocWorkerAgent×N） │  │                           │
-        │      └─────────┬──────────┘  └─────────────┬────────────┘
-        │                │ 知识文档 .md               │ 测试集 + 实现代码
-        │                ▼                           ▼
-        │      ┌────────────────────┐  ┌──────────────────────────┐
-        │      │  KnowledgeStore     │  │  CheckAgent（CCR 独立检查） │
-        │      │  （候选区+版本+ledger）│  │  只读 diff+判据，语义层审查 │
-        │      └────────────────────┘  └─────────────┬────────────┘
-        │                                            │ 检查报告
-        │                                            ▼
-        │      ┌──────────────────────────────────────────────────┐
-        │      │        EvalRunner（确定性程序，非 Agent）           │
-        │      │  编译必过（g++ -Werror）+ 探针测试 + 相似度（仅归因）  │
-        │      │  验证 TestGenAgent 测试的期望输出与真实源码一致        │
-        │      └───────────────────────┬──────────────────────────┘
-        │                              │ 评测报告 .json
-        │                              ▼
-        │      ┌──────────────────────────────────────────────────┐
-        │      │  ReviewAgent（独立上下文 CCR，只读）                 │
-        │      │  归因：失败用例→定位知识段落→修订指令（三字段）        │
-        │      └───────────────────────┬──────────────────────────┘
-        │                              │ 归因/修订 .json
-        │                              ▼
-        │      ┌──────────────────────────────────────────────────┐
-        │      │  OrchestratorAgent 调度 + 门禁 decide 状态机        │
-        │      │  pass / iterate / rollback / stopped（规则给出）    │
-        │      └──────────────┬───────────────────────────────────┘
-        │        iterate：修订指令→ DocGenAgent 优化知识文档（v+1）
-        │                  → CodeAgent 基于新知识重新生成→重测
-        │                                                        pass
-        └───────────────────────────────────────────────────►    ▼
-                                                  知识发布 KnowledgeStore
-                                                  （verified，SHA-256 快照）
+                 └───────┬────────────────────┬─────────────────────┘
+                         │                    │
+        ┌────────────────┼────────────────┐   │
+        ▼                ▼                ▼   │
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ 委派文档生成  │ │ 委派测试生成  │ │ 委派代码生成  │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       ▼                ▼                ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ DocGenAgent  │ │ TestGenAgent │ │ CodeAgent    │
+│ 读源码→知识   │ │ 读源码→行为   │ │ 读知识文档→   │
+│ 文档          │ │ oracle 测试  │ │ 实现代码      │
+│（大库 spawn   │ │（期望输出经   │ │（Sandbox 强制│
+│  DocWorker×N）│ │  EvalRunner  │ │  看不到源码） │
+│              │ │  验证真实性） │ │              │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       │                │                │
+       │ 知识文档 .md    │ 候选测试池      │ 实现代码 .cpp
+       ▼                ▼                ▼
+┌──────────────┐ ┌──────────────┐ ┌──────────────┐
+│ KnowledgeStore│ │ EvalRunner   │ │ CheckAgent   │
+│（候选区+版本+ │ │ 验证期望输出  │ │（CCR 独立检查）│
+│  ledger）     │ │ 与真实源码一致│ │ 语义层审查    │
+└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
+       │                │ 门禁测试集      │ 检查报告
+       └────────────────┼────────────────┘
+                        ▼
+        ┌────────────────────────────────────┐
+        │      EvalRunner（确定性程序，非 Agent） │
+        │  编译必过（g++ -Werror）+ 门禁测试     │
+        │  + 相似度（仅归因）                    │
+        └───────────────────┬────────────────┘
+                            │ 评测报告 .json
+                            ▼
+        ┌────────────────────────────────────┐
+        │ ReviewAgent（独立上下文 CCR，只读）   │
+        │ 归因：失败用例→定位知识段落→修订指令   │
+        └───────────────────┬────────────────┘
+                            │ 归因/修订 .json
+                            ▼
+        ┌────────────────────────────────────┐
+        │ OrchestratorAgent 调度 + 门禁状态机  │
+        │ pass / iterate / rollback / stopped│
+        └───────────────────┬────────────────┘
+      iterate：修订指令→ DocGenAgent 优化知识文档（v+1）
+              → CodeAgent 基于新知识重新生成 → 重测
+                                                      pass
+        ─────────────────────────────────────────►   ▼
+                                    知识发布 KnowledgeStore
+                                    （verified，SHA-256 快照）
 
    分工边界（硬规则）：
    - 谁生成谁可改，谁评测谁不改（生成与验证分离）
    - DocGenAgent 产出的知识文档是 CodeAgent 的唯一事实输入（Sandbox 强制，CodeAgent 物理看不到源码）
-   - TestGenAgent 读源码提取行为 oracle；期望输出必须经真实源码验证，禁止 LLM 编造
+   - TestGenAgent 读源码提取行为 oracle（独立链路，不读知识文档）；期望输出必须经真实源码验证，禁止 LLM 编造
+   - CodeAgent 读知识文档生成实现（独立链路，不读源码）；与 TestGenAgent 各自独立、互不依赖
    - ReviewAgent 评审结果反馈给 DocGenAgent 优化知识文档（不改代码；代码由新知识文档驱动重生成）
    - OrchestratorAgent 只调度不执笔，决策归门禁规则
    - 全部产物文件交接，可审计、可断点续跑
@@ -298,76 +308,44 @@ Anthropic 实测：单 agent 编码 ≈ 4× chat token，多 agent ≈ 15× chat
    （Anthropic 实证：subagent 本质是压缩器，各自窗口并行探索后压缩回传）
 ```
 
-### 4.5.3 代码生成阶段（TestGenAgent / CodeAgent 两条独立链路）
-
-> 为避免歧义，TestGenAgent 与 CodeAgent **分开画**：两者输入源不同（源码 vs 知识文档）、互不依赖、各自独立产出，最后才在 EvalRunner 门禁处汇聚。
+### 4.5.3 代码生成阶段（TestGenAgent + CodeAgent + CheckAgent 三 Agent）
 
 ```text
-流程图 A：TestGenAgent 链路（测试生成，独立）
-   ┌──────────────────────────┐
-   │     源代码 src_dir         │   ← 只读（含接口头文件）
-   │   （TestGen 唯一输入源）    │
-   └────────────┬─────────────┘
-                │ 行为 oracle 提取（真实源码行为）
-                ▼
-   ┌──────────────────────────┐
-   │       TestGenAgent        │
-   │   读源码 → 测试用例        │
-   │   （行为 oracle，禁编造）   │
-   └────────────┬─────────────┘
-                │ 候选测试池（含期望输出）
-                ▼
-   ┌──────────────────────────┐
-   │   EvalRunner 验证期望输出   │
-   │   跑真实源码比对           │
-   │   一致 → 固化；不一致 → 丢弃 │
-   └────────────┬─────────────┘
-                ▼
-   ┌──────────────────────────┐
-   │      门禁测试集            │
-   │   = 经验证的真实行为 oracle │
-   └──────────────────────────┘
+流程图：TestGenAgent + CodeAgent + CheckAgent（三 Agent 分工）
+         ┌──────────────────┐          ┌──────────────────┐
+         │   源代码 src_dir   │          │  知识文档（spec）  │
+         │  （TestGen 只读）  │          │  （DocGenAgent 产物）│
+         └────────┬─────────┘          └────────┬─────────┘
+                  │ 行为 oracle                │ 唯一事实输入
+     ┌────────────┼────────────┐              │
+     ▼            ▼            │              ▼
+┌──────────┐ ┌──────────┐     │      ┌────────────────┐
+│TestGen   │ │ EvalRunner│     │      │ CodeAgent      │
+│Agent     │ │ 验证期望   │     │      │ 生成实现代码    │
+│读源码→测试│ │ 输出真实性 │     │      │ 只读知识+接口   │
+│(行为oracle)│ └────┬─────┘     │      │ 输出：实现 .cpp │
+└────┬─────┘      │ 固化      │      └───────┬────────┘
+     │ 候选测试池  │ 进门禁     │              │
+     ▼            ▼           │              ▼
+┌────────────────────────┐    │      ┌────────────────────────┐
+│ 门禁测试集（经真实源码验证）│◄───┘      │ CheckAgent（CCR 模式）   │
+│ = 探针期望输出，独立于     │            │ 全新 session，只读：     │
+│   CodeAgent 可见范围     │            │ diff+判据清单           │
+└────────────────────────┘            │ 检查：语义/边界/一致性   │
+                                      └───────────┬────────────┘
+                                                  │ 检查报告（发现清单）
+                                                  ▼
+   ┌─────────────────────────────────────────────────────┐
+   │ EvalRunner：编译必过 + 门禁测试（期望输出=经真实源码验证）│
+   │ 门禁主判 = 客观期望输出测试，不依赖任何 agent 自我感觉    │
+   └─────────────────────────────────────────────────────┘
 
-   独立说明：TestGenAgent 全程只读源码，产出物（门禁测试集）独立于
-   CodeAgent 存在；CodeAgent 看不到测试集（评测独立，防作弊）。
+   注（盲区消除）：TestGenAgent 读的是源代码（行为 oracle），CodeAgent
+   读的是知识文档（事实输入），两者不共享同一份文档的理解盲区：
+   - TestGenAgent 期望输出 = 真实源码行为 → 由 EvalRunner 跑真实源码验证，禁 LLM 编造
+   - CodeAgent 只能看知识文档 → 知识文档若有错，测试（真实行为）必失败 → 触发迭代
+   - CheckAgent 独立检查 = 语义层补充（测试覆盖不到的：命名/边界/设计）
 ```
-
-```text
-流程图 B：CodeAgent 链路（代码生成，独立）
-   ┌──────────────────────┐   ┌──────────────────────┐
-   │  知识文档（spec）       │   │  接口头文件            │
-   │  （DocGenAgent 产物）  │   │  （只读）              │
-   │   唯一事实输入          │   │                      │
-   └──────────┬───────────┘   └──────────┬───────────┘
-              │                          │
-              ▼                          │
-   ┌──────────────────────┐              │
-   │      CodeAgent        │◄─────────────┘
-   │   生成实现代码         │
-   │   （Sandbox 强制：     │
-   │    物理看不到源码）     │
-   └──────────┬───────────┘
-              │ 实现 .cpp
-              ▼
-   ┌──────────────────────┐
-   │      CheckAgent       │   ← CCR：全新 session
-   │   语义层独立检查        │      只读 diff + 判据清单
-   │   （命名/边界/一致性）  │      输出发现清单（非打分）
-   └──────────┬───────────┘
-              │ 检查报告（发现清单）
-              ▼
-   ┌──────────────────────┐
-   │  EvalRunner 门禁       │   ← 编译必过（g++ -Werror）
-   │  编译 + 门禁测试        │      + 门禁测试集（图 A 产物）
-   │  通过 → pass           │      门禁主判 = 客观期望输出
-   └──────────────────────┘
-
-   独立说明：CodeAgent 只读知识文档 + 接口，产出实现代码；知识文档若
-   有错，门禁测试（真实行为 oracle）必失败 → 触发迭代（ReviewAgent
-   → DocGenAgent 修知识 → CodeAgent 重生成）。
-```
-
-> **两条链路的解耦关系（盲区消除）**：TestGenAgent 读源码（行为 oracle），CodeAgent 读知识文档（事实输入），两者不共享同一份文档的理解盲区。门禁测试集 = 真实源码行为（图 A 产物），独立于 CodeAgent 可见范围（评测隔离）。
 
 ### 4.5.4 Review 阶段（ReviewAgent 独立上下文 CCR，反馈给 DocGenAgent）
 
@@ -539,9 +517,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：主 Agent **只负责调度**（规划、拆解、委派、汇总、驱动重试），不执笔、不判断内容质量。决策（pass/iterate/rollback/stopped）由门禁 decide 状态机按规则给出（客观评测信号驱动），避免 LLM 主 Agent 的主观判断污染流程。两种实现路径：LLM orchestrator（动态规划，灵活）或确定性编排层（代码状态机，可控）。我们的判断是"外层确定性 + 内层 agent 自治"。
 
 **参考论文/工作（2025+）**：
-- Anthropic《Multi-Agent Research System》（2025.06）：orchestrator-worker 实证，多 agent 比单 agent 提升 90.2%，但 token 消耗 ≈ 15 倍；subagent 滥用教训（50 个 → 成本爆炸）
-- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：Agent 框架/记忆/技能/模型/工作流五类进化对象的分类框架
-- Google ADK（2025-2026）：SequentialAgent/ParallelAgent/LoopAgent 等可组合工作流 agent 基元
+- Anthropic《Multi-Agent Research System》（2025.06）：orchestrator-worker 实证，多 agent 比单 agent 提升 90.2%，但 token 消耗 ≈ 15 倍；subagent 滥用教训（50 个 → 成本爆炸）→ https://www.anthropic.com/engineering/multi-agent-research-system
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：Agent 框架/记忆/技能/模型/工作流五类进化对象的分类框架 → https://arxiv.org/abs/2608.03392
+- Google ADK（2025-2026）：SequentialAgent/ParallelAgent/LoopAgent 等可组合工作流 agent 基元 → https://github.com/google/adk-python
 
 **论文优缺点与借鉴点**：
 
@@ -560,9 +538,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：30 万行/仓、总量上亿行的源码不可能一次塞进上下文。两个手段：① 生成阶段按依赖拓扑分块，每块一个独立 DocWorkerAgent 上下文；② 修订阶段按 knowledge_path 检索定位，只取命中段落，不重读全文。
 
 **参考论文/工作（2025+）**：
-- DocAgent（Facebook，arXiv:2504.08725，2025.04）：拓扑代码处理 + 增量上下文构建 + 验证-重写闭环
-- Anthropic Research System（2025.06）：subagent 本质是"上下文压缩器"，各自窗口并行探索后压缩回传
-- 上下文工程（Context Engineering）2025 共识：chunk 级检索 > 整文档注入
+- DocAgent（Facebook，arXiv:2504.08725，2025.04）：拓扑代码处理 + 增量上下文构建 + 验证-重写闭环 → https://arxiv.org/abs/2504.08725
+- Anthropic Research System（2025.06）：subagent 本质是"上下文压缩器"，各自窗口并行探索后压缩回传 → https://www.anthropic.com/engineering/multi-agent-research-system
+- 上下文工程（Context Engineering，Anthropic 2025.09）：chunk 级检索 > 整文档注入 → https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 
 **论文优缺点与借鉴点**：
 
@@ -581,9 +559,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：**TestGenAgent 读源代码**（而非知识文档）提取行为 oracle。这样测试基准 = 真实源码行为，与 CodeAgent 的知识文档理解解耦，天然消除"测试与代码共享文档盲区"的问题。期望输出必须经 EvalRunner 跑真实源码验证，禁止 LLM 编造（同探针纪律）。测试定位从"冒烟/需求澄清"升级为**门禁主判的可验证 oracle**。
 
 **参考论文/工作（2025+）**：
-- MASTOR（arXiv:2606.10465，2026.06）：多 agent 从源码提取约束生成测试 oracle，提升 mutation score（与本设计最直接对应）
-- TDD-Agent（arXiv:2608.16742，2026.08）：test-first reasoning，LiveCodeBench 上持续优于纯推理基线（GPT 70.04 vs 68.48）；dual-track 代码+测试共精化
-- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：先显式文档化前置/后置条件再生成测试，bug 检出 +9.8pp（p=0.0352）
+- MASTOR（arXiv:2606.10465，2026.06）：多 agent 从源码提取约束生成测试 oracle，提升 mutation score（与本设计最直接对应）→ https://arxiv.org/abs/2606.10465
+- TDD-Agent（arXiv:2608.16742，2026.08）：test-first reasoning，LiveCodeBench 上持续优于纯推理基线（GPT 70.04 vs 68.48）；dual-track 代码+测试共精化 → https://arxiv.org/abs/2608.16742
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：先显式文档化前置/后置条件再生成测试，bug 检出 +9.8pp（p=0.0352）→ https://arxiv.org/abs/2608.17177
 - 2.wiki 研究笔记：TDD-Agent、Spec-Driven Test Gen、覆盖率引导测试生成、变异测试与测试集质量
 
 **论文优缺点与借鉴点**：
@@ -606,10 +584,10 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：代码生成是"开放任务"（目标明确但实现路径未知），由独立 CodeAgent **从 DocGenAgent 产出的知识文档** + 接口头文件生成实现；物理隔离源码（Sandbox），防止抄源码作弊。**知识文档是 CodeAgent 的唯一事实输入**：知识文档若有错，测试（真实行为 oracle）必失败，触发迭代（ReviewAgent → DocGenAgent 修知识 → CodeAgent 重生成）。
 
 **参考论文/工作（2025+）**：
-- SDAD（arXiv:2608.20341，2026.05）：spec-driven agentic development，合成权与发布权分离
-- spec-kit（GitHub，2025+，⭐130k）：规格驱动开发的工业实践
-- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约是"认知脚手架"
-- Claude Agent SDK / Codex CLI（2025-2026，开源）：在真实仓库里做代码生成/评审/测试的终端 agent 执行层
+- SDAD（arXiv:2608.20341，2026.05）：spec-driven agentic development，合成权与发布权分离 → https://arxiv.org/abs/2608.20341
+- spec-kit（GitHub，2025+）：规格驱动开发的工业实践 → https://github.com/github/spec-kit
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约是"认知脚手架" → https://arxiv.org/abs/2608.17177
+- Claude Agent SDK / Codex CLI（2025-2026，开源）：在真实仓库里做代码生成/评审/测试的终端 agent 执行层 → https://github.com/anthropics/claude-agent-sdk-python ｜ https://github.com/openai/codex
 
 **论文优缺点与借鉴点**：
 
@@ -629,9 +607,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：测试覆盖不到语义层（命名、边界设计、与知识文档的一致性、隐藏缺陷）。需要一个"不知道作者是谁"的独立审查者，用全新 session + 只读 + 判据清单做检查。
 
 **参考论文/工作（2025+）**：
-- Cross-Context Review（arXiv:2603.12123，2026.03）：跨上下文独立审查 F1 28.6% vs 同会话自审 24.6%；**同会话重复审两次无增益（p=0.11）**
-- Adversarial Code Review（Augment Code，2026-07）：maker-checker 五维分离（上下文/prompt/模型/工具/输出）
-- LLM-as-Judge 研究（CodeJudgeBench arXiv:2507.10535，2025.07）：位置偏差 14%、自我偏好
+- Cross-Context Review（arXiv:2603.12123，2026.03）：跨上下文独立审查 F1 28.6% vs 同会话自审 24.6%；**同会话重复审两次无增益（p=0.11）** → https://arxiv.org/abs/2603.12123
+- Adversarial Code Review（Augment Code，2026-07）：maker-checker 五维分离（上下文/prompt/模型/工具/输出） → https://www.augmentcode.com/blog/adversarial-code-review
+- LLM-as-Judge 研究（CodeJudgeBench arXiv:2507.10535，2025.07）：位置偏差 14%、自我偏好 → https://arxiv.org/abs/2507.10535
 - 2.wiki 研究笔记：CodeJudgeBench-LLM裁判可靠性
 
 **论文优缺点与借鉴点**：
@@ -651,9 +629,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：评测失败后需要定位"知识文档哪段写错了"，产出修订指令（readlist 三字段：ID + 段落路径 + 可执行判据），**反馈给 DocGenAgent 优化知识文档**（版本 +1），再由 CodeAgent 基于新知识重新生成代码。评审对象是知识文档而非代码本身（代码是知识的下游产物，改代码是治标，修知识是治本）。ReviewAgent 独立上下文（CCR），只读，不知道生成者。
 
 **参考论文/工作（2025+）**：
-- CCR（arXiv:2603.12123，2026.03）：上下文分离是核心
-- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据分类（结果/环境/轨迹），反馈证据组合
-- SDAD（arXiv:2608.20341，2026.05）：修订指令需可执行判据，纯 NL 建议不能驱动合并
+- CCR（arXiv:2603.12123，2026.03）：上下文分离是核心 → https://arxiv.org/abs/2603.12123
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据分类（结果/环境/轨迹），反馈证据组合 → https://arxiv.org/abs/2608.03392
+- SDAD（arXiv:2608.20341，2026.05）：修订指令需可执行判据，纯 NL 建议不能驱动合并 → https://arxiv.org/abs/2608.20341
 - 2.wiki 研究笔记：反馈优先于流程拓扑（Feedback Over Form，2025 版）
 
 **论文优缺点与借鉴点**：
@@ -674,9 +652,9 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 **为什么这么设计**：门禁主判必须是客观的、独立于任何 agent 理解的信号。期望输出来自"探针程序跑真实源码"，禁止 LLM 编造；编译必过 + 测试通过率主判 + 相似度仅归因。**新增职责：验证 TestGenAgent 产出的候选测试期望输出与真实源码一致**（一致才固化进门禁，不一致丢弃/修正），保证测试集 = 真实行为 oracle。
 
 **参考论文/工作（2025+）**：
-- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约测试驱动，bug 检出 +9.8pp
-- MASTOR（arXiv:2606.10465，2026.06）：从源码/契约提取语义 oracle，提升 mutation score
-- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据（结果/环境/轨迹）分类，评测六维（正确性/鲁棒性/成本/安全/泛化）
+- Spec-Driven Test Gen（Google，arXiv:2608.17177，2026.08）：规格契约测试驱动，bug 检出 +9.8pp → https://arxiv.org/abs/2608.17177
+- MASTOR（arXiv:2606.10465，2026.06）：从源码/契约提取语义 oracle，提升 mutation score → https://arxiv.org/abs/2606.10465
+- 自进化代码 Agent 综述（arXiv:2608.03392，2026.08）：软件特有证据（结果/环境/轨迹）分类，评测六维（正确性/鲁棒性/成本/安全/泛化） → https://arxiv.org/abs/2608.03392
 - 2.wiki 研究笔记：变异测试与测试集质量（2025 版）、覆盖率引导测试生成（2025 版）
 
 **论文优缺点与借鉴点**：
@@ -733,20 +711,22 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 
 ## 6. 文献索引（2025+ 仅收录）
 
-| 编号 | 文献 | 关键结论 |
-|---|---|---|
-| [1] | Anthropic: How we built our multi-agent research system (2025.06) | orchestrator-worker；多 agent ≈ 15× token；subagent 滥用成本爆炸 |
-| [2] | Cross-Context Review (arXiv 2603.12123, 2026.03) | 上下文分离审查 F1 28.6% vs 自审 24.6%；重复审无增益 |
-| [3] | Augment Code: Adversarial Code Review (2026-07) | maker-checker 5 维分离；跨家族补盲区；SWR-Bench 警告 |
-| [4] | TDD-Agent (arXiv 2608.16742, 2026.08) | test-first reasoning + dual-track 代码/测试共精化 |
-| [5] | Spec-Driven Test Gen, Google (arXiv 2608.17177, 2026.08) | spec 脚手架 bug 检出 +9.8pp |
-| [6] | SDAD (arXiv 2608.20341, 2026.05) | 合成与发布权分离；独立多 agent 验证 + 人工签字 |
-| [7] | CodeJudgeBench (arXiv 2507.10535, 2025.07) | LLM 裁判位置偏差 14%、自我偏好 |
-| [8] | DocAgent (arXiv 2504.08725, 2025.04) | 拓扑代码处理 + 增量上下文 + 验证闭环（C/C++ 最相关） |
-| [9] | MASTOR (arXiv 2606.10465, 2026.06) | 从源码/契约提取语义 oracle，提升 mutation score |
-| [10] | 自进化代码 Agent 综述 (arXiv 2608.03392, 2026.08) | 软件特有证据分类；进化对象框架；评测六维 |
-| [11] | Google ADK (2025-2026) | Sequential/Parallel/Loop 工作流 agent 基元 |
-| [12] | Claude Agent SDK subagents / Codex CLI (2025-2026, 开源) | 进程级委派执行层，上下文隔离适合超大仓库（Claude Code 本体闭源黑盒不选） |
+| 编号 | 文献 | 关键结论 | 链接 |
+|---|---|---|---|
+| [1] | Anthropic: How we built our multi-agent research system (2025.06) | orchestrator-worker；多 agent ≈ 15× token；subagent 滥用成本爆炸 | https://www.anthropic.com/engineering/multi-agent-research-system |
+| [2] | Cross-Context Review (arXiv 2603.12123, 2026.03) | 上下文分离审查 F1 28.6% vs 自审 24.6%；重复审无增益 | https://arxiv.org/abs/2603.12123 |
+| [3] | Augment Code: Adversarial Code Review (2026-07) | maker-checker 5 维分离；跨家族补盲区；SWR-Bench 警告 | https://www.augmentcode.com/blog/adversarial-code-review |
+| [4] | TDD-Agent (arXiv 2608.16742, 2026.08) | test-first reasoning + dual-track 代码/测试共精化 | https://arxiv.org/abs/2608.16742 |
+| [5] | Spec-Driven Test Gen, Google (arXiv 2608.17177, 2026.08) | spec 脚手架 bug 检出 +9.8pp | https://arxiv.org/abs/2608.17177 |
+| [6] | SDAD (arXiv 2608.20341, 2026.05) | 合成与发布权分离；独立多 agent 验证 + 人工签字 | https://arxiv.org/abs/2608.20341 |
+| [7] | CodeJudgeBench (arXiv 2507.10535, 2025.07) | LLM 裁判位置偏差 14%、自我偏好 | https://arxiv.org/abs/2507.10535 |
+| [8] | DocAgent (arXiv 2504.08725, 2025.04) | 拓扑代码处理 + 增量上下文 + 验证闭环（C/C++ 最相关） | https://arxiv.org/abs/2504.08725 |
+| [9] | MASTOR (arXiv 2606.10465, 2026.06) | 从源码/契约提取语义 oracle，提升 mutation score | https://arxiv.org/abs/2606.10465 |
+| [10] | 自进化代码 Agent 综述 (arXiv 2608.03392, 2026.08) | 软件特有证据分类；进化对象框架；评测六维 | https://arxiv.org/abs/2608.03392 |
+| [11] | Google ADK (2025-2026) | Sequential/Parallel/Loop 工作流 agent 基元 | https://github.com/google/adk-python |
+| [12] | Claude Agent SDK subagents / Codex CLI (2025-2026, 开源) | 进程级委派执行层，上下文隔离适合超大仓库（Claude Code 本体闭源黑盒不选） | https://github.com/anthropics/claude-agent-sdk-python ｜ https://github.com/openai/codex |
+
+> 另：上下文工程（Anthropic 2025.09）：chunk 级检索 > 整文档注入 → https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents
 
 > 📎 相关已有笔记：研究/反馈闭环/自进化Agent脆弱性.md、研究/评测/CodeJudgeBench-LLM裁判可靠性.md（2025 版）
 
@@ -756,6 +736,6 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 
 1. 分块阈值：多大文档该开 DocWorkerAgent 并行？（当前 4000 字符分块阈值是经验值）
 2. 跨模型检查是否值得：公司内网若有 GLM 之外的第二模型（如 DeepSeek），用对比实验量化盲区补充收益
-3. TestGenAgent 冒烟测试固化进评测集的比例：人工审过的测试进 holdout 还是 train？
+3. TestGenAgent 行为 oracle 测试固化进评测集的比例：期望输出经真实源码验证后，哪些进 holdout？哪些进 train？
 4. pass@k 多候选（fan-out）的 k 值与聚合策略（P1）
 5. OrchestratorAgent 的 LLM 动态规划 vs 纯确定性代码：以首个 PoC 的收敛数据决定
