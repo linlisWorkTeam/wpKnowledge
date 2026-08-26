@@ -1,0 +1,137 @@
+{
+  "schema_version": "eval-report.v1",
+  "run_id": "a2ecd6fd969e4267a070b2d1f1603ba6",
+  "round": 2,
+  "module": "tiling",
+  "knowledge": {
+    "version": 2,
+    "sha256": "3a640ae901e4d4f46a0a7db70802525ee66290be21a9b246f2aeda48ad9cb60a"
+  },
+  "evalset": {
+    "version": "unversioned",
+    "source_commit": "sha256:256cc375fe4a653c493e5ba30042f9453a130e0bc7640f46d243c62aa24eb592",
+    "split": "train"
+  },
+  "environment": {
+    "compiler": "g++",
+    "compiler_version": "g++ (Tencent Compiler 12.3.1.7) 12.3.1 20230912 (OpenCloudOS 12.3.1.7-1)",
+    "flags": [
+      "-Wall",
+      "-Werror",
+      "-std=c++11",
+      "-I{src_dir}"
+    ],
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "prompt_version": "unversioned"
+  },
+  "compile": {
+    "passed": true,
+    "errors": []
+  },
+  "passed": 8,
+  "total": 8,
+  "confidence": 1.0,
+  "repetitions": [
+    {
+      "index": 1,
+      "compile_ok": true,
+      "confidence": 1.0,
+      "execution_repetitions": [
+        {
+          "index": 1,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 2,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 3,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 4,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 5,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "generation_repetitions": [
+    {
+      "index": 1,
+      "compile_ok": true,
+      "confidence": 1.0,
+      "execution_repetitions": [
+        {
+          "index": 1,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 2,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 3,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 4,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        },
+        {
+          "index": 5,
+          "passed": 8,
+          "total": 8,
+          "confidence": 1.0
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "count": 1,
+    "mean": 1.0,
+    "variance": 0.0,
+    "min": 1.0,
+    "unstable": false
+  },
+  "failures": [],
+  "diagnostics": {
+    "text_similarity": 0.21219171707771056
+  },
+  "probe_evidence": {
+    "provenance": "probe",
+    "source_commit": "sha256:256cc375fe4a653c493e5ba30042f9453a130e0bc7640f46d243c62aa24eb592",
+    "evalset_version": "unversioned",
+    "note": "期望输出必须来自探针运行真实源码或明确的人工推导依据；若为人工推导须在评测集 manifest 的 golden_note 中说明"
+  },
+  "decision": "pass",
+  "reason_codes": [],
+  "attribution": {
+    "summary": "置信度 1.00，相似度 0.21",
+    "weak_spots": [],
+    "corrections": []
+  }
+}

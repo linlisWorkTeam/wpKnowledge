@@ -1,0 +1,16 @@
+{
+  "module": "tiling",
+  "summary": "compute_tiling 中 numPerCore 与 tailNumLastCore 的计算公式错误：numPerCore 未按 TILE_LENGTH 对齐，tailNumLastCore 错误地使用取模，导致全部 8 个 tiling 用例失败。",
+  "weak_spots": [
+    "numPerCore 计算错误：使用 totalLength / blockNum 整除，未向上对齐到 TILE_LENGTH=1024",
+    "tailNumLastCore 计算错误：使用 totalLength % numPerCore，正确应为最后一个核的剩余数据长度 totalLength - (blockNum - 1) * numPerCore"
+  ],
+  "corrections": [
+    {
+      "id": "tiling-001-1",
+      "knowledge_path": "tiling 模块知识（解释型，含缺陷公式） > 函数 compute_tiling > 算法步骤 > 第4步输出字段",
+      "criterion": "执行 test_tiling.cpp，8 个用例全部通过；尤其 tiling-small 期望 1/1024/100，tiling-big 期望 4/250880/247360",
+      "detail": "修订 compute_tiling 中 numPerCore 与 tailNumLastCore 的生成规则：先按已有方法计算 blockNum；然后设 perCoreAvg = ceil(totalLength / blockNum)，numPerCore = ceil(perCoreAvg / TILE_LENGTH) * TILE_LENGTH（即向上对齐到 1024 的整数倍）；tailNumLastCore = totalLength - (blockNum - 1) * numPerCore，最后一块核的实际尾数可为 0 到 numPerCore 之间的值；删除原文档中 numPerCore = totalLength / blockNum、tailNumLastCore = totalLength % numPerCore 的缺陷描述。"
+    }
+  ]
+}

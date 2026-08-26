@@ -1,0 +1,190 @@
+{
+  "schema_version": "eval-report.v1",
+  "run_id": "a2ecd6fd969e4267a070b2d1f1603ba6",
+  "round": 1,
+  "module": "tiling",
+  "knowledge": {
+    "version": 1,
+    "sha256": "be467e226c69ee42beed2ee998f59e830c415b40be56beb37ea854973e292846"
+  },
+  "evalset": {
+    "version": "unversioned",
+    "source_commit": "sha256:256cc375fe4a653c493e5ba30042f9453a130e0bc7640f46d243c62aa24eb592",
+    "split": "train"
+  },
+  "environment": {
+    "compiler": "g++",
+    "compiler_version": "g++ (Tencent Compiler 12.3.1.7) 12.3.1 20230912 (OpenCloudOS 12.3.1.7-1)",
+    "flags": [
+      "-Wall",
+      "-Werror",
+      "-std=c++11",
+      "-I{src_dir}"
+    ],
+    "model": "deepseek-v4-flash",
+    "provider": "deepseek",
+    "prompt_version": "unversioned"
+  },
+  "compile": {
+    "passed": true,
+    "errors": []
+  },
+  "passed": 0,
+  "total": 8,
+  "confidence": 0.0,
+  "repetitions": [
+    {
+      "index": 1,
+      "compile_ok": true,
+      "confidence": 0.0,
+      "execution_repetitions": [
+        {
+          "index": 1,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 2,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 3,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 4,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 5,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        }
+      ]
+    }
+  ],
+  "generation_repetitions": [
+    {
+      "index": 1,
+      "compile_ok": true,
+      "confidence": 0.0,
+      "execution_repetitions": [
+        {
+          "index": 1,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 2,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 3,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 4,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        },
+        {
+          "index": 5,
+          "passed": 0,
+          "total": 8,
+          "confidence": 0.0
+        }
+      ]
+    }
+  ],
+  "statistics": {
+    "count": 1,
+    "mean": 0.0,
+    "variance": 0.0,
+    "min": 0.0,
+    "unstable": false
+  },
+  "failures": [
+    "g1: test_tiling.cpp: FAIL tiling-default: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-2: got blockNum=2 numPerCore=8192 tail=0, want 2/8192/8192",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-8: got blockNum=8 numPerCore=2048 tail=0, want 8/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-exact-1: got blockNum=1 numPerCore=1024 tail=0, want 1/1024/1024",
+    "g1: test_tiling.cpp: FAIL tiling-exact-2: got blockNum=1 numPerCore=2048 tail=0, want 1/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-small: got blockNum=1 numPerCore=100 tail=0, want 1/1024/100",
+    "g1: test_tiling.cpp: FAIL tiling-big: got blockNum=4 numPerCore=250000 tail=0, want 4/250880/247360",
+    "g1: test_tiling.cpp: FAIL tiling-zero-core: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-default: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-2: got blockNum=2 numPerCore=8192 tail=0, want 2/8192/8192",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-8: got blockNum=8 numPerCore=2048 tail=0, want 8/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-exact-1: got blockNum=1 numPerCore=1024 tail=0, want 1/1024/1024",
+    "g1: test_tiling.cpp: FAIL tiling-exact-2: got blockNum=1 numPerCore=2048 tail=0, want 1/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-small: got blockNum=1 numPerCore=100 tail=0, want 1/1024/100",
+    "g1: test_tiling.cpp: FAIL tiling-big: got blockNum=4 numPerCore=250000 tail=0, want 4/250880/247360",
+    "g1: test_tiling.cpp: FAIL tiling-zero-core: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-default: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-2: got blockNum=2 numPerCore=8192 tail=0, want 2/8192/8192",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-8: got blockNum=8 numPerCore=2048 tail=0, want 8/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-exact-1: got blockNum=1 numPerCore=1024 tail=0, want 1/1024/1024",
+    "g1: test_tiling.cpp: FAIL tiling-exact-2: got blockNum=1 numPerCore=2048 tail=0, want 1/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-small: got blockNum=1 numPerCore=100 tail=0, want 1/1024/100",
+    "g1: test_tiling.cpp: FAIL tiling-big: got blockNum=4 numPerCore=250000 tail=0, want 4/250880/247360",
+    "g1: test_tiling.cpp: FAIL tiling-zero-core: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-default: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-2: got blockNum=2 numPerCore=8192 tail=0, want 2/8192/8192",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-8: got blockNum=8 numPerCore=2048 tail=0, want 8/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-exact-1: got blockNum=1 numPerCore=1024 tail=0, want 1/1024/1024",
+    "g1: test_tiling.cpp: FAIL tiling-exact-2: got blockNum=1 numPerCore=2048 tail=0, want 1/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-small: got blockNum=1 numPerCore=100 tail=0, want 1/1024/100",
+    "g1: test_tiling.cpp: FAIL tiling-big: got blockNum=4 numPerCore=250000 tail=0, want 4/250880/247360",
+    "g1: test_tiling.cpp: FAIL tiling-zero-core: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-default: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-2: got blockNum=2 numPerCore=8192 tail=0, want 2/8192/8192",
+    "g1: test_tiling.cpp: FAIL tiling-multicore-8: got blockNum=8 numPerCore=2048 tail=0, want 8/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-exact-1: got blockNum=1 numPerCore=1024 tail=0, want 1/1024/1024",
+    "g1: test_tiling.cpp: FAIL tiling-exact-2: got blockNum=1 numPerCore=2048 tail=0, want 1/2048/2048",
+    "g1: test_tiling.cpp: FAIL tiling-small: got blockNum=1 numPerCore=100 tail=0, want 1/1024/100",
+    "g1: test_tiling.cpp: FAIL tiling-big: got blockNum=4 numPerCore=250000 tail=0, want 4/250880/247360",
+    "g1: test_tiling.cpp: FAIL tiling-zero-core: got blockNum=1 numPerCore=16384 tail=0, want 1/16384/16384"
+  ],
+  "diagnostics": {
+    "text_similarity": 0.49434389140271495
+  },
+  "probe_evidence": {
+    "provenance": "probe",
+    "source_commit": "sha256:256cc375fe4a653c493e5ba30042f9453a130e0bc7640f46d243c62aa24eb592",
+    "evalset_version": "unversioned",
+    "note": "期望输出必须来自探针运行真实源码或明确的人工推导依据；若为人工推导须在评测集 manifest 的 golden_note 中说明"
+  },
+  "decision": "iterate",
+  "reason_codes": [
+    "TRAIN_BELOW_THRESHOLD"
+  ],
+  "attribution": {
+    "summary": "compute_tiling 中 numPerCore 与 tailNumLastCore 的计算公式错误：numPerCore 未按 TILE_LENGTH 对齐，tailNumLastCore 错误地使用取模，导致全部 8 个 tiling 用例失败。",
+    "weak_spots": [
+      "numPerCore 计算错误：使用 totalLength / blockNum 整除，未向上对齐到 TILE_LENGTH=1024",
+      "tailNumLastCore 计算错误：使用 totalLength % numPerCore，正确应为最后一个核的剩余数据长度 totalLength - (blockNum - 1) * numPerCore"
+    ],
+    "corrections": [
+      {
+        "id": "tiling-001-1",
+        "knowledge_path": "tiling 模块知识（解释型，含缺陷公式） > 函数 compute_tiling > 算法步骤 > 第4步输出字段",
+        "criterion": "执行 test_tiling.cpp，8 个用例全部通过；尤其 tiling-small 期望 1/1024/100，tiling-big 期望 4/250880/247360",
+        "detail": "修订 compute_tiling 中 numPerCore 与 tailNumLastCore 的生成规则：先按已有方法计算 blockNum；然后设 perCoreAvg = ceil(totalLength / blockNum)，numPerCore = ceil(perCoreAvg / TILE_LENGTH) * TILE_LENGTH（即向上对齐到 1024 的整数倍）；tailNumLastCore = totalLength - (blockNum - 1) * numPerCore，最后一块核的实际尾数可为 0 到 numPerCore 之间的值；删除原文档中 numPerCore = totalLength / blockNum、tailNumLastCore = totalLength % numPerCore 的缺陷描述。"
+      }
+    ]
+  }
+}
