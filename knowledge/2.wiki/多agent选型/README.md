@@ -4,21 +4,126 @@
 > 日期：2026-08-26
 > 背景：知识飞轮项目（C/C++ 超大代码库，源码→知识→代码→评测→反馈闭环）。用户假设"什么都没选"，从零调研多 Agent 编排的完整选型空间。
 
-## 本文件夹包含
+## 本文件夹包含（可直接点击跳转）
 
 | 文件 | 内容 | 回答的问题 |
 |---|---|---|
-| [01-多agent调研.md](01-多agent调研.md) | 评审/验证相关实证（CCR、对抗审查、spec→TDD） | Review 该怎么做？多 agent 评审要不要？ |
-| [02-编排模式调研.md](02-编排模式调研.md) | 12+3 种编排模式全景（workflow/orchestration/fan-in-fan-out/层级/辩论/黑板等） | 有哪些模式？各什么时候选？workflow vs orchestration 区别？ |
-| [03-开源编排框架.md](03-开源编排框架.md) | 18 个框架/服务深度对比（LangGraph/CrewAI/AutoGen/Agents SDK/ADK/CLI agents/MetaGPT/Temporal/Pydantic AI 等） | LangGraph 之类框架怎么选？各自代表什么范式？ |
-| [04-开源仓库案例.md](04-开源仓库案例.md) | 17 个业界真实开源项目怎么编排多 agent | 别人实际怎么落地？对"流水线+文件交接"是印证还是反驳？ |
+| [01-多agent调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/01-多agent调研.md) | 评审/验证相关实证（CCR、对抗审查、spec→TDD） | Review 该怎么做？多 agent 评审要不要？ |
+| [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) | 12+3 种编排模式全景（含每种模式的纯文本流程图） | 有哪些模式？各什么时候选？workflow vs orchestration 区别？ |
+| [03-开源编排框架.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/03-开源编排框架.md) | 18 个框架/服务深度对比（LangGraph/CrewAI/AutoGen/Agents SDK/ADK/CLI agents/MetaGPT/Temporal/Pydantic AI 等） | LangGraph 之类框架怎么选？各自代表什么范式？ |
+| [04-开源仓库案例.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/04-开源仓库案例.md) | 17 个业界真实开源项目怎么编排多 agent | 别人实际怎么落地？对"流水线+文件交接"是印证还是反驳？ |
+
+## 编排选型总览（纯文本流程图）
+
+以下是本文件夹调研的**主要编排模式家族**，按"控制权归代码还是归模型"排列：
+
+```text
+                         多 Agent 编排选型全景
+                              │
+          ┌───────────────────┴───────────────────┐
+          ▼                                       ▼
+   ① Workflow 系（控制权=代码）              ② Agent 系（控制权=模型）
+   ─────────────────────────                  ─────────────────────────
+   路径预知、确定性、便宜、可测               路径未知、动态决策、昂贵
+
+   ┌─────────────────────────┐               ┌─────────────────────────┐
+   │ Sequential（顺序链）      │               │ Orchestrator-Worker     │
+   │ A → B → C → D           │               │       ┌─────────┐       │
+   └─────────────┬───────────┘               │       │Orchestr │       │
+                 │                            │       └────┬────┘       │
+   ┌─────────────▼───────────┐               │      ┌──────┼──────┐    │
+   │ Pipeline（流水线/并行）   │               │      ▼      ▼      ▼    │
+   │ A ──► B ──► C            │               │   Worker1 Worker2 Worker3│
+   │  ╲     ╱                 │               └─────────────────────────┘
+   └─────────────┬───────────┘
+                 │                            ┌─────────────────────────┐
+   ┌─────────────▼───────────┐               │ Supervisor（监督者）      │
+   │ Fan-out / Fan-in        │               │       ┌─────────┐       │
+   │       ┌──────┐          │               │       │Supervis │       │
+   │   ┌───►Sub1──┐          │               │       └────┬────┘       │
+   │   │   ┌──────┤          │               │      ┌──────┼──────┐    │
+   │   ├───►Sub2──┼──►Reduce │               │      ▼      ▼      ▼    │
+   │   │   ┌──────┤          │               │   AgentA AgentB AgentC  │
+   │   └───►Sub3──┘          │               │   （worker 间不直接通信）│
+   │       └──────┘          │               └─────────────────────────┘
+   └─────────────┬───────────┘
+                 │                            ┌─────────────────────────┐
+   ┌─────────────▼───────────┐               │ Hierarchical（分层）     │
+   │ Router（路由）            │               │        Lead             │
+   │   ┌─────────┐           │               │         │                │
+   │   │Classifier│──► A     │               │    ┌────┼────┐           │
+   │   └─────────┘──► B      │               │    ▼    ▼    ▼           │
+   │             └──► C      │               │ Mgr1  Mgr2  Mgr3         │
+   └─────────────────────────┘               │    │    │    │           │
+                                             │    ▼    ▼    ▼           │
+   ┌─────────────────────────┐               │  W1.. W4.. W7..          │
+   │ Evaluator-Optimizer     │               └─────────────────────────┘
+   │  Gen ──► Eval ──► 修订   │
+   │   ▲          │          │               ┌─────────────────────────┐
+   │   └──────────┘          │               │ Swarm（群集/handoff）     │
+   └─────────────────────────┘               │ A ⇄ B ⇄ C（控制权转交）  │
+                                             └─────────────────────────┘
+   ③ 共享/通信层（可叠加在①②之上）
+   ┌─────────────────────────┐
+   │ Blackboard（黑板）        │     Agent 不直接通信，只读写共享黑板
+   │   ┌─────────────────┐    │
+   │   │  共享黑板/知识库  │◄───┼── Agent1 / Agent2 / Agent3
+   │   └─────────────────┘    │
+   └─────────────────────────┘
+   ┌─────────────────────────┐
+   │ Event-driven（事件驱动）  │     Agent 发布/订阅事件总线，异步解耦
+   │   ┌─────────────────┐    │
+   │   │  事件总线(EVENT) │◄───┼── Agent1 ──► Agent2 ──► Agent3
+   │   └─────────────────┘    │
+   └─────────────────────────┘
+   ┌─────────────────────────┐
+   │ Graph-based（图执行）     │     统一载体：可表达以上任意组合
+   │  (A)─►(B)─►(C)          │     + 循环/并行/断点续跑/人审
+   │   ▲          │          │
+   │   └────(D)◄──┘          │
+   └─────────────────────────┘
+```
+
+**一句话选型逻辑**（详见 [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) 第 0 节与第 3 节）：
+
+```text
+路径预知？ ──是──► Workflow 系：Sequential / Pipeline / Router / Fan-out-Fan-in
+   │
+   否
+   │
+目标明确但路径未知？ ──是──► Orchestrator-Worker / Supervisor
+   │
+   否
+   │
+需要强治理/人审/防失控？ ──是──► Supervisor / Graph-based（带 interrupt）
+   │
+   否
+   │
+需要大规模可分层？ ──是──► Hierarchical
+   │
+   否
+   │
+需要多视角批判/仲裁？ ──是──► Debate / Voting
+   │
+   否
+   │
+需要长期共享记忆/渐进求解？ ──是──► Blackboard
+   │
+   否
+   │
+需要解耦伸缩/流式异步？ ──是──► Event-driven
+   │
+   否
+   │
+要组合多种？ ──是──► Graph-based（LangGraph 等）作为统一载体
+```
 
 ## 阅读顺序建议
 
-1. 先读 [02-编排模式调研.md](02-编排模式调研.md) 理解模式空间（workflow vs orchestration 概念澄清在第 0 节）
-2. 再读 [03-开源编排框架.md](03-开源编排框架.md) 看具体框架候选（结论速览在第 0 节）
-3. 最后读 [04-开源仓库案例.md](04-开源仓库案例.md) 看业界实证（案例速查表在最后一节）
-4. [01-多agent调研.md](01-多agent调研.md) 是评审环节的专项深挖，决策 Review 方案时读
+1. 先读 [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) 理解模式空间（workflow vs orchestration 概念澄清在第 0 节，每种模式的流程图在其小节内）
+2. 再读 [03-开源编排框架.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/03-开源编排框架.md) 看具体框架候选（结论速览在第 0 节）
+3. 最后读 [04-开源仓库案例.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/04-开源仓库案例.md) 看业界实证（案例速查表在最后一节）
+4. [01-多agent调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/01-多agent调研.md) 是评审环节的专项深挖，决策 Review 方案时读
 
 ## 当前未决决策点（供讨论）
 
