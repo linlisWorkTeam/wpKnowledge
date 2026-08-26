@@ -545,3 +545,60 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 3. TestGenAgent 行为 oracle 测试固化进评测集的比例：期望输出经真实源码验证后，哪些进 holdout？哪些进 train？
 4. pass@k 多候选（fan-out）的 k 值与聚合策略（P1）
 5. OrchestratorAgent 的 LLM 动态规划 vs 纯确定性代码：以首个 PoC 的收敛数据决定
+
+---
+
+## 8. 调研精华落地要点（02/03/04 浓缩，直接可用）
+
+> 本节把 [02-编排模式调研.md](02-编排模式调研.md)、[03-开源编排框架.md](03-开源编排框架.md)、[04-开源仓库案例.md](04-开源仓库案例.md) 三份调研里**真正能用进本方案**的结论浓缩于此，避免重读全文。详细论证见各原文。
+
+### 8.1 模式层结论（来自 02 编排模式调研）
+
+**本架构实际是 3 种模式的组合**，其余模式明确不用：
+
+| 采用模式 | 对应本架构的环节 | 来源依据 |
+|---|---|---|
+| **Pipeline（固定流水线）** | 主干：源码→知识→测试→代码→评测→归因→修订，拓扑写死 | Anthropic：能用 workflow 就不用 agent |
+| **Orchestrator-Worker** | DocGenAgent 委派 DocWorkerAgent×N 分块并行 | Anthropic Research System：subagent=上下文压缩器 |
+| **Evaluator-Optimizer** | ReviewAgent 归因 → DocGenAgent 修订知识 → 重测 | 自进化综述：反馈驱动迭代 |
+
+**明确不用**（理由一句话）：
+- **Debate/多 Review 辩论**：CCR 实证同会话重复审无增益（p=0.11），多 agent 辩论只增成本
+- **Blackboard 黑板**：我们的文件交接就是"显式黑板"（知识 md/代码/评测 json/归因 json 全是持久化共享状态），比内存黑板更可审计、可断点续跑
+- **Swarm / Mesh 网络式**：无状态、难追踪，与"可审计"基线冲突
+- **Router 路由**：任务路径固定，不需要运行时路由分类
+
+### 8.2 框架层结论（来自 03 开源编排框架）
+
+**核心决策：零框架，自研编排层**。理由：流水线固定、状态机简单（pass/iterate/rollback/stopped 已实现）、产物文件交接，重型框架带来的是状态管理复杂度与厂商绑定，收益为负。
+
+从 14 个开源框架中**只借鉴思想、不引入代码**：
+
+| 框架 | 借鉴什么 | 落进本方案哪里 |
+|---|---|---|
+| Claude Agent SDK / Codex CLI（开源） | 子 agent 上下文隔离执行层 | CodeAgent/CheckAgent 的 LLM 后端候选（公司 GLM 5.1 经 codeagent CLI） |
+| Pydantic AI | 类型化结构化输出 | TypeScript 接口定义（4.5.5）：KnowledgeDoc/TestCase/EvalReport 全类型化 |
+| Temporal | 耐久执行/断点续跑思想 | 已由文件交接天然实现（每步产物落盘，可续跑），不引入引擎 |
+| LangGraph | 显式状态机思想 | 我们的 decide 状态机就是"轻量版图"（自研） |
+
+**明确不选**（理由一句话）：
+- 角色/对话范式（CrewAI、AutoGen→Agent Framework）：自由度是生产事故来源，我们要确定性
+- 无源码托管黑盒（Bedrock/Foundry）：编排逻辑在服务内部，无法审计、无法接本地 C/C++ 工具链
+- 研究原型（ChatDev、CAMEL）：相关度低，仅机制借鉴
+
+### 8.3 案例层结论（来自 04 开源仓库案例）
+
+**业界实证：文档生成类任务的主流成功做法 = 固定流水线 + 产物文件交接**（DocAgent、gpt-engineer 最强印证）。这与本架构完全同构。
+
+直接落地的 4 条经验：
+
+1. **每阶段设校验关卡**：DocAgent 有 Verifier、MetaGPT 有 QA、ChatDev 有 testing、CodeRabbit 有静态分析。→ 我们的 EvalRunner 门禁 + CheckAgent 独立检查 = 同样的"每阶段校验"思想，坚持每阶段校验后再进入下一阶段。
+2. **拓扑排序 + 增量上下文**（DocAgent，C/C++ 最相关）：按 include 依赖拆块生成，增量构建上下文防爆炸。→ 已被 4.5.2 DocWorkerAgent 分块设计采用。
+3. **SOP 角色手册**（MetaGPT）：把角色知识写成可执行手册。→ 已有 ADAPT_PROMPT.md 雏形，继续完善为知识生成 skill 手册。
+4. **阶段内可自由对话、阶段间文件交接**（ChatDev 的柔性变体）：→ 我们选择"阶段内也不自由对话"（全部文件交接），更严格但更可审计；如未来需要可只增强单环节内部。
+
+**反例警示**：SWE-agent（单 agent + 灵活工具）证明自由灵活不适合"防作弊、可审计"的评测闭环，我们保持固定流水线。
+
+---
+
+> 关联文件：[02-编排模式调研.md](02-编排模式调研.md)（模式全景）｜ [03-开源编排框架.md](03-开源编排框架.md)（14 框架对比）｜ [04-开源仓库案例.md](04-开源仓库案例.md)（17 案例实证）
