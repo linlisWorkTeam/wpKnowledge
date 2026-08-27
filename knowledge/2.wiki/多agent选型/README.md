@@ -61,3 +61,4 @@ flowchart TD
 | [02-技术选型与架构决策.md](02-技术选型与架构决策.md) | **为什么这么选**：ADR / 技术选型与架构决策（Temporal / ACP / A2A / MCP / DSH / Codex / OpenHands） | 想了解每个决策的 WHY |
 | [03-Agent-Platform架构设计.md](03-Agent-Platform架构设计.md) | **Agent Platform 怎么实现**：AgentProvider / AgentRun / Session / ContextPolicy / ResourceClaim / Capability / ACP | 要开始实现 Agent Platform |
 | [04-LangGraph选型与多Agent图.md](04-LangGraph选型与多Agent图.md) | **框架选型**：选型图 × 01 合并 mermaid；为什么选 LangGraph / 不选竞品；与 Temporal 分层 | 想确认"为什么用 LangGraph 不用 XX" |
+| [05-知识回写与知识治理.md](05-知识回写与知识治理.md) | **知识治理规则**：增量回写、版本治理、Verification Score、迭代预算、Early Stop + Rollback、人工治理、稳定测试集 | 想知道知识怎么回写 / 怎么算 verified / 怎么转人工 |
