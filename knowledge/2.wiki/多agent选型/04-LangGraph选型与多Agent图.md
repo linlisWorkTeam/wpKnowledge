@@ -33,12 +33,12 @@ flowchart TD
     O2 -->|iterate：修订指令 → DocGenAgent 优化知识（v+1）→ 重生成 → 重测| D1
     O2 -->|pass| PUB["知识发布 KnowledgeStore<br/>verified，SHA-256 快照"]
 
-    classDef graph fill:#ede7f6,stroke:#5e35b1;
+    classDef lg fill:#ede7f6,stroke:#5e35b1;
     classDef agent fill:#e1f5fe,stroke:#0288d1;
     classDef infra fill:#fff3e0,stroke:#f57c00;
-    class LG graph;
     class O,O2,D1,D2,DW,CA,CK,RV agent;
     class KS,EV0,EV,PUB infra;
+    class LG lg;
 ```
 
 图例（三层职责）：
