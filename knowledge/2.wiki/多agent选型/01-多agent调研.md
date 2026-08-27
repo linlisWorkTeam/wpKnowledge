@@ -20,74 +20,44 @@
 
 > 非 Agent 组件（确定性程序，不算 Agent）：**EvalRunner**（编译+探针测试+相似度，门禁主判；负责验证 TestGenAgent 产出的期望输出真实性）、**Sandbox**（路径白名单隔离）、**Protection**（SHA-256 写保护）、**KnowledgeStore**（知识库落盘/版本/ledger）。
 
-## 4.5.1 总体工作流程（纯文本流程图）
+## 4.5.1 总体工作流程（mermaid 流程图）
 
-```text
-流程图：知识飞轮目标架构工作流程（Agent 统一 xxxAgent 命名）
-                 ┌──────────────────────────────────────────────────┐
-                 │            OrchestratorAgent（主 Agent）          │
-                 │   只负责调度：规划 / 拆解 / 委派 / 汇总 / 驱动重试  │
-                 │   （决策由门禁 decide 状态机给出，不执笔、不判内容）  │
-                 └───────┬────────────────────┬─────────────────────┘
-                         │                    │
-        ┌────────────────┼────────────────┐   │
-        ▼                ▼                ▼   │
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ 委派文档生成  │ │ 委派测试生成  │ │ 委派代码生成  │
-└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
-       ▼                ▼                ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ DocGenAgent  │ │ TestGenAgent │ │ CodeAgent    │
-│ 读源码→知识   │ │ 读源码→行为   │ │ 读知识文档→   │
-│ 文档          │ │ oracle 测试  │ │ 实现代码      │
-│（大库 spawn   │ │（期望输出经   │ │（Sandbox 强制│
-│  DocWorker×N）│ │  EvalRunner  │ │  看不到源码） │
-│              │ │  验证真实性） │ │              │
-└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
-       │                │                │
-       │ 知识文档 .md    │ 候选测试池      │ 实现代码 .cpp
-       ▼                ▼                ▼
-┌──────────────┐ ┌──────────────┐ ┌──────────────┐
-│ KnowledgeStore│ │ EvalRunner   │ │ CheckAgent   │
-│（候选区+版本+ │ │ 验证期望输出  │ │（CCR 独立检查）│
-│  ledger）     │ │ 与真实源码一致│ │ 语义层审查    │
-└──────┬───────┘ └──────┬───────┘ └──────┬───────┘
-       │                │ 门禁测试集      │ 检查报告
-       └────────────────┼────────────────┘
-                        ▼
-        ┌────────────────────────────────────┐
-        │      EvalRunner（确定性程序，非 Agent） │
-        │  编译必过（g++ -Werror）+ 门禁测试     │
-        │  + 相似度（仅归因）                    │
-        └───────────────────┬────────────────┘
-                            │ 评测报告 .json
-                            ▼
-        ┌────────────────────────────────────┐
-        │ ReviewAgent（独立上下文 CCR，只读）   │
-        │ 归因：失败用例→定位知识段落→修订指令   │
-        └───────────────────┬────────────────┘
-                            │ 归因/修订 .json
-                            ▼
-        ┌────────────────────────────────────┐
-        │ OrchestratorAgent 调度 + 门禁状态机  │
-        │ pass / iterate / rollback / stopped│
-        └───────────────────┬────────────────┘
-      iterate：修订指令→ DocGenAgent 优化知识文档（v+1）
-              → CodeAgent 基于新知识重新生成 → 重测
-                                                      pass
-        ─────────────────────────────────────────►   ▼
-                                    知识发布 KnowledgeStore
-                                    （verified，SHA-256 快照）
+```mermaid
+flowchart TD
+    O["OrchestratorAgent（主 Agent）<br/>只负责调度：规划 / 拆解 / 委派 / 汇总 / 驱动重试<br/>决策由门禁 decide 状态机给出，不执笔、不判内容"]
+    O -->|委派文档生成| D1["DocGenAgent<br/>读源码 → 知识文档<br/>（大库 spawn DocWorkerAgent×N）"]
+    O -->|委派测试生成| D2["TestGenAgent<br/>读源码 → 行为 oracle 测试<br/>（期望输出经 EvalRunner 验证真实性）"]
+    O -->|委派代码生成| D3["CodeAgent<br/>读知识文档 → 实现代码<br/>（Sandbox 强制，看不到源码）"]
 
-   分工边界（硬规则）：
-   - 谁生成谁可改，谁评测谁不改（生成与验证分离）
-   - DocGenAgent 产出的知识文档是 CodeAgent 的唯一事实输入（Sandbox 强制，CodeAgent 物理看不到源码）
-   - TestGenAgent 读源码提取行为 oracle（独立链路，不读知识文档）；期望输出必须经真实源码验证，禁止 LLM 编造
-   - CodeAgent 读知识文档生成实现（独立链路，不读源码）；与 TestGenAgent 各自独立、互不依赖
-   - ReviewAgent 评审结果反馈给 DocGenAgent 优化知识文档（不改代码；代码由新知识文档驱动重生成）
-   - OrchestratorAgent 只调度不执笔，决策归门禁规则
-   - 全部产物文件交接，可审计、可断点续跑
+    D1 -->|"知识文档 .md"| K1["KnowledgeStore<br/>（候选区 + 版本 + ledger）"]
+    D2 -->|"候选测试池"| E1["EvalRunner<br/>验证期望输出与真实源码一致"]
+    D3 -->|"实现代码 .cpp"| C1["CheckAgent<br/>（CCR 独立检查，语义层审查）"]
+
+    E1 -->|"门禁测试集"| E2["EvalRunner（确定性程序，非 Agent）<br/>编译必过（g++ -Werror）+ 门禁测试<br/>+ 相似度（仅归因）"]
+    C1 -->|"检查报告"| E2
+    K1 --> E2
+
+    E2 -->|"评测报告 .json"| R1["ReviewAgent（独立上下文 CCR，只读）<br/>归因：失败用例 → 定位知识段落 → 修订指令"]
+
+    R1 -->|"归因/修订 .json"| O2["OrchestratorAgent 调度 + 门禁状态机<br/>pass / iterate / rollback / stopped"]
+
+    O2 -->|"iterate：修订指令 → DocGenAgent 优化知识文档（v+1）<br/>→ CodeAgent 基于新知识重新生成 → 重测"| D1
+    O2 -->|pass| PUB["知识发布 KnowledgeStore<br/>（verified，SHA-256 快照）"]
+
+    classDef agent fill:#e1f5fe,stroke:#0288d1;
+    classDef infra fill:#fff3e0,stroke:#f57c00;
+    class O,O2,D1,D2,D3,C1,R1 agent;
+    class E1,E2,K1,PUB infra;
 ```
+
+分工边界（硬规则）：
+- 谁生成谁可改，谁评测谁不改（生成与验证分离）
+- DocGenAgent 产出的知识文档是 CodeAgent 的唯一事实输入（Sandbox 强制，CodeAgent 物理看不到源码）
+- TestGenAgent 读源码提取行为 oracle（独立链路，不读知识文档）；期望输出必须经真实源码验证，禁止 LLM 编造
+- CodeAgent 读知识文档生成实现（独立链路，不读源码）；与 TestGenAgent 各自独立、互不依赖
+- ReviewAgent 评审结果反馈给 DocGenAgent 优化知识文档（不改代码；代码由新知识文档驱动重生成）
+- OrchestratorAgent 只调度不执笔，决策归门禁规则
+- 全部产物文件交接，可审计、可断点续跑
 
 ### 设计依据：OrchestratorAgent（主 Agent，只负责调度）
 
@@ -112,32 +82,28 @@
 
 ## 4.5.2 文档生成阶段（DocGenAgent 分块 + DocWorkerAgent 检索定位）
 
-```text
-流程图：文档生成分块 + DocWorkerAgent 检索定位
-   ┌─────────────┐   按依赖拓扑拆块   ┌─────────────────────┐
-   │ 源码仓库      │ ────────────────►│ OrchestratorAgent    │
-   │ 30万行/仓     │  (include/依赖图)  │  规划分块（≤5 块并行） │
-   └─────────────┘                   └──────────┬──────────┘
-                                                │ 每块一个独立上下文
-                                    ┌───────────┼───────────┐
-                                    ▼           ▼           ▼
-                            ┌───────────┐┌───────────┐┌───────────┐
-                            │DocWorker  ││DocWorker  ││DocWorker  │
-                            │Agent_1    ││Agent_2    ││Agent_3    │
-                            │ 模块A知识  ││ 模块B知识  ││ 模块C知识  │
-                            └────┬──────┘└────┬──────┘└────┬──────┘
-                                 │            │            │
-                                 ▼            ▼            ▼
-                            ┌────────────────────────────────────┐
-                            │ DocGenAgent 汇总/一致性检查/拼接      │
-                            │ → 知识文档（OKF + sources 溯源）      │
-                            └────────────────────────────────────┘
+```mermaid
+flowchart TD
+    SRC["源码仓库<br/>30万行/仓"] -->|"按依赖拓扑拆块（include/依赖图）"| O["OrchestratorAgent<br/>规划分块（≤5 块并行）"]
 
-   检索定位（迭代修订时，不重读全文）：
-   修订指令 ──► 按 knowledge_path 定位段落 ──► 只取命中段落给 DocGenAgent
-   每个 DocWorkerAgent 独立上下文 = 防上下文超长的核心手段
-   （Anthropic 实证：subagent 本质是压缩器，各自窗口并行探索后压缩回传）
+    O -->|"每块一个独立上下文"| W1["DocWorkerAgent_1<br/>模块A知识"]
+    O -->|"每块一个独立上下文"| W2["DocWorkerAgent_2<br/>模块B知识"]
+    O -->|"每块一个独立上下文"| W3["DocWorkerAgent_3<br/>模块C知识"]
+
+    W1 --> DG["DocGenAgent<br/>汇总 / 一致性检查 / 拼接<br/>→ 知识文档（OKF + sources 溯源）"]
+    W2 --> DG
+    W3 --> DG
+
+    classDef agent fill:#e1f5fe,stroke:#0288d1;
+    classDef infra fill:#fff3e0,stroke:#f57c00;
+    class O,W1,W2,W3,DG agent;
+    class SRC infra;
 ```
+
+检索定位（迭代修订时，不重读全文）：
+修订指令 → 按 knowledge_path 定位段落 → 只取命中段落给 DocGenAgent
+每个 DocWorkerAgent 独立上下文 = 防上下文超长的核心手段
+（Anthropic 实证：subagent 本质是压缩器，各自窗口并行探索后压缩回传）
 
 ### 设计依据：DocGenAgent + DocWorkerAgent（文档生成分块 + 检索定位）
 
@@ -162,42 +128,29 @@
 
 ## 4.5.3 代码生成阶段（TestGenAgent + CodeAgent + CheckAgent 三 Agent）
 
-```text
-流程图：TestGenAgent + CodeAgent + CheckAgent（三 Agent 分工）
-         ┌──────────────────┐          ┌──────────────────┐
-         │   源代码 src_dir   │          │  知识文档（spec）  │
-         │  （TestGen 只读）  │          │  （DocGenAgent 产物）│
-         └────────┬─────────┘          └────────┬─────────┘
-                  │ 行为 oracle                │ 唯一事实输入
-     ┌────────────┼────────────┐              │
-     ▼            ▼            │              ▼
-┌──────────┐ ┌──────────┐     │      ┌────────────────┐
-│TestGen   │ │ EvalRunner│     │      │ CodeAgent      │
-│Agent     │ │ 验证期望   │     │      │ 生成实现代码    │
-│读源码→测试│ │ 输出真实性 │     │      │ 只读知识+接口   │
-│(行为oracle)│ └────┬─────┘     │      │ 输出：实现 .cpp │
-└────┬─────┘      │ 固化      │      └───────┬────────┘
-     │ 候选测试池  │ 进门禁     │              │
-     ▼            ▼           │              ▼
-┌────────────────────────┐    │      ┌────────────────────────┐
-│ 门禁测试集（经真实源码验证）│◄───┘      │ CheckAgent（CCR 模式）   │
-│ = 探针期望输出，独立于     │            │ 全新 session，只读：     │
-│   CodeAgent 可见范围     │            │ diff+判据清单           │
-└────────────────────────┘            │ 检查：语义/边界/一致性   │
-                                      └───────────┬────────────┘
-                                                  │ 检查报告（发现清单）
-                                                  ▼
-   ┌─────────────────────────────────────────────────────┐
-   │ EvalRunner：编译必过 + 门禁测试（期望输出=经真实源码验证）│
-   │ 门禁主判 = 客观期望输出测试，不依赖任何 agent 自我感觉    │
-   └─────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    SRC["源代码 src_dir<br/>（TestGen 只读）"] -->|"行为 oracle"| TG["TestGenAgent<br/>读源码 → 测试用例<br/>（行为 oracle，禁编造）"]
+    DOC["知识文档（spec）<br/>（DocGenAgent 产物）"] -->|"唯一事实输入"| CA["CodeAgent<br/>生成实现代码<br/>只读知识 + 接口"]
 
-   注（盲区消除）：TestGenAgent 读的是源代码（行为 oracle），CodeAgent
-   读的是知识文档（事实输入），两者不共享同一份文档的理解盲区：
-   - TestGenAgent 期望输出 = 真实源码行为 → 由 EvalRunner 跑真实源码验证，禁 LLM 编造
-   - CodeAgent 只能看知识文档 → 知识文档若有错，测试（真实行为）必失败 → 触发迭代
-   - CheckAgent 独立检查 = 语义层补充（测试覆盖不到的：命名/边界/设计）
+    TG -->|"候选测试池"| EV["EvalRunner<br/>验证期望输出真实性"]
+    EV -->|"固化进门禁"| TS["门禁测试集<br/>= 探针期望输出<br/>独立于 CodeAgent 可见范围"]
+
+    CA -->|"实现 .cpp"| CK["CheckAgent（CCR 模式）<br/>全新 session，只读：diff + 判据清单<br/>检查：语义/边界/一致性"]
+    CK -->|"检查报告（发现清单）"| ER["EvalRunner<br/>编译必过 + 门禁测试<br/>门禁主判 = 客观期望输出测试"]
+    TS --> ER
+
+    classDef agent fill:#e1f5fe,stroke:#0288d1;
+    classDef infra fill:#fff3e0,stroke:#f57c00;
+    class TG,CA,CK agent;
+    class SRC,DOC,EV,TS,ER infra;
 ```
+
+注（盲区消除）：TestGenAgent 读的是源代码（行为 oracle），CodeAgent
+读的是知识文档（事实输入），两者不共享同一份文档的理解盲区：
+- TestGenAgent 期望输出 = 真实源码行为 → 由 EvalRunner 跑真实源码验证，禁 LLM 编造
+- CodeAgent 只能看知识文档 → 知识文档若有错，测试（真实行为）必失败 → 触发迭代
+- CheckAgent 独立检查 = 语义层补充（测试覆盖不到的：命名/边界/设计）
 
 ### 设计依据：TestGenAgent（源代码 → 测试生成，行为 oracle）
 
@@ -271,36 +224,24 @@
 
 ## 4.5.4 Review 阶段（ReviewAgent 独立上下文 CCR，反馈给 DocGenAgent）
 
-```text
-流程图：ReviewAgent（CCR 独立上下文模式）
-   ┌─────────────────┐
-   │ 评测报告（客观信号）│
-   └────────┬────────┘
-            ▼
-   ┌─────────────────────────────────────┐
-   │ ReviewAgent（全新 session，无生成历史）│
-   │  · 只给：工件 + 评测失败详情 + 判据清单  │
-   │  · 不给：CodeAgent 的推理过程/设计取舍  │
-   │  · 只读权限（Read/Grep），无写权限      │
-   │  · 不知道作者是谁（消除自我偏好）        │
-   └────────┬────────────────────────────┘
-            ▼
-   ┌─────────────────────────────────────┐
-   │ 输出：归因报告（summary/weak_spots/    │
-   │ corrections 修订指令三字段）            │
-   └────────┬────────────────────────────┘
-            ▼
-   ┌─────────────────────────────────────┐
-   │ 反馈给 DocGenAgent：按 knowledge_path │
-   │ 定位段落 → 优化知识文档（版本 +1）      │
-   │ → CodeAgent 基于新知识重新生成 → 重测   │
-   └─────────────────────────────────────┘
+```mermaid
+flowchart TD
+    ER["评测报告（客观信号）"] --> R["ReviewAgent（全新 session，无生成历史）<br/>· 只给：工件 + 评测失败详情 + 判据清单<br/>· 不给：CodeAgent 的推理过程/设计取舍<br/>· 只读权限（Read/Grep），无写权限<br/>· 不知道作者是谁（消除自我偏好）"]
 
-   可选增强（P1，关键模块才开）：
-   - 跨模型家族二查（GLM + DeepSeek 同查，补同族盲区）
-   - 对抗式（PrimaryReviewer + Challenger + Arbiter）
-   实证（CCR，2026）：F1 28.6% vs 同会话自审 24.6%；同会话重复审两次无增益
+    R --> OUT["输出：归因报告<br/>summary / weak_spots /<br/>corrections 修订指令三字段"]
+
+    OUT --> FB["反馈给 DocGenAgent：<br/>按 knowledge_path 定位段落<br/>→ 优化知识文档（版本 +1）<br/>→ CodeAgent 基于新知识重新生成 → 重测"]
+
+    classDef agent fill:#e1f5fe,stroke:#0288d1;
+    classDef infra fill:#fff3e0,stroke:#f57c00;
+    class R agent;
+    class ER,OUT,FB infra;
 ```
+
+可选增强（P1，关键模块才开）：
+- 跨模型家族二查（GLM + DeepSeek 同查，补同族盲区）
+- 对抗式（PrimaryReviewer + Challenger + Arbiter）
+实证（CCR，2026）：F1 28.6% vs 同会话自审 24.6%；同会话重复审两次无增益
 
 ### 设计依据：ReviewAgent（归因 + 修订指令，反馈给 DocGenAgent）
 
@@ -478,30 +419,45 @@ interface KnowledgeStore { save(doc: KnowledgeDoc): void; load(module: string): 
 
 ## 5. 推荐架构（最终定稿，TypeScript）
 
-```text
-┌─ OrchestratorAgent（确定性调度层，只调度不执笔）─────────────┐
-│  规划 / 拆解 / 委派 / 汇总 / 驱动重试 / 审计 / 断点续跑      │
-│  决策（pass/iterate/rollback/stopped）由门禁 decide 状态机   │
-│  按客观评测信号给出（TypeScript 实现）                       │
-├───────────────────────────────────────────────────────────┤
-│ 文档生成阶段：                                              │
-│   [单模块] DocGenAgent（读源码 → 知识文档）                   │
-│   [超大库] DocGenAgent + DocWorkerAgent×N（每函数/模块独立    │
-│            上下文，≤5 并行；修订按 knowledge_path 检索定位）   │
-├───────────────────────────────────────────────────────────┤
-│ 迭代阶段（每轮）：                                          │
-│   TestGenAgent（读源代码 → 测试/冒烟，行为 oracle，          │
-│                 期望输出由 EvalRunner 验证真实性）            │
-│   CodeAgent（知识文档+接口 → 实现代码，Sandbox 隔离源码）     │
-│   CheckAgent（CCR：全新 session + 只读 + 判据，语义层检查）   │
-│   EvalRunner（编译 + 门禁测试 + 相似度）← 门禁主判            │
-│   ReviewAgent（CCR：归因 + 修订指令三字段）                   │
-│   知识修订（ReviewAgent → DocGenAgent 优化知识文档，版本 +1） │
-│   → CodeAgent 基于新知识重新生成 → 重测                      │
-├───────────────────────────────────────────────────────────┤
-│ P1 可选项：                                                 │
-│   pass@k 多候选（fan-out）· 跨模型检查 · 薄弱点地图           │
-└───────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TD
+    subgraph ORCH["OrchestratorAgent（确定性调度层，只调度不执笔）"]
+        O1["规划 / 拆解 / 委派 / 汇总 / 驱动重试 / 审计 / 断点续跑<br/>决策（pass/iterate/rollback/stopped）由门禁 decide 状态机<br/>按客观评测信号给出（TypeScript 实现）"]
+    end
+
+    subgraph DOC["文档生成阶段"]
+        D1["[单模块] DocGenAgent（读源码 → 知识文档）"]
+        D2["[超大库] DocGenAgent + DocWorkerAgent×N<br/>每函数/模块独立上下文，≤5 并行<br/>修订按 knowledge_path 检索定位"]
+    end
+
+    subgraph ITER["迭代阶段（每轮）"]
+        T1["TestGenAgent（读源代码 → 测试/冒烟，行为 oracle，<br/>期望输出由 EvalRunner 验证真实性）"]
+        C1["CodeAgent（知识文档+接口 → 实现代码，Sandbox 隔离源码）"]
+        K1["CheckAgent（CCR：全新 session + 只读 + 判据，语义层检查）"]
+        E1["EvalRunner（编译 + 门禁测试 + 相似度）← 门禁主判"]
+        R1["ReviewAgent（CCR：归因 + 修订指令三字段）"]
+        KD["知识修订（ReviewAgent → DocGenAgent 优化知识文档，版本 +1）<br/>→ CodeAgent 基于新知识重新生成 → 重测"]
+    end
+
+    subgraph P1["P1 可选项"]
+        P1A["pass@k 多候选（fan-out）· 跨模型检查 · 薄弱点地图"]
+    end
+
+    ORCH --> DOC
+    ORCH --> ITER
+    D1 --> T1
+    D2 --> T1
+    T1 --> C1
+    C1 --> K1
+    K1 --> E1
+    E1 --> R1
+    R1 --> KD
+    KD -.-> T1
+
+    classDef agent fill:#e1f5fe,stroke:#0288d1;
+    classDef infra fill:#fff3e0,stroke:#f57c00;
+    class O1,D1,D2,T1,C1,K1,R1 agent;
+    class E1,KD,P1A infra;
 ```
 
 ### 引入多 Agent 的触发条件（成本闸门）

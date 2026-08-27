@@ -18,105 +18,54 @@
 
 以下是本文件夹调研的**主要编排模式家族**，按"控制权归代码还是归模型"排列：
 
-```text
-                         多 Agent 编排选型全景
-                              │
-          ┌───────────────────┴───────────────────┐
-          ▼                                       ▼
-   ① Workflow 系（控制权=代码）              ② Agent 系（控制权=模型）
-   ─────────────────────────                  ─────────────────────────
-   路径预知、确定性、便宜、可测               路径未知、动态决策、昂贵
+```mermaid
+flowchart TD
+    ROOT["多 Agent 编排选型全景"] --> WF["① Workflow 系（控制权=代码）<br/>路径预知、确定性、便宜、可测"]
+    ROOT --> AG["② Agent 系（控制权=模型）<br/>路径未知、动态决策、昂贵"]
 
-   ┌─────────────────────────┐               ┌─────────────────────────┐
-   │ Sequential（顺序链）      │               │ Orchestrator-Worker     │
-   │ A → B → C → D           │               │       ┌─────────┐       │
-   └─────────────┬───────────┘               │       │Orchestr │       │
-                 │                            │       └────┬────┘       │
-   ┌─────────────▼───────────┐               │      ┌──────┼──────┐    │
-   │ Pipeline（流水线/并行）   │               │      ▼      ▼      ▼    │
-   │ A ──► B ──► C            │               │   Worker1 Worker2 Worker3│
-   │  ╲     ╱                 │               └─────────────────────────┘
-   └─────────────┬───────────┘
-                 │                            ┌─────────────────────────┐
-   ┌─────────────▼───────────┐               │ Supervisor（监督者）      │
-   │ Fan-out / Fan-in        │               │       ┌─────────┐       │
-   │       ┌──────┐          │               │       │Supervis │       │
-   │   ┌───►Sub1──┐          │               │       └────┬────┘       │
-   │   │   ┌──────┤          │               │      ┌──────┼──────┐    │
-   │   ├───►Sub2──┼──►Reduce │               │      ▼      ▼      ▼    │
-   │   │   ┌──────┤          │               │   AgentA AgentB AgentC  │
-   │   └───►Sub3──┘          │               │   （worker 间不直接通信）│
-   │       └──────┘          │               └─────────────────────────┘
-   └─────────────┬───────────┘
-                 │                            ┌─────────────────────────┐
-   ┌─────────────▼───────────┐               │ Hierarchical（分层）     │
-   │ Router（路由）            │               │        Lead             │
-   │   ┌─────────┐           │               │         │                │
-   │   │Classifier│──► A     │               │    ┌────┼────┐           │
-   │   └─────────┘──► B      │               │    ▼    ▼    ▼           │
-   │             └──► C      │               │ Mgr1  Mgr2  Mgr3         │
-   └─────────────────────────┘               │    │    │    │           │
-                                             │    ▼    ▼    ▼           │
-   ┌─────────────────────────┐               │  W1.. W4.. W7..          │
-   │ Evaluator-Optimizer     │               └─────────────────────────┘
-   │  Gen ──► Eval ──► 修订   │
-   │   ▲          │          │               ┌─────────────────────────┐
-   │   └──────────┘          │               │ Swarm（群集/handoff）     │
-   └─────────────────────────┘               │ A ⇄ B ⇄ C（控制权转交）  │
-                                             └─────────────────────────┘
-   ③ 共享/通信层（可叠加在①②之上）
-   ┌─────────────────────────┐
-   │ Blackboard（黑板）        │     Agent 不直接通信，只读写共享黑板
-   │   ┌─────────────────┐    │
-   │   │  共享黑板/知识库  │◄───┼── Agent1 / Agent2 / Agent3
-   │   └─────────────────┘    │
-   └─────────────────────────┘
-   ┌─────────────────────────┐
-   │ Event-driven（事件驱动）  │     Agent 发布/订阅事件总线，异步解耦
-   │   ┌─────────────────┐    │
-   │   │  事件总线(EVENT) │◄───┼── Agent1 ──► Agent2 ──► Agent3
-   │   └─────────────────┘    │
-   └─────────────────────────┘
-   ┌─────────────────────────┐
-   │ Graph-based（图执行）     │     统一载体：可表达以上任意组合
-   │  (A)─►(B)─►(C)          │     + 循环/并行/断点续跑/人审
-   │   ▲          │          │
-   │   └────(D)◄──┘          │
-   └─────────────────────────┘
+    WF --> W1["Sequential（顺序链）<br/>A → B → C → D"]
+    WF --> W2["Pipeline（流水线/并行）<br/>A → B → C"]
+    WF --> W3["Fan-out / Fan-in<br/>Sub1/Sub2/Sub3 → Reduce"]
+    WF --> W4["Router（路由）<br/>Classifier → A/B/C"]
+    WF --> W5["Evaluator-Optimizer<br/>Gen → Eval → 修订"]
+
+    AG --> A1["Orchestrator-Worker<br/>Orchestr → Worker1/2/3"]
+    AG --> A2["Supervisor（监督者）<br/>Supervis → AgentA/B/C<br/>（worker 间不直接通信）"]
+    AG --> A3["Hierarchical（分层）<br/>Lead → Mgr1/2/3 → W.."]
+    AG --> A4["Swarm（群集/handoff）<br/>A ⇄ B ⇄ C（控制权转交）"]
+
+    ROOT --> SH["③ 共享/通信层（可叠加在①②之上）"]
+    SH --> S1["Blackboard（黑板）<br/>Agent 不直接通信，只读写共享黑板"]
+    SH --> S2["Event-driven（事件驱动）<br/>Agent 发布/订阅事件总线，异步解耦"]
+    SH --> S3["Graph-based（图执行）<br/>统一载体：循环/并行/断点续跑/人审"]
+
+    classDef wf fill:#e8f5e9,stroke:#388e3c;
+    classDef ag fill:#e1f5fe,stroke:#0288d1;
+    classDef sh fill:#fff3e0,stroke:#f57c00;
+    class WF,W1,W2,W3,W4,W5 wf;
+    class AG,A1,A2,A3,A4 ag;
+    class SH,S1,S2,S3 sh;
 ```
 
 **一句话选型逻辑**（详见 [02-编排模式调研.md](https://github.com/linlisWorkTeam/wpKnowledge/blob/main/knowledge/2.wiki/多agent选型/02-编排模式调研.md) 第 0 节与第 3 节）：
 
-```text
-路径预知？ ──是──► Workflow 系：Sequential / Pipeline / Router / Fan-out-Fan-in
-   │
-   否
-   │
-目标明确但路径未知？ ──是──► Orchestrator-Worker / Supervisor
-   │
-   否
-   │
-需要强治理/人审/防失控？ ──是──► Supervisor / Graph-based（带 interrupt）
-   │
-   否
-   │
-需要大规模可分层？ ──是──► Hierarchical
-   │
-   否
-   │
-需要多视角批判/仲裁？ ──是──► Debate / Voting
-   │
-   否
-   │
-需要长期共享记忆/渐进求解？ ──是──► Blackboard
-   │
-   否
-   │
-需要解耦伸缩/流式异步？ ──是──► Event-driven
-   │
-   否
-   │
-要组合多种？ ──是──► Graph-based（LangGraph 等）作为统一载体
+```mermaid
+flowchart TD
+    Q1{"路径预知？"} -->|是| R1["Workflow 系：Sequential / Pipeline / Router / Fan-out-Fan-in"]
+    Q1 -->|否| Q2{"目标明确但路径未知？"}
+    Q2 -->|是| R2["Orchestrator-Worker / Supervisor"]
+    Q2 -->|否| Q3{"需要强治理/人审/防失控？"}
+    Q3 -->|是| R3["Supervisor / Graph-based（带 interrupt）"]
+    Q3 -->|否| Q4{"需要大规模可分层？"}
+    Q4 -->|是| R4["Hierarchical"]
+    Q4 -->|否| Q5{"需要多视角批判/仲裁？"}
+    Q5 -->|是| R5["Debate / Voting"]
+    Q5 -->|否| Q6{"需要长期共享记忆/渐进求解？"}
+    Q6 -->|是| R6["Blackboard"]
+    Q6 -->|否| Q7{"需要解耦伸缩/流式异步？"}
+    Q7 -->|是| R7["Event-driven"]
+    Q7 -->|否| Q8{"要组合多种？"}
+    Q8 -->|是| R8["Graph-based（LangGraph 等）作为统一载体"]
 ```
 
 ## 阅读顺序建议
