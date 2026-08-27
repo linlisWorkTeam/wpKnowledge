@@ -68,70 +68,82 @@ flowchart TD
 
 ---
 
-## 2. 参考清单：每个"参考"参考它的哪些部分（核心）
+## 2. 参考映射：每个 Agent / 协议 → 参考框架的哪个部分（核心）
 
-选型图上每个"参考 XXX"都不是泛泛而谈，下面是**参考对象 → 参考的具体机制 → 机制是什么 → 用在我们哪里**的完整映射。所有机制均来自官方源码 / 官方文档（2026 现状）。
+> 原则：参考的是**机制**不是**代码**。DSH 官方 developer preview（会有 breaking change），只借鉴设计不引入依赖；Codex 的"共享工作区"我们**反用**为物理隔离。所有机制来自官方源码 / 官方文档（2026 现状）。
 
-### 2.1 OrchestratorAgent ← LangGraph Supervisor
+### 2.1 OrchestratorAgent（调度）← LangGraph Supervisor + Codex
 
-| 参考它的什么 | 机制是什么（官方） | 用在我们哪里 |
-|---|---|---|
-| `create_supervisor` 模式 | supervisor 节点统一协调一组专用 agent，控制所有通信流与任务委派（README 原文） | OrchestratorAgent = supervisor 节点：规划 / 拆解 / 委派 / 汇总 |
-| Tool-based handoff（工具型交接） | agent 之间通过工具调用完成交接，官方推荐的手动 supervisor 模式 | 委派 = 一次工具调用（带任务描述 + 资源声明），不搞自定义消息协议 |
-| 消息历史管理（output_mode） | `full_history`（保留 worker 全部消息）或 `final_response`（只留最终回复） | DocWorkerAgent 并行后只汇总结构化摘要 + 溯源锚点，防上下文膨胀（对应 01 的"压缩器"思想） |
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 委派骨架（规划 / 拆解 / 委派 / 汇总） | LangGraph Supervisor | `create_supervisor` 模式 | supervisor 节点统一协调一组专业 agent，控制所有通信流与任务委派 | https://github.com/langchain-ai/langgraph-supervisor |
+| 交接方式 | LangGraph Supervisor | Tool-based handoff | agent 之间通过工具调用交接（官方推荐的手动 supervisor 模式） | 同上 |
+| 汇总防上下文膨胀 | LangGraph Supervisor | 消息历史管理（output_mode） | full_history（保留全部）或 final_response（只留最终回复） | 同上 |
+| 子任务调用面 | Codex | 协作原语六件套 | spawn_agent / followup_task / send_message / wait_agent / interrupt_agent / list_agents | https://github.com/openai/codex/blob/main/codex-rs/core/src/session/multi_agents.rs |
+| 并行上限 | Codex | max_concurrent_threads_per_session | 会话级并发槽位（"up to N agents can be active at once"） | 同上 |
+| 决策路由 | 自研 | 门禁状态机（条件边实现） | pass / iterate / rollback / stopped 是业务规则，不参考框架 | 01 §4.5.1 |
 
-证据：https://github.com/langchain-ai/langgraph-supervisor （README，2026 官方说明建议用工具型手动 supervisor 模式，我们采用其模式而非库本身）
+### 2.2 DocGenAgent（文档生成）← DSH
 
-### 2.2 OrchestratorAgent / DocWorkerAgent ← Codex
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 运行底座可插拔 | DSH | Everything is a Plugin | 模型适配器 / 工具注册表 / 会话日志 / agent loop 全是插件，无特权核心，任何部分可替换 | https://github.com/deepseek-ai/deepseek-harness （docs/architecture.md） |
+| Provider 三角色 | DSH | Capability Seam | Service Definition（接口声明）+ Service Provider（实现）+ Consumer（使用方） | 同上 |
 
-| 参考它的什么 | 机制是什么（官方源码） | 用在我们哪里 |
-|---|---|---|
-| 协作原语六件套 | `spawn_agent`（创建子 agent）、`followup_task`（给已有 agent 新任务并触发一轮）、`send_message`（给运行中 agent 发消息不触发轮次）、`wait_agent`（等待结果）、`interrupt_agent`（打断）、`list_agents`（列出活跃 agent） | 委派 / 重试 / 汇总的调用面：LangGraph 节点内部按这些原语语义调 AgentProvider |
-| `fork_turns` 参数 | 控制向子 agent 传播多少上下文：`all`（全量）/ `none`（不传）/ 正整数（最近 N 轮） | ContextPolicy 的 `fork-all` / `fork-last-n` 直接对应；`none` 对应 `fresh` |
-| `max_concurrent_threads_per_session` | 会话级并发槽位上限（usage hint 原文："up to N agents can be active at once"） | DocWorkerAgent 并行上限（01 定 ≤5）+ ResourceClaim 并发判定 |
-| 共享工作区语义 | "All agents share the same directory... edits made by one agent are immediately visible to all other agents" | **反着用**：我们刻意打破它，DocGenAgent 产物是 CodeAgent 唯一事实输入，CodeAgent 物理看不到源码（Sandbox 强制）。共享 = 交接文件，隔离 = 上下文物理裁剪 |
+### 2.3 DocWorkerAgent × N（分块并行）← DSH + Codex
 
-证据：https://github.com/openai/codex/blob/main/codex-rs/core/src/session/multi_agents.rs （源码 usage hint 常量，2026）
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 每块独立上下文 | DSH | agent.ctx（scope） | per-agent 作用域注册，只对单个 agent 生效 | https://github.com/deepseek-ai/deepseek-harness （docs/architecture.md） |
+| 上下文传播粒度 | Codex | fork_turns 参数 | all（全量）/ none（不传）/ N（最近 N 轮）→ 对应 fork-all / fresh / fork-last-n | https://github.com/openai/codex/blob/main/codex-rs/core/src/session/multi_agents.rs |
+| 分块产物交接 | Codex | 共享工作区语义（**反用**） | 原意：所有 agent 共享目录、编辑立即可见；我们只交接产物文件（结构化摘要 + 溯源锚点），源码物理隔离 | 同上 |
 
-### 2.3 DocGenAgent / DocWorkerAgent / AgentProvider ← DSH（DeepSeek Harness）
+### 2.4 TestGenAgent（行为 oracle）← 隔离设计（01 论文依据，非外部框架）
 
-| 参考它的什么 | 机制是什么（官方架构文档） | 用在我们哪里 |
-|---|---|---|
-| Everything is a Plugin | 基于 Cordis：模型适配器、工具注册表、会话日志、agent loop 本身全部是插件，无特权核心，任何部分可替换 | AgentProvider 可插拔：换模型 / 换 Coding Agent 只换 Provider，不动平台 |
-| Capability Seam 三角色 | 可替换能力 = Service Definition（接口声明）+ Service Provider（实现）+ Consumer（使用方）；新增能力要设计全部三件套 | AgentProvider = Provider；AgentCapabilities = Service Definition 的一部分；LangGraph 节点 = Consumer |
-| Session Event Log | append-only 会话事件日志；"Model-visible means logged"（模型看到的必须能从日志重建）；fork / resume / telemetry / persistence 都从日志派生 | AgentSession Event Log（第 4 节）：语义审计 / trace / eval 溯源 |
-| `agent/pre-step` 事件 | 每轮模型请求前的事件，监听者可以重写模型将看到的消息或直接拒绝 | ContextPolicy 的注入时机：进模型前物理裁剪上下文（artifact-only 不给源码） |
-| `ctx.sandbox` / `ctx.fs` provider | 沙箱后端与文件系统 provider 分离，换后端不换业务 | Sandbox 白名单（allowed_read_dirs 硬禁止 src_dir） |
-| `agent.ctx`（scope） | per-agent 作用域注册：注册只对单个 agent 生效 | 每个 Agent 的上下文 / 权限作用域隔离 |
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 独立链路 | 01 隔离设计（TDD-Agent 教训） | test-first 推理 + 独立 TestGenAgent | 读源码提取行为 oracle、**不读知识文档**；期望输出经 EvalRunner 验证真实性，禁 LLM 编造 | 01 §4.5.3 设计依据 |
 
-⚠️ 注意：DSH 官方标注 developer preview，"THERE WILL BE COMPATIBILITY-BREAKING CHANGES"。**只借鉴设计，不引入代码、不依赖其 API**。
+### 2.5 CodeAgent（代码生成）← Codex / OpenHands（经 ACP 接入）
 
-证据：https://github.com/deepseek-ai/deepseek-harness （docs/architecture.md，2026）
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 接现成 Coding Agent | ACP（Codex / OpenHands 均实现该协议） | 协议规范 + 官方 TS SDK v1.4 | Platform ↔ Coding Agent Runtime 标准协议，只做 Adapter | https://github.com/agentclientprotocol/agent-client-protocol |
+| 上下文隔离 | Codex | fork_turns=none 语义（**反用强化**） | 不给源码：artifact-only 只注入知识文档 + 接口 | https://github.com/openai/codex/blob/main/codex-rs/core/src/session/multi_agents.rs |
+| 资源冲突判定 | OpenHands | ResourceLockManager | per-resource FIFO 锁：同资源串行、异资源并发；排序获取防死锁；前缀区分超时 | https://github.com/OpenHands/software-agent-sdk （resource_lock_manager.py） |
+| 运行形态 | OpenHands | Conversation + workspace | Agent 绑定 workspace 运行，工具在 workspace 内生效 | https://github.com/OpenHands/software-agent-sdk |
+| 物理隔离沙箱 | OpenHands | Ephemeral workspaces（Agent Server） | Docker / K8s 临时工作区运行 Agent | 同上 |
 
-### 2.4 CodeAgent / ResourceClaim ← OpenHands Software Agent SDK
+### 2.6 CheckAgent（独立检查）← 独立 Context 模式（01 论文依据 CCR）
 
-| 参考它的什么 | 机制是什么（官方源码） | 用在我们哪里 |
-|---|---|---|
-| `ResourceLockManager` | per-resource FIFO 锁：按资源键（`file:/a.py` 等）加锁，同一资源串行、不同资源并发；**锁按排序顺序获取防死锁**；FIFOLock 保证公平不饥饿；按资源前缀区分超时（file/terminal/browser/mcp/tool） | ResourceClaim 判定（第 6 节）：DocWorker A∥B safe / A∥C conflict 的精确实现参考 |
-| Conversation + workspace | Agent 绑定 workspace 运行，工具在 workspace 内生效 | AgentRun / AgentSession 的 workspace 字段；Sandbox 工作目录 |
-| Ephemeral workspaces（Agent Server） | Agent 可在 Docker / K8s 临时工作区运行 | CodeAgent 的物理隔离沙箱（未来分布式 worker） |
-| Tool 体系（FileEditor / Terminal / TaskTracker） | 工具与 Agent 解耦，按名称注册 | 我们的工具统一走 MCP（FileEditor→文件工具、Terminal→终端工具） |
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| fresh 上下文 | CCR（Cross-Context Review） | 上下文分离审查 | 全新 session、不知道作者、只读 diff + 判据；F1 28.6% vs 同会话自审 24.6%，重复审两次无增益（p=0.11） | https://arxiv.org/abs/2603.12123 （01 §4.5.3） |
 
-证据：https://github.com/OpenHands/software-agent-sdk （README + openhands-sdk/openhands/sdk/conversation/resource_lock_manager.py，2026）
+### 2.7 ReviewAgent（归因修订）← 独立 Reviewer（01 论文依据 CCR + SDAD）
 
-### 2.5 TestGenAgent / CheckAgent / ReviewAgent ← 隔离设计 / 独立 Context / 独立 Reviewer
+| 我们用在哪里 | 参考框架 | 参考它的哪个部分 | 机制是什么 | 证据 |
+|---|---|---|---|---|
+| 独立归因 | CCR | 独立评审者模式 | 只读评测报告 + 工件，无生成历史，消除自我偏好 | https://arxiv.org/abs/2603.12123 （01 §4.5.4） |
+| 修订指令 | SDAD | 可执行判据 | 修订指令三字段（ID + 段落路径 + 可执行判据），纯 NL 建议不能驱动合并 | https://arxiv.org/abs/2608.20341 （01 §4.5.4） |
 
-这三个"参考"不是外部框架，是 **01 业务架构的设计依据**（论文 2025+ 实证）：
+### 2.8 协议：ACP / MCP / A2A ← 直接采用标准（不是"参考"，是"采用"）
 
-| 参考它的什么 | 机制是什么 | 用在我们哪里 |
-|---|---|---|
-| 隔离设计（TestGenAgent） | TestGenAgent 独立链路：读源码提取行为 oracle，**不读知识文档**（01 硬规则，消除"测试与代码共享文档盲区"） | 门禁测试集 = 真实源码行为，与 CodeAgent 的知识理解解耦 |
-| 独立 Context 模式（CheckAgent） | CCR：全新 session，只读 diff + 判据清单，不知道作者 / 无生成历史 | CheckAgent 语义层审查（测试覆盖不到的边界 / 命名 / 设计） |
-| 独立 Reviewer（ReviewAgent） | 独立评审者：评测失败归因 → 修订指令（readlist 三字段），反馈 DocGenAgent 优化知识文档 | 归因报告驱动知识版本 +1 |
+| 协议 | 我们用在 | 采用它的哪个部分 | 证据 |
+|---|---|---|---|
+| ACP | CodeAgent 接 Codex / Claude | 协议规范 + 官方 TS SDK v1.4；只做 Adapter，业务不直接写协议 | https://github.com/agentclientprotocol/agent-client-protocol |
+| MCP | Agent 调工具 / 检索 / 知识 | 协议规范直接采用（版本 2026-07-28） | https://modelcontextprotocol.io/ |
+| A2A | 未来跨系统 Agent 互调 | 协议规范直接采用（按需，Linux Foundation） | https://github.com/a2aproject/A2A |
 
-证据（论文依据见 01 §4.5.3/§4.5.4 设计依据小节，2025+）：CheckAgent 采用 CCR 跨上下文独立审查（Cross-Context Review，arXiv:2603.12123，2026.03）：F1 28.6% vs 同会话自审 24.6%，同会话重复审两次无增益（p=0.11）→ https://arxiv.org/abs/2603.12123；ReviewAgent 修订指令三字段（ID + 段落路径 + 可执行判据）参考 SDAD（arXiv:2608.20341，2026.05），纯 NL 建议不能驱动合并 → https://arxiv.org/abs/2608.20341
+### 2.9 平台组件参考汇总（跨 Agent 复用的自研组件，各参考了什么）
 
----
+| 平台组件 | 参考框架 | 参考它的哪个部分 | 详见 |
+|---|---|---|---|
+| AgentProvider | DSH | Capability Seam 三角色 + Everything is a Plugin | 第 4 节 |
+| AgentSession（Session Event Log） | DSH | Session Event Log（"Model-visible means logged"；fork / resume / telemetry 都从日志派生） | 第 5 节 |
+| ContextPolicy | Codex + DSH | Codex fork_turns（all / none / N）；DSH agent/pre-step（进模型前最后一道裁剪） | 第 6 节 |
+| ResourceClaim | OpenHands | ResourceLockManager（per-resource FIFO 锁 / 排序防死锁 / 前缀超时） | 第 7 节 |
+| Sandbox | OpenHands + DSH | OpenHands ephemeral workspaces；DSH ctx.sandbox / ctx.fs provider | 第 6 节 |
 
 ## 3. 平台给每个 Agent 什么（先看这张表）
 
