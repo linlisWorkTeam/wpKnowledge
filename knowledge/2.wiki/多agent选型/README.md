@@ -8,6 +8,7 @@
 | 能力 | 决策 | 方案 | WHY（一句话） |
 |---|---|---|---|
 | Workflow Runtime | **Adopt** | **Temporal** | durable execution 是成熟非差异化基础设施，不重造 workflow engine |
+| Multi-Agent Graph Orchestration | **Adopt** | **LangGraph**（图编排层）+ Temporal 官方插件（持久执行） | 01 的架构本来就长成一张图；图怎么走 = LangGraph，挂了怎么办 = Temporal，不重造编排 |
 | Agent Platform | **Build（稳定内部 Contract）** | 参考 Codex / DSH / OpenHands | 公司级 Agent abstraction，需要控制长期 API，不绑定任何厂商 |
 | Coding Agent Interop | **Adopt（PoC）** | **ACP** | 避免为 Codex / Claude / Gemini 各造私有协议 |
 | Remote Agent Interop | **Adopt（按需）** | **A2A** | 远程独立 Agent Service 互操作标准 |
@@ -50,7 +51,7 @@ flowchart TD
 2. **Temporal 解决 execution reliability，不解决 domain correctness**：LLM 去重、Artifact 幂等、知识发布幂等、权限/沙箱/上下文隔离、Eval 正确性，全部由 Agent Platform / Domain 负责。
 3. **所有 Agent 运行时差异通过 Adapter 隔离**：业务层绝不出现 `if provider === "codex"`。未来新增 NewAgent-X = 新增 Provider 或 ACP 配置，不动 Flywheel / Workflow / EvalRunner / KnowledgeStore。
 4. **不重复造协议**：MCP（Agent↔工具）、ACP（Platform↔Coding Agent）、A2A（Agent Service↔Agent Service），除非标准协议被证明不满足，否则不建私有协议。
-5. **Temporal 与 DSH/LangGraph 分层**：Temporal = Workflow Runtime（分布式 durable execution）；DSH Workflow / LangGraph = Agent Platform 上层 orchestration DSL，两层不混。
+5. **LangGraph 与 Temporal 分层（04 定案）**：LangGraph = 多 Agent 图编排层（图怎么走：节点 / 边 / 并行 / 状态 / 循环）；Temporal = 持久执行层（挂了怎么办：retry / recovery / 分布式 worker）；官方 LangGraph 插件桥接两层。DSH 仅作 Agent 运行层参考（03）。
 
 ## 看哪篇文档
 
@@ -59,3 +60,4 @@ flowchart TD
 | [01-多agent调研.md](01-多agent调研.md) | **业务架构**：Agent 角色、Eval / Artifact / 隔离、知识飞轮主循环 | 想了解业务怎么跑 |
 | [02-技术选型与架构决策.md](02-技术选型与架构决策.md) | **为什么这么选**：ADR / 技术选型与架构决策（Temporal / ACP / A2A / MCP / DSH / Codex / OpenHands） | 想了解每个决策的 WHY |
 | [03-Agent-Platform架构设计.md](03-Agent-Platform架构设计.md) | **Agent Platform 怎么实现**：AgentProvider / AgentRun / Session / ContextPolicy / ResourceClaim / Capability / ACP | 要开始实现 Agent Platform |
+| [04-LangGraph选型与多Agent图.md](04-LangGraph选型与多Agent图.md) | **框架选型**：选型图 × 01 合并 mermaid；为什么选 LangGraph / 不选竞品；与 Temporal 分层 | 想确认"为什么用 LangGraph 不用 XX" |
