@@ -1,8 +1,8 @@
 # 知识飞轮规范集
 
-**状态：Accepted（P0-A）｜版本：1.0.0｜基线日期：2026-08-31**
+**状态：Accepted（P0-A）+ P0-B 实现中｜版本：1.1.0｜基线日期：2026-08-31**
 
-本目录是知识飞轮 V1 的规范性单一事实源。本文档集只定义需求、架构、领域、工作流、Agent 契约、评测、安全与验收，不包含正式业务实现。关键词“必须 / 不得 / 应当 / 可以”分别表示强制、禁止、推荐和可选。
+本目录是新 Knowledge Flywheel 平台的规范性事实源。`KF-SYS-*` 使用独立命名空间，避免与历史 `mvp-flywheel/docs/` 中的 `SYS-*` 需求发生冲突。本文档定义需求、架构、领域、工作流、Agent 契约、评测、安全与验收；同仓库实现进度由追踪矩阵明确标记。关键词“必须 / 不得 / 应当 / 可以”分别表示强制、禁止、推荐和可选。
 
 ## 阅读顺序与目录
 
@@ -25,4 +25,4 @@
 
 ## 阶段门
 
-当前提交目标是 **P0-A Spec Review**。评审以[验收计划](13-verification/acceptance-plan.md)中的 `AC-SPEC-*` 为准。通过后，才可在独立分支、独立提交创建 **P0-B Spike**，验证 DSH SDK、LangGraph/Temporal 对照、内部 GLM、Artifact Store 与 C++ 沙箱；Spike 不能反向削弱本规范的安全和可恢复性约束。
+P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等 checkpoint、确定性 Gate、原子发布、旧 OKF 迁移、只读 Dashboard 和无 shell 的 DSH API 适配器。LangGraph/Temporal、真实 Agent Provider、内部 GLM 与敌对 C++ 沙箱仍需独立 Spike；未完成项不得被文档或启发式分数伪装成已验证能力。

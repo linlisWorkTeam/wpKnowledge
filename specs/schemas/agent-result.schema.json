@@ -186,8 +186,8 @@
         "unresolvedRisks": {"$ref": "#/$defs/riskArray"}
       },
       "anyOf": [
-        {"properties": {"corrections": {"minItems": 1}}},
-        {"properties": {"unresolvedRisks": {"minItems": 1}}}
+        {"properties": {"corrections": {"type": "array", "minItems": 1}}},
+        {"properties": {"unresolvedRisks": {"type": "array", "minItems": 1}}}
       ],
       "additionalProperties": false
     },

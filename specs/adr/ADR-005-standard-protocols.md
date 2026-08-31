@@ -1,13 +1,13 @@
 # ADR-005：标准协议与 Adapter
 
-- 状态：Accepted
+- 状态：Proposed（有实际消费者时再接受）
 - 日期：2026-08-31
 
 ## 决策
 
-工具/知识互操作采用 MCP，Coding Agent PoC 采用 ACP，未来跨服务按需采用 A2A；业务通过 Adapter 使用，不创建私有传输协议。
+当前 DSH 只通过版本化本地 HTTP API Adapter 使用知识服务，不通过 shell 或 Python CLI。MCP、ACP、A2A 只有在出现明确消费者、权限模型和契约测试后才进入具体 Adapter；核心始终只依赖端口。
 
 ## 后果
 
-协议升级被隔离，减少自研；P0-B 必须验证实际 SDK 能力和错误映射，失败时可换 Adapter 而非污染核心。
+避免为了协议而扩张 P0 范围。未来协议升级和错误映射被隔离在 Adapter，失败时可替换而不污染核心。
 

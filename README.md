@@ -1,14 +1,24 @@
 # wpKnowledge
 
-知识飞轮实现与受控知识库。
+知识飞轮平台、可验证知识注册表与研究知识库。
 
 ## 仓库边界
 
-- `endlessWpKnowledgeRunner/`：飞轮运行时、CLI、DSH 适配层、Dashboard 与测试。
-- `knowledge/`：统一管理的知识库；来源资料、OKF 卡片、草稿、已验证知识和历史版本都在这里。
-- 新知识先进入 `knowledge/inbox/`，再由 `endlessWpKnowledgeRunner/fw.py ingest` 规范化、评分并写入受控区域。
+- `packages/domain/`：纯领域模型、状态转换、ArtifactRef 和确定性 Gate。
+- `packages/contracts/`：Artifact、Agent、Sandbox、LanguagePlugin 和 Registry 端口。
+- `packages/application/`：候选知识、质量门禁、行为评测、发布、检查点与检索应用服务。
+- `packages/adapters/`：SQLite/CAS、旧 OKF 数据迁移和 DSH HTTP 适配器。
+- `apps/runner/`：CLI、受保护的 HTTP API 和只读 Dashboard。
+- `knowledge/`：研究资料和旧 OKF 卡片的 Git 可评审来源；不再充当运行时状态数据库。
+- `specs/`：需求、架构、Agent、工作流、Schema、ADR 和验收规范。
 
-目录职责、来源编号、分类和插入规则见 [`knowledge/知识库目录.md`](knowledge/知识库目录.md)；运行时写入约束见 [`endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md`](endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md)。
+目录职责、来源编号、分类和插入规则见 [`knowledge/知识库目录.md`](knowledge/知识库目录.md)。新运行时架构见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)，旧系统迁移见 [`docs/MIGRATION.md`](docs/MIGRATION.md)。
+
+## 信任语义
+
+候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有绑定真实执行证据的 `EvaluationReport` 通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。
+
+旧 `endlessWpKnowledgeRunner` 已被移除：它的 OKF、检索、溯源和反馈能力被迁入新端口/适配器；目录状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在。
 
 ## 来源知识域
 
@@ -58,9 +68,22 @@ WorkPanelConnecter 的设计理念、演进路线、市场竞品、集成分析�
 ## 运行
 
 ```powershell
-cd endlessWpKnowledgeRunner
-python fw.py status --json
-python fw.py query --q connecter --no-feedback --json
+npm install
+npm test
+npm run validate:specs
+
+# 初始化本地 SQLite/CAS（默认写入 .workpanel/，已忽略）
+npm run knowledge -- init
+
+# 旧 OKF 卡片只迁为 CANDIDATE，不继承旧 verified 权限
+npm run knowledge -- migrate-legacy --root knowledge
+
+# 查询默认只返回通过真实行为门禁的 VERIFIED 知识
+npm run knowledge -- query --q connecter
+
+# 启用受保护的写 API 后启动 Dashboard
+$env:WP_KNOWLEDGE_WRITE_TOKEN = '<local-secret>'
+npm run knowledge:serve
 ```
 
-前台 Dashboard 由 runner 提供；它消费 `knowledge/` 的运行时状态，不改变来源知识域的目录契约。
+Dashboard 默认监听 `http://127.0.0.1:4174`。GET API 和页面只读；没有 `WP_KNOWLEDGE_WRITE_TOKEN` 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)。

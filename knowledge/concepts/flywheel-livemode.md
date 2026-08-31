@@ -1,20 +1,20 @@
 ---
 name: flywheel-livemode
-title: flywheel-livemode
+title: flywheel-livemode（旧实现，已退出主路径）
 category: flywheel
-tags: [livemode, harvester]
+tags: [livemode, harvester, legacy]
 sources:
-  - path: endlessWpKnowledgeRunner/fwrunner/livemode.py
+  - path: packages/application/src/index.ts
     pinned: true
 schema_version: okf.v1
 kind: concept
-status: verified
-verified: true
+status: superseded
+verified: false
 stale_after: ""
 platforms: []
 created_at: "2026-08-22T01:37:16+08:00"
-updated_at: "2026-08-22T01:37:16+08:00"
-version: 1
+updated_at: "2026-08-31T00:00:00+08:00"
+version: 2
 score: 84.8
 confidence: 0.9
 score_breakdown:
@@ -26,29 +26,33 @@ score_breakdown:
   usage: 0.5
 ---
 
-# 知识飞轮
+# 可恢复的知识获取工作流
 
-## liveMode
-
-li
 ## 概述
 
-当 liveMode 开启时，harvester agent 会扫描 sources 目录与 watch_dirs，找出新增或变更的 markdown 文件，提炼为结构化知识并调用 ingest 入库。
+旧 liveMode 使用 DSH 进程内 timer 扫描文件并调用 shell/Python ingest。该实现已退出主路径：新的飞轮通过 WorkflowPort、GenerationKey checkpoint 和版本化 Agent/API Adapter 承担调度，进程内 timer 不再被视为可靠工作流。
 
 ## 设计要点
 
-`	ext
-scan -> candidates -> harvester 提炼 -> fw_ingest -> 打分 -> 门禁 -> verified/draft
-`
+```text
+source event -> workflow claim -> Agent adapter -> CANDIDATE
+             -> real evaluation -> deterministic gate -> VERIFIED
+```
 
-- scan 基于内容哈希与 livemode state 判重，已入库内容不再重复处理。
-- 每周期候选上限 max_per_cycle，防止一次消费过多。
+- Artifact 使用 SHA-256 内容寻址，GenerationKey 负责节点幂等。
+- 调度、Agent、知识存储和发布分别通过端口隔离。
+- 文档质量门禁只能接受候选，不能直接发布 VERIFIED。
 
 ## 为什么
 
-1. 触发式 ingest 覆盖'有人推知识'的场景，liveMode 覆盖'没人推但来源在变'的场景。
-2. 自动化与手动可以共存：harvester 产出与人工投递走同一条打分门禁，无特权通道。
+1. DSH timer 随宿主进程消失，无法提供完整 checkpoint、取消和故障恢复语义。
+2. shell/Python 桥接扩大权限边界，也无法把结构化契约稳定地绑定到版本。
+3. 新方案仍允许手动和自动获取共存，但所有产物都必须走相同的候选、执行证据和发布门禁。
+
+## 适用场景
+
+用于新增来源扫描器、Agent harvester 或定时调度 Adapter。调度器可以替换，但不得绕过候选状态、Artifact 完整性、GenerationKey 和 Publication Gate。
 
 ## 验证
 
-python fw.py scan 检查候选输出；python fw.py status 确认 counts。
+运行 `npm test`，检查 checkpoint 幂等、候选不自发布以及 PASS decision 的原子发布。

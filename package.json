@@ -1,0 +1,29 @@
+{
+  "name": "@linlis-workteam/wpknowledge-flywheel",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "knowledge": "node apps/runner/src/cli.ts",
+    "knowledge:serve": "node apps/runner/src/server.ts",
+    "test": "node --test --test-concurrency=1",
+    "test:architecture": "node --test tests/contract/architecture.test.ts",
+    "test:domain": "node --test tests/unit",
+    "test:integration": "node --test --test-concurrency=1 tests/integration",
+    "test:acceptance": "node --test --test-concurrency=1 tests/acceptance",
+    "typecheck": "tsc --noEmit",
+    "validate:specs": "node specs/13-verification/validate-specs.ts"
+  },
+  "dependencies": {
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0",
+    "ajv-formats": "3.0.1",
+    "@types/node": "24.13.3",
+    "typescript": "7.0.2"
+  }
+}

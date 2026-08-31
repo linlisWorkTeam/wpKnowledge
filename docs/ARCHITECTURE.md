@@ -1,0 +1,48 @@
+# Knowledge Flywheel architecture
+
+## Boundary
+
+The runtime uses a hexagonal dependency direction:
+
+```text
+DSH / CLI / HTTP / future LangGraph
+                 │
+                 ▼
+           Application services
+                 │
+        ┌────────┴────────┐
+        ▼                 ▼
+      Domain            Ports
+                          ▲
+          SQLite/CAS / Agent / Sandbox / Language adapters
+```
+
+`packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. Architecture tests enforce these rules.
+
+## Knowledge lifecycle
+
+1. Ingestion commits Markdown bytes to CAS and creates a `CANDIDATE` version in SQLite.
+2. The deterministic Quality Gate reports structure, provenance, verification anchors and substance. `ACCEPTED` means the candidate is suitable for behavioral evaluation; it does not mean correct.
+3. A run moves through explicit monotonic states. An `EvaluationReport` binds test totals, critical failures, stability, toolchain fingerprint and immutable evidence artifacts.
+4. The deterministic Gate returns `PASS`, `ITERATE`, `ROLLBACK` or `STOPPED`.
+5. Publication verifies CAS integrity and performs one SQLite transaction that updates the run, supersedes the previous verified version, verifies the new version, appends the event and creates the publication receipt.
+
+## Persistence
+
+- Artifact ID is `sha256:<digest>` and must match the content digest.
+- CAS writes a temporary object, flushes it, renames it and verifies the committed bytes.
+- SQLite uses WAL and `synchronous=FULL`.
+- State, events, gate decisions and publication pointers are committed transactionally.
+- A `GenerationKey` identifies a node side effect. Re-execution returns the committed checkpoint output; a concurrent duplicate fails closed while the first execution is running, and a recorded failure may be retried without losing its retry count or event history.
+- Publication key is `moduleId:versionId:policyId`; repeated publication returns the existing receipt.
+
+## Security boundary
+
+- Versioned `/api/v1` HTTP GET operations are read-only.
+- HTTP mutation is disabled unless `WP_KNOWLEDGE_WRITE_TOKEN` is configured and every request supplies the bearer token.
+- DSH accesses the versioned HTTP API and never launches Python or a shell.
+- The core defines a Sandbox port but does not claim that a local child process is safe for hostile code. Until a real OS isolation adapter passes escape and resource tests, untrusted C++ execution must fail closed.
+
+## Runtime requirement
+
+Node.js 24 or newer is required because the local adapter uses the built-in `node:sqlite` API. The repository pins the only third-party runtime dependency (`yaml`) for one-time legacy OKF migration; normal storage uses JSON columns and CAS rather than YAML parsing.
