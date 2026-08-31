@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>wpKnowledge Flywheel</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">WORKPANEL · KNOWLEDGE FLYWHEEL</p>
+        <h1>可验证知识控制台</h1>
+        <p class="subtitle">质量合格只是候选；只有执行证据通过确定性门禁，才会发布为 VERIFIED。</p>
+      </div>
+      <span id="health" class="status-pill">连接中</span>
+    </header>
+
+    <section id="metrics" class="metrics" aria-label="运行指标"></section>
+
+    <section class="workspace">
+      <aside>
+        <div class="toolbar">
+          <input id="search" type="search" placeholder="检索已验证知识">
+          <select id="status">
+            <option value="VERIFIED">VERIFIED</option>
+            <option value="CANDIDATE">CANDIDATE</option>
+            <option value="LOW_CONFIDENCE">LOW_CONFIDENCE</option>
+            <option value="SUPERSEDED">SUPERSEDED</option>
+            <option value="">全部</option>
+          </select>
+        </div>
+        <div id="knowledge-list" class="knowledge-list"></div>
+      </aside>
+      <article id="detail" class="detail empty">
+        <p>选择一条知识版本查看来源、质量门禁与正文。</p>
+      </article>
+    </section>
+  </main>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>

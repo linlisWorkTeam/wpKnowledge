@@ -27,6 +27,8 @@
 | `index.md` | 卡片和来源索引 | runner |
 | `runtime/` | 反馈、日志和 liveMode 游标 | runner |
 
-新内容只能进入 `inbox/`，再由 `endlessWpKnowledgeRunner/fw.py ingest` 规范化、评分和发布。不得绕过 runner 直接写入 `drafts/`、`concepts/`、`history/` 或 `runtime/`。
+新来源内容先进入 `inbox/` 或其他明确的 Git 评审目录，再通过 `npm run knowledge -- ingest` 提交为候选。候选正文进入内容寻址存储，状态、事件、评分、反馈和发布指针进入本地 SQLite Registry。
 
-详细写入契约见 [`endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md`](../endlessWpKnowledgeRunner/docs/KNOWLEDGE-REPOSITORY.md)。
+`concepts/`、`drafts/`、`history/` 和 `runtime/` 是旧 `endlessWpKnowledgeRunner` 留下的迁移来源，不再是新运行时的可写状态机。旧卡片可使用 `npm run knowledge -- migrate-legacy --root knowledge` 幂等导入，但历史 `verified` 只记录为 legacy metadata，不继承新平台的发布权限。
+
+新架构与迁移契约见 [`docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)和 [`docs/MIGRATION.md`](../docs/MIGRATION.md)。
