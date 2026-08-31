@@ -60,7 +60,7 @@ flowchart TD
 | 上下文注入策略 | 无现成（prompt 约束是软约束） | **ContextPolicy**（artifact-only 禁源码等，物理不给） |
 | 资源冲突判定 | 无现成（maxConcurrency 只限数量） | **ResourceClaim**（A∥B safe / A∥C conflict） |
 | 运行句柄 / 血缘 / 审计 | 无现成 | **AgentRun / AgentSession**（Session Event Log） |
-| 副作用幂等 | 无现成（Temporal 只保证执行可靠性） | **GenerationKey** 去重 |
+| 副作用幂等 | LangGraph 节点失败后可能重跑 | **GenerationKey** 去重 |
 | 确定性评测 / 知识库 | 编译器 g++ / Postgres / 对象存储 | **EvalRunner / KnowledgeStore**（知识飞轮） |
 | 接外部 | MCP / ACP / A2A 标准协议 | 协议 Adapter |
 
@@ -244,16 +244,16 @@ interface AgentInstance {
 }
 ```
 
-### 5.5 三套状态别混（LangGraph / Temporal / Agent Session）
+### 5.5 两套状态别混（LangGraph / Agent Session）
 
-| | LangGraph graph state | Temporal Event History | Agent Session Event Log |
-|---|---|---|---|
-| 语义 | 图走到哪了（节点执行顺序） | 执行真相（谁跑了、重试几次、崩溃点） | 交互真相（模型看到了什么、调了什么工具） |
-| 记录 | checkpoint（superstep 边界） | Commands / Events / Activity 结果 | AgentStarted / ModelRequest / ToolCall / SubagentEnded... |
-| 用途 | 断点续跑（图级） | 执行恢复 / 审计 | 语义审计 / trace / eval 溯源 |
-| 参考来源 | LangGraph（现成） | Temporal（现成） | **DSH Session Event Log**（"Model-visible means logged"，见 2.3） |
+| | LangGraph graph state | Agent Session Event Log |
+|---|---|---|
+| 语义 | 图走到哪了（节点执行顺序） | 交互真相（模型看到了什么、调了什么工具） |
+| 记录 | checkpoint（superstep 边界） | AgentStarted / ModelRequest / ToolCall / SubagentEnded... |
+| 用途 | 本地断点续跑（图级） | 语义审计 / trace / eval 溯源 |
+| 参考来源 | LangGraph（现成） | **DSH Session Event Log**（"Model-visible means logged"，见 2.3） |
 
-图上：LangGraph 管"图结构"的状态，Temporal 管"流程箭头"的执行，Session Log 管"蓝色框"里 LLM 干了什么。
+图上：LangGraph 管"图结构"与本地 checkpoint，Session Log 管"蓝色框"里 LLM 干了什么。
 
 ---
 
@@ -327,7 +327,7 @@ interface ResourceClaim {
 
 ---
 
-## 8. 副作用幂等（自研，业务正确性，Temporal 不管这个）
+## 8. 副作用幂等（自研，业务正确性）
 
 ### 8.1 图上位置
 
@@ -335,9 +335,9 @@ Agent 每次调 LLM / 写 Artifact / 发知识，都要防重复。
 
 ### 8.2 为什么需要
 
-Temporal 重试时，可能存在"LLM 已返回但结果没提交 → 崩溃 → 重试 → 再调一次"的窗口。所以**业务副作用去重要平台自己做**：
+LangGraph 节点在中途崩溃后可能重跑，存在"LLM 已返回但结果没提交 → 进程退出 → 节点重跑 → 再调一次"的窗口。所以**业务副作用去重要平台自己做**：
 
-- LLM 调用去重：`GenerationKey = workflowRunId + moduleId + iteration + agentType + promptHash + modelConfigHash`
+- LLM 调用去重：`GenerationKey = runId + moduleId + iteration + agentType + promptHash + modelConfigHash`
 - Artifact 写幂等：同 key 重复写不产生脏产物
 - 知识发布幂等：按版本号幂等
 
@@ -374,24 +374,24 @@ ACP v2/v3 升级 → 只改 Adapter。
 ## 10. V1 / V2 边界（对照图）
 
 **V1**：
-- LangGraph 定义 7 Agent 图：节点 = AgentProvider 薄包装、条件边 = 门禁状态机、Send = DocWorker 并行、Postgres checkpointer
+- LangGraph 定义 7 Agent 图：节点 = AgentProvider 薄包装、条件边 = 门禁状态机、Send = DocWorker 并行、SQLite checkpointer
 - 图上所有蓝色框跑在 AgentProvider 上
 - CodeAgent 的 ContextPolicy = artifact-only（看不到源码）
 - DocWorker 并行用 ResourceClaim 判定（参考 OpenHands ResourceLockManager）
-- 持久执行：Temporal（插件评估接入）
+- 本地恢复：LangGraph SQLite checkpointer + Run Registry（应用启动恢复）
 - 接 Codex / Claude 用 ACP PoC；工具 / 知识用 MCP
 - 副作用幂等（GenerationKey）就位
 
 **V2+**：
 - Agent Teams（Task DAG / durable mailbox / writeScopes）
 - rich A2A / 跨 repo 调度 / 分布式 Agent Provider / 智能 Resource Scheduler
-- Temporal LangGraph 插件必上（长任务 / 多 worker）
+- 云端 KnowledgeStore 同步、版本冲突治理与发布审核
 
 ## 11. 成功标准（怎么算设计对）
 
 1. 新 Coding Agent（NewAgent-X）出现 → 只加 Provider 或 ACP 配置，**不动**飞轮 / 图 / EvalRunner / KnowledgeStore
 2. LangGraph 被替换 → 只改图的定义（节点 / 边描述），**不重写**平台和业务
-3. Temporal 被替换 → 只改持久执行 Adapter，**不重写**平台和业务
+3. Checkpointer 被替换 → 只改本地持久化 Adapter，**不重写**平台和业务
 4. 模型 DeepSeek → GLM → OpenAI → private → 只改 Model / Agent Provider
 
 **若做不到以上任意一条，说明 Agent Platform abstraction 设计失败。**

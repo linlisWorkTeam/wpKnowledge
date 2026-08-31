@@ -526,19 +526,19 @@ flowchart TD
 
 ### 8.2 框架层结论（来自 03 开源编排框架 + 05 架构评审）
 
-**核心决策（2026-08-20 架构评审修正）：L1 Workflow Runtime 用 Temporal 做底座；L2 Agent Platform / L3 Domain 自研**。原"零框架自研编排"结论仅适用于 PoC 语境，在企业级长期底座语境下推翻（详见 [05-架构评审-Workflow-Runtime底座选型.md](05-架构评审-Workflow-Runtime底座选型.md)）。
+**核心决策：用 LangGraph 承载本地多 Agent 图；Agent Platform / Domain 自研稳定接口与业务能力。**
 
-理由（证据见 05 文档）：文件持久化 ≠ 执行持久化；自研必然演化成残缺 runtime；内部 runtime 绑定比框架绑定更严重；Temporal 是 durable execution 成熟底座（LLM 调用官方列为 Activity 场景，重放不重复计费）；LangGraph 定位是 L2 图 DSL 而非 L1 runtime。
+项目部署在个人电脑，当前运行形态是本地单进程。LangGraph 负责图结构、条件路由、并行、循环与 checkpoint；SQLite Checkpointer 保存图状态，应用重启后通过 `thread_id` 恢复。副作用幂等、Artifact 版本、权限隔离和评测正确性仍属于平台与业务层。
 
 从 14 个开源框架中**分层取舍**：
 
 | 层 | 框架 | 决策 | 落进本方案哪里 |
 |---|---|---|---|
-| L1 Runtime | Temporal | ✅ **采用**（L1 底座） | Workflow/Activity 骨架：OrchestratorAgent → DocGen/TestGen/Code/Eval/Review 各为 Activity 或 Child Workflow |
-| L2 图 DSL | LangGraph | ⚠️ V2+ 可选 | 未来动态 agent 图（多 agent 自由协作评审）时在 L2 定义图，调度到 Temporal 执行 |
+| 本地图编排 | LangGraph | ✅ **采用** | OrchestratorAgent → DocGen/TestGen/Code/Eval/Review 节点、条件边、并行与循环 |
+| 本地状态持久化 | LangGraph SQLite Checkpointer | ✅ **采用** | 按 `thread_id` 保存 checkpoint；应用启动时恢复未完成运行 |
 | L2 执行层 | Claude Agent SDK / Codex CLI（开源） | ✅ 借鉴 | CodeAgent/CheckAgent 的 LLM 后端候选（公司 GLM 5.1 经 codeagent CLI） |
 | L2 结构化 | Pydantic AI | ✅ 借鉴思想 | TypeScript 接口定义（4.5.5）：KnowledgeDoc/TestCase/EvalReport 全类型化 |
-| L1 耐久 | Temporal | ✅ 原生 | 断点续跑/重试/心跳/取消/恢复全由 Temporal 承担，文件交接退为 Artifact 层 |
+| Artifact 层 | 文件 + SHA-256 + Run Registry | ✅ 自研薄层 | 产物交接、版本、幂等发布、审计与启动恢复 |
 
 **明确不选**（理由一句话）：
 - 角色/对话范式（CrewAI、AutoGen→Agent Framework）：自由度是生产事故来源，我们要确定性

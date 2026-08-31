@@ -2,7 +2,7 @@
 
 > 日期：2026-08-26
 > 定位：本文把框架选型图（暂定）与 01 的业务架构合成为一张 mermaid 图，回答两个问题：① 为什么多 Agent 编排选 **LangGraph**（不重复造轮子）；② 为什么不用其他竞品框架。技术栈统一 TypeScript。框架收录标准沿用：相关度低的不收、无开源实现的不收。
-> 相关：[01-多agent调研.md](01-多agent调研.md)（业务架构，Agent 定稿）、[02-技术选型与架构决策.md](02-技术选型与架构决策.md)（ADR：Temporal / ACP / A2A / MCP）、[03-Agent-Platform架构设计.md](03-Agent-Platform架构设计.md)（Agent 运行层）、[README.md](README.md)（决策索引）
+> 相关：[01-多agent调研.md](01-多agent调研.md)（业务架构，Agent 定稿）、[02-技术选型与架构决策.md](02-技术选型与架构决策.md)（ADR：LangGraph / ACP / A2A / MCP）、[03-Agent-Platform架构设计.md](03-Agent-Platform架构设计.md)（Agent 运行层）、[README.md](README.md)（决策索引）
 
 ---
 
@@ -72,7 +72,7 @@ flowchart TD
 补充两点：
 
 - **许可证**：LangGraph MIT 开源，满足"开源源码可审计"标准（不用黑盒）。
-- **与 Temporal 的关系（不重复造轮子的关键）**：Temporal 官方发布 LangGraph 插件，把图作为 Temporal Workflow 运行、每个节点作为 Activity、节点级 checkpoint（2026-07-16 官方博客）。即"图怎么走 = LangGraph，挂了怎么办 = Temporal"，两者用官方插件桥接，不用我们自研任何编排代码。
+- **本地断点续跑**：LangGraph Checkpointer 按 superstep 保存图状态；V1 使用 SQLite，应用重启后通过 `thread_id` 恢复。节点重跑的副作用由 GenerationKey 和 Artifact 幂等保障。
 
 ## 3. 为什么不选其他框架（竞品对比）
 
@@ -95,22 +95,22 @@ flowchart TD
 
 | 边界 | 影响 | 对策 |
 |---|---|---|
-| durable execution 边界：checkpoint 保存"数据"不保存"执行"（进程死在节点执行中途，该节点要重跑） | 数小时长任务崩溃恢复依赖重跑节点，可能重复调用 LLM | ① Temporal 官方 LangGraph 插件：图作为 Workflow 运行、节点作为 Activity、节点级 checkpoint（https://temporal.io/blog/temporal-langgraph-plugin-durable-execution）；② 节点幂等设计：GenerationKey 去重（workflowRunId + moduleId + iteration + agentType + promptHash + modelConfigHash，见 02） |
+| checkpoint 保存"数据"不保存"执行"（进程死在节点执行中途，该节点要重跑） | 数小时长任务崩溃恢复依赖重跑节点，可能重复调用 LLM | 应用启动时按 `thread_id` 恢复；节点幂等设计：GenerationKey 去重（runId + moduleId + iteration + agentType + promptHash + modelConfigHash，见 02） |
 | LangChain 生态 API 变更历史 | 版本升级破坏风险 | 只依赖 @langchain/langgraph 核心包，锁版本（v1.x）；不引入 langchain 大杂烩集成 |
-| 分布式 worker：LangGraph Platform 为商业托管；自托管需自己部署 checkpointer（Postgres）+ 多副本 | 规模化前单进程足够 | V1：单进程 + Postgres checkpointer；规模化：LangGraph Platform 或自托管；长任务 / 多 worker：Temporal 插件 |
+| 分布式 worker：LangGraph Platform 为商业托管；自托管需自己部署 checkpointer 和多副本 | 当前个人电脑部署不需要跨机执行 | V1 保持本地单进程 + SQLite checkpointer；云端只同步已发布知识 |
 | LangSmith 可观测为商业组件 | 全链路 trace 需额外成本 | V1 用 OpenTelemetry 集成；LangSmith 可选 |
 
 ## 5. 决策变更记录（与 02 的关系）
 
 - 02 决策表原记 **Dynamic Agent Graph = Defer（LangGraph 作为 V2+ DSL 候选）**；按本文选型图（暂定，现已验证成立），LangGraph 提前为 **Adopt：多 Agent 图编排层**（"负责整个多 Agent 图怎么跑"）。
-- **Temporal 定位不变**：持久执行层（retry / timeout / 崩溃恢复 / 分布式 worker / 版本路由）。LangGraph 与 Temporal 不 PK（02 已论证分层）：图怎么走 = LangGraph，挂了怎么办 = Temporal；官方插件是两者的桥。
+- **本地恢复定位**：LangGraph checkpoint 保存图状态，本地 Run Registry 记录运行状态，应用启动时负责重新进入图。
 - **03 的 Agent Platform 不变**：蓝色 Agent 框都是 LangGraph 图上的节点，节点内部实现仍走 AgentProvider / ContextPolicy / ResourceClaim / Session Event Log。
 - README 决策索引已同步（见 [README.md](README.md)）。
 
 ## 6. V1 落地清单（后续工程骨架输入）
 
 1. 用 LangGraph 定义 7 Agent 图：节点 = Agent（经 AgentProvider 调用）、条件边 = 门禁状态机（pass / iterate / rollback / stopped）、Send = DocWorker 并行分块。
-2. Checkpointer = Postgres（与 Temporal 共用同一存储，减少组件）。
-3. 文件交接保留为 Artifact 层（可审计、可断点续跑），不承担 execution 语义（execution 归 LangGraph + Temporal）。
-4. Temporal LangGraph 插件：V1 评估接入，长任务 / 崩溃恢复需求确认后必上。
+2. Checkpointer = 本地 SQLite；每个 run 必须有稳定 `thread_id`。
+3. 本地 Run Registry 记录 `RUNNING / INTERRUPTED / COMPLETED / FAILED`，应用启动时恢复未完成运行。
+4. 文件交接保留为 Artifact 层（可审计、可断点续跑），节点幂等由 GenerationKey + Artifact hash 保障。
 5. 锁版本：@langchain/langgraph v1.x；依赖面只留核心包。
