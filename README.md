@@ -48,6 +48,8 @@ DeepSeek Harness（DSH）可借鉴性分析，作为 WorkPanel 机制样本，�
 
 LinlisWorkPanel 架构、实现分析、规划和调研证据。
 
+- [Knowledge Flywheel PR #11 交付与全项目测评](workpanel/docs/2026-09-01-pr11-verified-knowledge-flywheel-delivery-report.md)
+- [WorkPanel 调研长期综合入口](workpanel/docs/workpanel-analysis-report.md)
 - [综合架构分析](knowledge/3.workpanel/调研/LinlisWorkPanel综合架构分析.md)
 - [WorkPanel 2.0.0 架构评审](knowledge/3.workpanel/调研/WorkPanel%202.0.0架构评审.md)
 - [WorkPanel Connecter 愿景符合度与可扩展性评审](knowledge/3.workpanel/调研/WorkPanel%20Connecter愿景符合度与可扩展性评审.md)
