@@ -15,8 +15,12 @@ test('run transitions are monotonic and reject illegal jumps', () => {
   const planned = transitionRun(created, 'PLANNED', '2026-08-31T00:00:01.000Z');
   const generating = transitionRun(planned, 'GENERATING', '2026-08-31T00:00:02.000Z');
   const evaluating = transitionRun(generating, 'EVALUATING', '2026-08-31T00:00:03.000Z');
+  const reviewing = transitionRun(evaluating, 'REVIEWING', '2026-08-31T00:00:04.000Z');
+  const publishing = transitionRun(reviewing, 'PUBLISHING', '2026-08-31T00:00:05.000Z');
   assert.equal(evaluating.iteration, 0);
-  assert.throws(() => transitionRun(evaluating, 'VERIFIED', '2026-08-31T00:00:04.000Z'), /illegal run transition/);
+  assert.equal(publishing.state, 'PUBLISHING');
+  assert.throws(() => transitionRun(evaluating, 'VERIFIED', '2026-08-31T00:00:06.000Z'), /illegal run transition/);
+  assert.throws(() => transitionRun(evaluating, 'PUBLISHING', '2026-08-31T00:00:06.000Z'), /illegal run transition/);
 });
 
 test('deterministic gate passes only complete and stable evidence', () => {

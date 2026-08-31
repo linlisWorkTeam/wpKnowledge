@@ -85,6 +85,7 @@ export interface AgentRequest {
   prompt: string;
   outputSchema: Record<string, unknown>;
   idempotencyKey: string;
+  inputRefs?: ArtifactRef[];
 }
 
 export interface AgentProvider {
@@ -107,4 +108,77 @@ export interface LanguagePlugin {
   readonly languageId: string;
   compile(sourceRefs: ArtifactRef[], sandbox: Sandbox, signal?: AbortSignal): Promise<SandboxResult>;
   test(binaryRef: ArtifactRef, testRefs: ArtifactRef[], sandbox: Sandbox, signal?: AbortSignal): Promise<SandboxResult>;
+}
+
+export type ProjectTool = 'node' | 'pnpm' | 'cargo';
+
+export interface ProjectCommand {
+  tool: ProjectTool;
+  args: string[];
+  cwd?: string;
+  repetitions?: number;
+  timeoutMs?: number;
+  maxOutputBytes?: number;
+}
+
+export interface GeneratedProjectFile {
+  path: string;
+  content: string;
+}
+
+export interface ProjectSnapshot {
+  repositoryRoot: string;
+  remote: string;
+  checkoutHead: string;
+  commit: string;
+  dirty: boolean;
+  sourcePaths: string[];
+  publicInterfacePaths: string[];
+  manifestRef: ArtifactRef;
+}
+
+export interface ProjectCommandResult {
+  phase: 'prepare' | 'gate';
+  tool: ProjectTool;
+  args: string[];
+  cwd: string;
+  attempt: number;
+  exitCode: number | null;
+  timedOut: boolean;
+  outputLimitExceeded: boolean;
+  durationMs: number;
+  stdout: string;
+  stderr: string;
+  testsPassed: number;
+  testsTotal: number;
+}
+
+export interface ProjectEvaluation {
+  label: string;
+  commit: string;
+  passed: boolean;
+  testsPassed: number;
+  testsTotal: number;
+  stability: number;
+  infrastructureFailure: boolean;
+  toolchainFingerprint: string;
+  generatedFileDigests: Record<string, string>;
+  results: ProjectCommandResult[];
+  evidenceRef: ArtifactRef;
+}
+
+export interface ProjectEvaluator {
+  inspect(input: {
+    repositoryRoot: string;
+    expectedCommit?: string;
+    sourcePaths: string[];
+    publicInterfacePaths: string[];
+  }): Promise<ProjectSnapshot>;
+  evaluate(input: {
+    label: string;
+    snapshot: ProjectSnapshot;
+    generatedFiles: GeneratedProjectFile[];
+    prepareCommands: ProjectCommand[];
+    commands: ProjectCommand[];
+  }, signal?: AbortSignal): Promise<ProjectEvaluation>;
 }

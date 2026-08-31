@@ -19,6 +19,8 @@ DSH / CLI / HTTP / future LangGraph
 
 `packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. Architecture tests enforce these rules.
 
+`endlessWpKnowledgeRunner/fw.mjs` is a compatibility facade at the CLI edge. It imports the same TypeScript command entry point and therefore cannot own a second registry, lifecycle, score, or publication authority.
+
 ## Knowledge lifecycle
 
 1. Ingestion commits Markdown bytes to CAS and creates a `CANDIDATE` version in SQLite.
@@ -26,6 +28,8 @@ DSH / CLI / HTTP / future LangGraph
 3. A run moves through explicit monotonic states. An `EvaluationReport` binds test totals, critical failures, stability, toolchain fingerprint and immutable evidence artifacts.
 4. The deterministic Gate returns `PASS`, `ITERATE`, `ROLLBACK` or `STOPPED`.
 5. Publication verifies CAS integrity and performs one SQLite transaction that updates the run, supersedes the previous verified version, verifies the new version, appends the event and creates the publication receipt.
+
+The real-source acceptance slice adds a `ProjectEvaluator` port. Its trusted local adapter resolves and archives an exact Git commit into a temporary workspace without changing the repository's current checkout, applies generated files only there, executes allowlisted tools without a shell, and commits the complete process evidence to CAS. DocGen/CodeGen/Review outputs are independently JSON-Schema validated; the checked-in scenario provider is deterministic test infrastructure, not evidence of live-model quality.
 
 ## Persistence
 
@@ -42,7 +46,8 @@ DSH / CLI / HTTP / future LangGraph
 - HTTP mutation is disabled unless `WP_KNOWLEDGE_WRITE_TOKEN` is configured and every request supplies the bearer token.
 - The token is a local trusted-operator boundary, not a complete subject/resource/action authorization matrix. The current evaluation endpoint records and validates submitted evidence metadata; it does not itself compile or execute code.
 - DSH accesses the versioned HTTP API and never launches Python or a shell.
-- The core defines a Sandbox port but does not claim that a local child process is safe for hostile code. Until a real OS isolation adapter passes escape and resource tests, untrusted C++ execution must fail closed.
+- The trusted project evaluator sanitizes its environment, rejects path traversal and symlink targets, caps time/output, and terminates process trees. These controls protect an acceptance run from accidental damage; a child process still shares the host kernel and is not safe for hostile code.
+- The core separately defines a Sandbox port. Until a real OS isolation adapter passes escape, network, filesystem and resource tests, untrusted C++ execution must fail closed.
 
 ## Runtime requirement
 

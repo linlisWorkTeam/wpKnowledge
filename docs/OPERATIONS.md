@@ -29,7 +29,7 @@ The result contains a `quality` report and a KnowledgeVersion whose status is st
 
 ## Behavioral evaluation and publication
 
-The current `evaluate` command is a trusted local adapter: it records a report and commits the supplied evidence file to CAS, but it does not run a compiler or test process. Operators must only submit results produced by an independently controlled evaluator. Keep production publication disabled until the planned EvalRunner and hostile-code sandbox are implemented and validated.
+The general `evaluate` command remains a trusted report-ingestion adapter: it records supplied evidence but does not launch a process. Operators must only submit results produced by an independently controlled evaluator.
 
 ```powershell
 npm run knowledge -- create-run --module example-module --policy local-v1
@@ -54,6 +54,23 @@ npm run knowledge -- publish `
 ```
 
 The CLI rejects publication when the decision is not PASS, evidence belongs to another run/version, provenance is absent, or the body artifact fails integrity verification.
+
+## Fixed-commit real-source acceptance
+
+The project acceptance command exercises the full two-iteration flow against a clean archive of a pinned ohMyWorkPanel commit. It proves the reference gate, an intentionally failing first generation, structured Correction, incremental knowledge revision, fresh code generation, independent process evaluation, deterministic PASS and idempotent publication.
+
+```powershell
+npm run acceptance:ohmyworkpanel -- `
+  --repository D:\AI\LinlisWorkPanel `
+  --runtime D:\temp\wp-ohmy-acceptance `
+  --output summary
+```
+
+The source repository must contain the exact commit pinned in `acceptance/ohmyworkpanel/scenario.json`; a missing or non-exact object fails closed. The current branch may advance: the report distinguishes its checkout HEAD from the archived acceptance commit and never checks out or modifies either. The evaluator uses `git archive`, writes generated files only into a temporary directory, permits only `node`, `pnpm` and `cargo`, avoids shell execution, sanitizes inherited environment variables, enforces command timeout/output limits, and stores tool versions, redacted argv, exit status and redacted output in CAS. The checked-in Agent provider replays schema-validated fixtures, so this command validates orchestration and execution—not live GLM/DeepSeek quality. It is also not an OS sandbox; run it only against trusted source and generated code.
+
+## Legacy Runner compatibility
+
+Existing automation can invoke `node endlessWpKnowledgeRunner/fw.mjs`. Supported commands delegate directly to the new CLI and share `WP_FLYWHEEL_HOME`; `--root` is rejected so callers cannot accidentally select a parallel store. Removed score/eval/harvest semantics fail explicitly. See `endlessWpKnowledgeRunner/README.md` for the mapping.
 
 ## Dashboard and API
 

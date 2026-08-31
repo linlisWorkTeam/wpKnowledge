@@ -16,9 +16,9 @@
 
 ## 信任语义
 
-候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有受信评测调用方提交的 `EvaluationReport` 绑定完整性可校验的执行证据，并通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。当前核心负责证据、策略和发布约束；独立 EvalRunner 与敌对 C++ 沙箱仍是 Planned，不能把人工/受信入口提交的报告宣称为系统自行执行的生产级验证。
+候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有独立评测器提交的 `EvaluationReport` 绑定完整性可校验的执行证据，并通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。仓库现已提供固定 commit 的受信项目 EvalRunner：它在临时 `git archive` 工作区执行白名单工具并记录命令、版本、退出码和截断输出；它不是敌对代码沙箱，不能外推为不可信 C++ 的生产隔离证明。
 
-旧 `endlessWpKnowledgeRunner` 已被移除：它的 OKF、检索、溯源和反馈能力被迁入新端口/适配器；目录状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在。
+旧 `endlessWpKnowledgeRunner` 的 Python 实现已被移除，其目录保留为 Node 兼容门面：`fw.mjs` 只把仍受支持的 init、ingest、query、get、status、scan 和 feedback 命令委派给同一个 TypeScript CLI、SQLite Registry 与 CAS。旧目录状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在；score、eval 和 harvest 会明确拒绝，避免形成第二套事实源。
 
 ## 来源知识域
 
@@ -71,6 +71,9 @@ WorkPanelConnecter 的设计理念、演进路线、市场竞品、集成分析�
 npm install
 npm test
 npm run validate:specs
+
+# 固定 commit 的 ohMyWorkPanel 真实源码闭环（需传入本机检出目录）
+npm run acceptance:ohmyworkpanel -- --repository D:\AI\LinlisWorkPanel --output summary
 
 # 初始化本地 SQLite/CAS（默认写入 .workpanel/，已忽略）
 npm run knowledge -- init

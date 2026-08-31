@@ -12,4 +12,5 @@
 | NFR-008 | P0 | 可复现：评测报告记录工具链、插件、测试集、模型配置、prompt 与输入 Artifact 的摘要。 | AC-EVAL-003 |
 | NFR-009 | P0 | 隐私：日志不得包含源码正文、密钥或完整 prompt；敏感 Artifact 按边界授权。 | AC-SEC-003 |
 | NFR-010 | P0 | 本地 V1 在 5 个并行 worker 上限内不得因并发产生同路径写冲突；冲突必须在调度前拒绝。 | AC-FLOW-004 |
+| NFR-011 | P0 | 真实源码验收必须记录仓库 URL、本地路径、commit、脏状态、运行时版本、逐条 argv、退出码、截断后的 stdout/stderr 摘要与完整证据 Artifact 摘要；验收不得依赖修改原工作区。 | AC-E2E-001 |
 

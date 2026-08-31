@@ -22,6 +22,7 @@ test('candidate becomes VERIFIED only after integrity-checked evidence and deter
       stability: 1,
     }, fixture.config.publicationGate);
     assert.equal(decision.outcome, 'PASS');
+    run = fixture.service.transition(run.runId, 'REVIEWING');
     const first = await fixture.service.publish(run.runId, candidate.version.versionId, decision.decisionId);
     const replay = await fixture.service.publish(run.runId, candidate.version.versionId, decision.decisionId);
     assert.equal(first.replayed, false);

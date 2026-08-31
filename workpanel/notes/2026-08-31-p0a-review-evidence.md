@@ -132,3 +132,9 @@ npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
 Playwright headed 浏览器验证：Dashboard 首页、CANDIDATE 过滤和 WorkPanel Connecter 详情均正常渲染；网络记录中的 `/api/v1/status`、列表与详情请求均为 HTTP 200；console 为 `0 errors / 0 warnings`。
 
 仍未确认并明确保持 fail closed：独立编译/测试 EvalRunner、真实 Agent/GLM、敌对 C++ 沙箱、reference bug 双轨 oracle、进程崩溃遗留 RUNNING checkpoint 的 lease 回收，以及 LangGraph/Temporal 选型。当前 `evaluate` 仅是本地受信报告入口，测试中的 evidence 为合成 fixture，不构成真实 C++ 执行证明。
+
+## 2026-09-01：真实源码闭环补充复验
+
+后续提交新增受信 `ProjectEvaluator` 和固定 commit 的 ohMyWorkPanel 验收。命令实际执行参考实现、失败首版、Correction 后 fresh 再生成，并以 5 次定向 Vitest、完整前端测试、生产构建和 Rust library 测试得到最终 279/279；门禁从 `ITERATE` 转为 `PASS`，知识版本原子发布为 `VERIFIED`，原 ohMyWorkPanel 工作树保持干净。详细命令、工具链、run ID 与 CAS 工件索引见 [2026-09-01 验收笔记](2026-09-01-ohmyworkpanel-real-source-e2e.md)。
+
+该补充解决的是受信真实项目的独立执行评测，不改变前述边界：场景 Agent 不是在线 GLM 质量证据，项目子进程也不是敌对代码沙箱。

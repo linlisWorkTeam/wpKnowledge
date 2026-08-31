@@ -272,3 +272,9 @@ MR 的 validator 能检查 7 个 Schema 的语法、元 Schema、交叉引用、
 复验结果：TypeScript 类型检查通过；规范校验为 `schemas=7 commands=7 results=8 p0=25`；27 项领域、契约、集成和验收测试全部通过；npm 官方生产依赖审计为 0 vulnerability；空运行时迁移首次 `imported=6, rejected=1, errors=[]`，复跑 `replayed=6`；真实浏览器中 `/api/v1` 四个请求均为 200，页面正确显示 6 个候选、0 个 VERIFIED，控制台 0 错误/0 警告。
 
 这次落地解决了原评审中的规范 ID 冲突、迁移缺失、文档分数自动发布、无事务知识状态、shell DSH 桥和未认证写接口。它没有解决独立 EvalRunner、C++ 敌对执行、真实 Agent/GLM、reference bug oracle 和进程崩溃后 RUNNING lease 回收，因此当前结论从“仅规格、Request changes”更新为“可信本地核心已具备，可继续评审；生产级完整飞轮仍不可宣称完成”。按照用户要求，本轮只更新 PR，不执行合入。
+
+## 实施更新：固定 commit 真实源码闭环
+
+2026-09-01 的后续实现把 `endlessWpKnowledgeRunner` 恢复为只委派给新 TypeScript CLI 的兼容门面，并增加 `ProjectEvaluator` 端口及受信本地实现。固定 commit `cfef082d7a9e5d434777374bd6b99ef8cd309cfc` 的 ohMyWorkPanel 验收实际完成“参考实现 1/1 → 首版 0/1 与 `ITERATE` → Correction → 增量知识修订 → fresh 代码生成 → 最终 279/279 与 `PASS` → 原子发布”，原源码工作树保持干净。命令、工具链、run ID 与 CAS 工件见 [`../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md`](../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md)。
+
+因此“独立 EvalRunner 尚未实现”的旧结论更新为：受信项目的固定快照执行评测已实现并有真实证据；真实 Agent/GLM、敌对代码 OS 隔离、reference bug 双轨审批和 RUNNING lease 回收仍未实现。该验收不能被解释为生产级不可信 C++ 沙箱或模型质量证明。

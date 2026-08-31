@@ -9,3 +9,4 @@
 ## 证据笔记
 
 - [2026-08-31：P0-A MR 评审证据与复现记录](notes/2026-08-31-p0a-review-evidence.md)
+- [2026-09-01：ohMyWorkPanel 固定 commit 真实源码闭环验收](notes/2026-09-01-ohmyworkpanel-real-source-e2e.md)

@@ -19,6 +19,8 @@
 | KF-SYS-013 | P0 | 系统必须执行完整的主体×资源×动作权限矩阵，未列出的访问默认拒绝并留审计事件。 | AC-SEC-002 |
 | KF-SYS-014 | P0 | V1 必须提供 C++ 插件，完成发现、构建、测试执行、超时和资源限制结果的标准化。 | AC-LANG-002 |
 | KF-SYS-015 | P0 | OrchestratorAgent 只负责计划、委派和汇总；`pass/iterate/rollback/stopped` 必须由确定性门禁规则决定。 | AC-AGENT-002 |
+| KF-SYS-016 | P0 | `endlessWpKnowledgeRunner` 的旧入口必须作为新 TypeScript 核心的兼容层保留；兼容层不得维护第二套知识状态、评分权威或写入路径。 | AC-COMPAT-001 |
+| KF-SYS-017 | P0 | 发布前必须以固定 commit 的真实可运行源码完成一次可复验闭环：参考门禁通过、首轮生成失败、Review 产生 Correction、DocGen 增量修订、CodeAgent fresh 再生成、独立 EvalRunner 全门禁通过、确定性发布并可按 runId 审计。 | AC-E2E-001 |
 
 ## P0-B Spike（P0-A 后独立开展）
 

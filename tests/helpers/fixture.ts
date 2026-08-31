@@ -29,12 +29,12 @@ export const GOOD_BODY = `
 补充说明：内容寻址存储使用 SHA-256 绑定 ID 与正文，SQLite 事务同时提交事件、状态和发布指针。恢复时相同 GenerationKey 必须返回已经提交的输出，而不能再次产生副作用。
 `.trim();
 
-export function createTestComposition() {
+export function createTestComposition(clock?: () => string) {
   const runtimeDir = mkdtempSync(join(tmpdir(), 'wp-flywheel-'));
   let tick = 0;
   const composition = createComposition({
     runtimeDir,
-    clock: () => `2026-08-31T00:00:${String(tick++).padStart(2, '0')}.000Z`,
+    clock: clock ?? (() => `2026-08-31T00:00:${String(tick++).padStart(2, '0')}.000Z`),
   });
   return {
     ...composition,

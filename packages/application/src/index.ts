@@ -289,3 +289,5 @@ export class KnowledgeFlywheelService {
 
 export { DeterministicQualityPolicy } from './quality-policy.ts';
 export { KnowledgeQueryService } from './query-service.ts';
+export { runRealSourceFlow } from './project-flow.ts';
+export type { RealSourceFlowReport, RealSourceScenario } from './project-flow.ts';

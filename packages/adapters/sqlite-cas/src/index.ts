@@ -166,6 +166,7 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
         event_id TEXT PRIMARY KEY,
         run_id TEXT NOT NULL,
         event_type TEXT NOT NULL,
+        event_seq INTEGER,
         occurred_at TEXT NOT NULL,
         event_json TEXT NOT NULL
       );
@@ -203,6 +204,15 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
       INSERT OR IGNORE INTO schema_migrations(version, applied_at)
       VALUES (1, datetime('now'));
     `);
+    const eventColumns = this.database.prepare('PRAGMA table_info(events)').all() as Record<string, unknown>[];
+    if (!eventColumns.some((column) => String(column.name) === 'event_seq')) {
+      this.database.exec('ALTER TABLE events ADD COLUMN event_seq INTEGER');
+    }
+    this.database.exec(`
+      UPDATE events SET event_seq = rowid WHERE event_seq IS NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS events_run_seq ON events(run_id, event_seq);
+      INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, datetime('now'));
+    `);
   }
 
   private transaction<T>(operation: () => T): T {
@@ -219,9 +229,9 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
 
   private insertEvent(event: DomainEvent): void {
     this.database.prepare(`
-      INSERT OR IGNORE INTO events(event_id, run_id, event_type, occurred_at, event_json)
-      VALUES (?, ?, ?, ?, ?)
-    `).run(event.eventId, event.runId, event.eventType, event.occurredAt, json(event));
+      INSERT OR IGNORE INTO events(event_id, run_id, event_type, event_seq, occurred_at, event_json)
+      VALUES (?, ?, ?, COALESCE((SELECT MAX(event_seq) + 1 FROM events WHERE run_id = ?), 1), ?, ?)
+    `).run(event.eventId, event.runId, event.eventType, event.runId, event.occurredAt, json(event));
   }
 
   saveRun(run: FlywheelRun, event: DomainEvent): void {
@@ -360,7 +370,7 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
 
   listEvents(runId: string): DomainEvent[] {
     const rows = this.database.prepare(`
-      SELECT event_json FROM events WHERE run_id = ? ORDER BY occurred_at, event_id
+      SELECT event_json FROM events WHERE run_id = ? ORDER BY event_seq
     `).all(runId) as Record<string, unknown>[];
     return rows.map((row) => parse<DomainEvent>(row.event_json));
   }

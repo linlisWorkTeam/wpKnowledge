@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { readFileSync } from 'node:fs';
-import { isAbsolute, join } from 'node:path';
+import { isAbsolute, join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { migrateLegacyOkf } from '../../../packages/adapters/legacy-okf/src/index.ts';
 import type { ArtifactRef, RunState } from '../../../packages/domain/src/index.ts';
 import { createComposition } from './composition.ts';
@@ -60,7 +61,7 @@ function help(): void {
   process.stdout.write(`  list [--status CANDIDATE,VERIFIED]\n`);
   process.stdout.write(`  get --version ID\n`);
   process.stdout.write(`  query --q TEXT [--top 8 --status VERIFIED]\n`);
-  process.stdout.write(`  feedback --version ID --action hit|rate|correct [--rating 0..5 --note TEXT]\n`);
+  process.stdout.write(`  feedback (--version ID | --module ID) --action hit|rate|correct [--rating 0..5 --note TEXT]\n`);
   process.stdout.write(`  create-run --module ID [--policy local-v1]\n`);
   process.stdout.write(`  transition --run ID --state STATE\n`);
   process.stdout.write(`  evaluate --run ID --version ID --tests-passed N --tests-total N --stability 1 --evidence-file PATH\n`);
@@ -68,8 +69,8 @@ function help(): void {
   process.stdout.write(`  status\n`);
 }
 
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+export async function main(argv = process.argv.slice(2)): Promise<void> {
+  const args = parseArgs(argv);
   if (args.command === 'help' || args.options.has('help')) {
     help();
     return;
@@ -140,8 +141,12 @@ async function main(): Promise<void> {
       return;
     }
     if (args.command === 'feedback') {
+      const explicitVersion = option(args, 'version');
+      const moduleId = option(args, 'module');
+      const versionId = explicitVersion || (moduleId ? composition.repository.latestKnowledgeVersion(moduleId)?.versionId : '');
+      if (!versionId) throw new Error('ARGUMENT_REQUIRED: --version or an existing --module');
       composition.service.recordFeedback(
-        required(args, 'version'),
+        versionId,
         required(args, 'action'),
         args.options.has('rating') ? numberOption(args, 'rating', 0) : null,
         option(args, 'note'),
@@ -191,7 +196,13 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  process.exitCode = 1;
-});
+const directEntry = process.argv[1]
+  ? pathToFileURL(resolve(process.argv[1])).href === import.meta.url
+  : false;
+
+if (directEntry) {
+  main().catch((error) => {
+    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.exitCode = 1;
+  });
+}

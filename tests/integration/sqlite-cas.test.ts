@@ -130,3 +130,17 @@ test('failed checkpoint is recorded and can be retried once', async () => {
     fixture.dispose();
   }
 });
+
+test('event audit order follows commit sequence when timestamps collide', async () => {
+  const fixture = createTestComposition(() => '2026-08-31T00:00:00.000Z');
+  try {
+    const run = fixture.service.createRun('audit-order', 'local-v1');
+    fixture.service.transition(run.runId, 'PLANNED');
+    fixture.service.transition(run.runId, 'GENERATING');
+    assert.deepEqual(fixture.repository.listEvents(run.runId).map((event) => event.eventType), [
+      'RunCreated', 'RunStateChanged', 'RunStateChanged',
+    ]);
+  } finally {
+    fixture.dispose();
+  }
+});
