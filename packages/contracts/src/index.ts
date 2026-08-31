@@ -35,7 +35,13 @@ export interface FlywheelRepository {
   findKnowledgeVersionByBody(moduleId: string, artifactId: string): KnowledgeVersion | null;
   latestKnowledgeVersion(moduleId: string): KnowledgeVersion | null;
   listKnowledgeVersions(statuses?: string[]): KnowledgeVersion[];
-  saveEvaluationAndDecision(report: EvaluationReport, decision: GateDecision, event: DomainEvent): void;
+  saveEvaluationAndDecision(
+    report: EvaluationReport,
+    decision: GateDecision,
+    reviewingRun: FlywheelRun,
+    gateEvent: DomainEvent,
+    transitionEvent: DomainEvent,
+  ): void;
   getGateDecision(decisionId: string): GateDecision | null;
   publish(
     publicationKey: string,

@@ -157,12 +157,14 @@ export class KnowledgeFlywheelService {
       createdAt: now,
     };
     const decision = decideGate(run, report, policy, now);
-    this.repository.saveEvaluationAndDecision(report, decision, createEvent(run.runId, 'GateDecided', {
+    const reviewing = transitionRun(run, 'REVIEWING', now);
+    this.repository.saveEvaluationAndDecision(report, decision, reviewing, createEvent(run.runId, 'GateDecided', {
       reportId: report.reportId, decisionId: decision.decisionId,
       versionId: version.versionId, outcome: decision.outcome,
       reasonCodes: decision.reasonCodes,
+    }, now), createEvent(run.runId, 'RunStateChanged', {
+      from: run.state, to: reviewing.state, iteration: reviewing.iteration,
     }, now));
-    this.transition(run.runId, 'REVIEWING');
     return { report, decision };
   }
 

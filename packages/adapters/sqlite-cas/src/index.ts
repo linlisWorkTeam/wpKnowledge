@@ -302,7 +302,13 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
       .filter((version) => !statuses?.length || statuses.includes(version.status));
   }
 
-  saveEvaluationAndDecision(report: EvaluationReport, decision: GateDecision, event: DomainEvent): void {
+  saveEvaluationAndDecision(
+    report: EvaluationReport,
+    decision: GateDecision,
+    reviewingRun: FlywheelRun,
+    gateEvent: DomainEvent,
+    transitionEvent: DomainEvent,
+  ): void {
     this.transaction(() => {
       this.database.prepare(`
         INSERT INTO evaluations(report_id, run_id, version_id, report_json, created_at)
@@ -312,7 +318,16 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
         INSERT INTO gate_decisions(decision_id, run_id, version_id, outcome, decision_json, created_at)
         VALUES (?, ?, ?, ?, ?, ?)
       `).run(decision.decisionId, decision.runId, decision.versionId, decision.outcome, json(decision), decision.createdAt);
-      this.insertEvent(event);
+      const updated = this.database.prepare(`
+        UPDATE runs SET state = ?, iteration = ?, best_version_id = ?, updated_at = ?
+        WHERE run_id = ? AND state = 'EVALUATING'
+      `).run(
+        reviewingRun.state, reviewingRun.iteration, reviewingRun.bestVersionId,
+        reviewingRun.updatedAt, reviewingRun.runId,
+      );
+      assertInvariant(Number(updated.changes) === 1, `run is not EVALUATING: ${reviewingRun.runId}`);
+      this.insertEvent(gateEvent);
+      this.insertEvent(transitionEvent);
     });
   }
 

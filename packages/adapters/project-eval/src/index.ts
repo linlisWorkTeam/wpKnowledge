@@ -257,7 +257,8 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
     const publicInterfacePaths = input.publicInterfacePaths.map(safeRelativePath);
     const files = [...new Set([...sourcePaths, ...publicInterfacePaths])].map((path) => {
       const bytes = spawnSync('git', ['show', `${commit}:${path}`], {
-        cwd: repositoryRoot, encoding: null, shell: false, windowsHide: true, maxBuffer: 16 * 1024 * 1024,
+        cwd: repositoryRoot, env: executionEnvironment(),
+        encoding: null, shell: false, windowsHide: true, maxBuffer: 16 * 1024 * 1024,
       });
       if (bytes.error) throw bytes.error;
       if (bytes.status !== 0 || !bytes.stdout) throw new Error(`PROJECT_SOURCE_MISSING: ${path}`);

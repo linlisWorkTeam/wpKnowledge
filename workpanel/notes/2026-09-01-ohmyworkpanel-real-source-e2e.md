@@ -43,7 +43,7 @@ npm run acceptance:ohmyworkpanel -- `
 
 ## 闭环结果
 
-最终 fresh 复验运行 ID：`d13b33a7-212a-4b9a-b702-631b23be060e`。
+最终 fresh 复验运行 ID：`31520d49-3a92-4fc7-9bcb-44eee7bb0028`。
 
 | 阶段 | 结果 | 测试 | 门禁 |
 |---|---:|---:|---|
@@ -59,7 +59,7 @@ npm run acceptance:ohmyworkpanel -- `
 - Rust library 测试 150 项通过；
 - 合计 279/279，稳定度 1；
 - 最终知识版本 `kv_08b9f7eec15a280cf70f3bf4` 为 `VERIFIED`；
-- Gate decision `8d122d8f-959d-4d9d-bb64-d8287872e160`；
+- Gate decision `bbb17235-957c-46ff-a101-d9bc29b7096c`；
 - publication key `ohmyworkpanel-mentions:kv_08b9f7eec15a280cf70f3bf4:local-v1`；
 - 重复发布返回同一 receipt，证明幂等重放。
 
@@ -71,12 +71,12 @@ npm run acceptance:ohmyworkpanel -- `
 |---|---|
 | 场景定义（含命令配置） | `sha256:f95968d6f21cc498ced0112a6a550fc3b9e3e12976531c37b361b754b66989ed` |
 | 源码 manifest | `sha256:14ff2f68e052f19bad6edf870063dda90f3398d9d461cf909a326a2144e42395` |
-| 参考实现执行证据 | `sha256:5d97452ff86b023c8dcadbaf7959265aa53caaf0c4c1d5ba73758f74c45f8573` |
-| 首版失败执行证据 | `sha256:8e97d93be705506f4db0a83104bfa60f9b707e1d23dda9268789bae381aa51cf` |
+| 参考实现执行证据 | `sha256:4e1f2d56ea554ceefa5060130668d04261524afe4392820d7d3e5384141434ea` |
+| 首版失败执行证据 | `sha256:89dc30b13f6d272f40c2df6a800d536d49408e007204a6a87da3b486fe315539` |
 | 修订前知识正文 | `sha256:0ccb7fb3067f469d5bd199bbb93de3aea1dc1c6ad03215f91f4098a88a330bdf` |
 | 修订后知识正文 | `sha256:42a3e0f51c01f7b2084ba9be650c81a90ab47694aa2973d13e3559604ed10101` |
-| 最终 279/279 执行证据 | `sha256:2b03ab451a3baef74dfc4444f1c95b3e8283300deef9232c7247e366cf7adada` |
-| 完整闭环报告 | `sha256:710314dfd73095ed7b2c053629528f4b5e29934b41b6040dd7e0555e77d5e32b` |
+| 最终 279/279 执行证据 | `sha256:96a0ea4eb9a265b2299173432adb0d0b3325729315642f4c98385f11b2c7e45d` |
+| 完整闭环报告 | `sha256:3a181a093cb6ae768f8b34acd015eaed9da19535b9aca14a7c7964ed77a029eb` |
 
 最终报告记录了源码路径、remote、commit、dirty 状态、生成文件摘要、准备与门禁命令的 argv、执行次数、退出码、超时/输出上限状态、经过路径与凭据脱敏的 stdout/stderr、测试计数、工具链版本、知识版本谱系、Correction、门禁、发布 receipt 和有序事件序列。
 

@@ -144,3 +144,39 @@ test('event audit order follows commit sequence when timestamps collide', async 
     fixture.dispose();
   }
 });
+
+test('evaluation, decision, review transition, and events roll back atomically', async () => {
+  const fixture = createTestComposition(() => '2026-08-31T00:00:00.000Z');
+  try {
+    const candidate = await acceptedCandidate(fixture, '-atomic-evaluation');
+    let run = fixture.service.createRun(candidate.version.moduleId, 'local-v1');
+    run = fixture.service.transition(run.runId, 'PLANNED');
+    run = fixture.service.transition(run.runId, 'GENERATING');
+    run = fixture.service.transition(run.runId, 'EVALUATING');
+    const report = {
+      reportId: 'report-rollback', runId: run.runId, versionId: candidate.version.versionId,
+      inputRefs: [candidate.version.bodyRef], evidenceRefs: [candidate.version.bodyRef],
+      toolchainFingerprint: 'fixture@1', criticalFailures: 0, testsPassed: 1, testsTotal: 1,
+      stability: 1, infrastructureFailure: false, createdAt: run.updatedAt,
+    };
+    const decision = {
+      decisionId: 'decision-rollback', runId: run.runId, versionId: candidate.version.versionId,
+      outcome: 'PASS' as const, reasonCodes: ['ALL_DETERMINISTIC_GATES_PASSED'],
+      evidenceRefs: [candidate.version.bodyRef], createdAt: run.updatedAt,
+    };
+    const event = (eventId: string, eventType: string) => ({
+      eventId, eventType, schemaVersion: '1.0' as const, runId: run.runId,
+      occurredAt: run.updatedAt, causationId: null, payload: {},
+    });
+    const eventsBefore = fixture.repository.listEvents(run.runId);
+    assert.throws(() => fixture.repository.saveEvaluationAndDecision(
+      report, decision, { ...run, runId: 'missing-run', state: 'REVIEWING' },
+      event('gate-rollback', 'GateDecided'), event('transition-rollback', 'RunStateChanged'),
+    ), /run is not EVALUATING/);
+    assert.equal(fixture.repository.getGateDecision(decision.decisionId), null);
+    assert.equal(fixture.repository.getRun(run.runId)?.state, 'EVALUATING');
+    assert.deepEqual(fixture.repository.listEvents(run.runId), eventsBefore);
+  } finally {
+    fixture.dispose();
+  }
+});
