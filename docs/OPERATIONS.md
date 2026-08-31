@@ -29,6 +29,8 @@ The result contains a `quality` report and a KnowledgeVersion whose status is st
 
 ## Behavioral evaluation and publication
 
+The current `evaluate` command is a trusted local adapter: it records a report and commits the supplied evidence file to CAS, but it does not run a compiler or test process. Operators must only submit results produced by an independently controlled evaluator. Keep production publication disabled until the planned EvalRunner and hostile-code sandbox are implemented and validated.
+
 ```powershell
 npm run knowledge -- create-run --module example-module --policy local-v1
 npm run knowledge -- transition --run <run-id> --state PLANNED

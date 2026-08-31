@@ -103,3 +103,32 @@ python -m unittest discover -s tests -v
 3. Windows/AppContainer、Hyper-V container、E2B 三种隔离方案在 C++ 工具链下的性能和运维成本。
 4. `endlessWpKnowledgeRunner/` 与新 AgentProvider 的可复用边界。
 5. reference bug 的人工审批、测试升级和知识版本策略。
+
+## 重构实施复验
+
+实现提交：`db20813`（基于 PR head `aa7592a`）。
+
+```text
+npm run typecheck
+# PASS
+
+npm run validate:specs
+SPEC_VALIDATION_OK schemas=7 commands=7 results=8 p0=25
+
+npm test
+# tests 27, pass 27, fail 0
+
+npm audit --omit=dev --audit-level=high --registry=https://registry.npmjs.org
+# found 0 vulnerabilities
+```
+
+使用仓库外的全新 `WP_FLYWHEEL_HOME` 运行迁移：
+
+```text
+首次：imported=6, replayed=0, rejected=1, errors=[]
+复跑：imported=0, replayed=6, rejected=1, errors=[]
+```
+
+Playwright headed 浏览器验证：Dashboard 首页、CANDIDATE 过滤和 WorkPanel Connecter 详情均正常渲染；网络记录中的 `/api/v1/status`、列表与详情请求均为 HTTP 200；console 为 `0 errors / 0 warnings`。
+
+仍未确认并明确保持 fail closed：独立编译/测试 EvalRunner、真实 Agent/GLM、敌对 C++ 沙箱、reference bug 双轨 oracle、进程崩溃遗留 RUNNING checkpoint 的 lease 回收，以及 LangGraph/Temporal 选型。当前 `evaluate` 仅是本地受信报告入口，测试中的 evidence 为合成 fixture，不构成真实 C++ 执行证明。

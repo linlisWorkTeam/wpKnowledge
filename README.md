@@ -16,7 +16,7 @@
 
 ## 信任语义
 
-候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有绑定真实执行证据的 `EvaluationReport` 通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。
+候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有受信评测调用方提交的 `EvaluationReport` 绑定完整性可校验的执行证据，并通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。当前核心负责证据、策略和发布约束；独立 EvalRunner 与敌对 C++ 沙箱仍是 Planned，不能把人工/受信入口提交的报告宣称为系统自行执行的生产级验证。
 
 旧 `endlessWpKnowledgeRunner` 已被移除：它的 OKF、检索、溯源和反馈能力被迁入新端口/适配器；目录状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在。
 
@@ -78,7 +78,7 @@ npm run knowledge -- init
 # 旧 OKF 卡片只迁为 CANDIDATE，不继承旧 verified 权限
 npm run knowledge -- migrate-legacy --root knowledge
 
-# 查询默认只返回通过真实行为门禁的 VERIFIED 知识
+# 查询默认只返回已通过行为门禁并发布的 VERIFIED 知识
 npm run knowledge -- query --q connecter
 
 # 启用受保护的写 API 后启动 Dashboard

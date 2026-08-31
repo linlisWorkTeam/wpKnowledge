@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { acceptedCandidate, createTestComposition } from '../helpers/fixture.ts';
 
-test('candidate becomes VERIFIED only after real evidence and deterministic PASS', async () => {
+test('candidate becomes VERIFIED only after integrity-checked evidence and deterministic PASS', async () => {
   const fixture = createTestComposition();
   try {
     const candidate = await acceptedCandidate(fixture);

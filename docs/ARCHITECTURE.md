@@ -40,6 +40,7 @@ DSH / CLI / HTTP / future LangGraph
 
 - Versioned `/api/v1` HTTP GET operations are read-only.
 - HTTP mutation is disabled unless `WP_KNOWLEDGE_WRITE_TOKEN` is configured and every request supplies the bearer token.
+- The token is a local trusted-operator boundary, not a complete subject/resource/action authorization matrix. The current evaluation endpoint records and validates submitted evidence metadata; it does not itself compile or execute code.
 - DSH accesses the versioned HTTP API and never launches Python or a shell.
 - The core defines a Sandbox port but does not claim that a local child process is safe for hostile code. Until a real OS isolation adapter passes escape and resource tests, untrusted C++ execution must fail closed.
 

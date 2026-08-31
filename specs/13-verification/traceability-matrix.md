@@ -8,7 +8,7 @@
 | KF-SYS-002 | AC-AGENT-001 | Planned | packages/contracts/src/index.ts | tests/contract/agent-schema.test.ts |
 | KF-SYS-003 | AC-SEC-001 | Planned | packages/contracts/src/index.ts Sandbox port | tests/security/code-isolation.test.ts |
 | KF-SYS-004 | AC-EVAL-001 | Planned | packages/application/oracle-verifier | tests/acceptance/oracle-verification.test.ts |
-| KF-SYS-005 | AC-EVAL-002 | Implemented | packages/domain/src/index.ts + packages/application/src/index.ts | tests/acceptance/publication-flow.test.ts |
+| KF-SYS-005 | AC-EVAL-002 | Partial | Evidence-bound deterministic gate exists; independent compiler/test EvalRunner is not implemented | tests/acceptance/publication-flow.test.ts |
 | KF-SYS-006 | AC-OBS-001 | Implemented | packages/adapters/sqlite-cas/src/index.ts | tests/integration/sqlite-cas.test.ts |
 | KF-SYS-007 | AC-FLOW-002 | Planned | packages/application/revision | tests/acceptance/incremental-revision.test.ts |
 | KF-SYS-008 | AC-FLOW-003 | Partial | packages/domain/src/index.ts | tests/unit/domain.test.ts |

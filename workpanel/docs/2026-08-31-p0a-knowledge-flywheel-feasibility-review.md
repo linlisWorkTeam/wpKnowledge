@@ -256,3 +256,19 @@ MR 的 validator 能检查 7 个 Schema 的语法、元 Schema、交叉引用、
 - 未使用真实 GLM/DeepSeek 凭据执行完整飞轮，Agent 质量与 token 成本仍未知。
 - 没有完成恶意代码逃逸测试，C++ 沙箱结论是基于现有代码边界和操作系统官方安全模型的风险判断。
 - 时间与可行性判断以“本地单租户、最多 5 Worker、单语言 C++”为边界，不外推到多机、多租户或高可用生产系统。
+
+## 实施更新：结构性替换结果
+
+用户随后批准按上述边界重构。PR 分支上的实现提交 `db20813` 已完成对 `endlessWpKnowledgeRunner/` 主路径的结构性替换，而不是保留第三套平行运行时：
+
+- 删除旧 Python 目录状态机、自制 YAML 解析、shell DSH 桥、内嵌 Dashboard 写路径和已跟踪的 `.pyc`；
+- 建立 TypeScript 六边形边界：纯领域、应用服务、端口、SQLite/CAS 与 DSH/legacy/source-scan Adapter；
+- 把旧卡片全部迁移为 `CANDIDATE`，旧 `verified` 不继承发布权限；
+- 只有非空不可变证据、至少一项由本地受信评测调用方申报的测试、匹配 run 的策略和确定性 PASS 才能原子发布为 `VERIFIED`；核心尚不负责亲自执行编译与测试；
+- GenerationKey 对已提交操作直接重放结果，对并发重复执行 fail closed，失败检查点留事件并可受控重试；
+- Dashboard 和 DSH 使用 `/api/v1`，HTTP 写操作无 token 时禁用，有 token 时使用常量时间 bearer 比较；
+- LangGraph/Temporal、真实 Agent Provider、GLM、oracle 双轨和敌对 C++ 沙箱仍标为 Proposed/Planned，不伪装成已实现能力。
+
+复验结果：TypeScript 类型检查通过；规范校验为 `schemas=7 commands=7 results=8 p0=25`；27 项领域、契约、集成和验收测试全部通过；npm 官方生产依赖审计为 0 vulnerability；空运行时迁移首次 `imported=6, rejected=1, errors=[]`，复跑 `replayed=6`；真实浏览器中 `/api/v1` 四个请求均为 200，页面正确显示 6 个候选、0 个 VERIFIED，控制台 0 错误/0 警告。
+
+这次落地解决了原评审中的规范 ID 冲突、迁移缺失、文档分数自动发布、无事务知识状态、shell DSH 桥和未认证写接口。它没有解决独立 EvalRunner、C++ 敌对执行、真实 Agent/GLM、reference bug oracle 和进程崩溃后 RUNNING lease 回收，因此当前结论从“仅规格、Request changes”更新为“可信本地核心已具备，可继续评审；生产级完整飞轮仍不可宣称完成”。按照用户要求，本轮只更新 PR，不执行合入。
