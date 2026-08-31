@@ -275,6 +275,6 @@ MR 的 validator 能检查 7 个 Schema 的语法、元 Schema、交叉引用、
 
 ## 实施更新：固定 commit 真实源码闭环
 
-2026-09-01 的后续实现把 `endlessWpKnowledgeRunner` 恢复为只委派给新 TypeScript CLI 的兼容门面，并增加 `ProjectEvaluator` 端口及受信本地实现。固定 commit `cfef082d7a9e5d434777374bd6b99ef8cd309cfc` 的 ohMyWorkPanel 验收实际完成“参考实现 1/1 → 首版 0/1 与 `ITERATE` → Correction → 增量知识修订 → fresh 代码生成 → 最终 279/279 与 `PASS` → 原子发布”，原源码工作树保持干净。命令、工具链、run ID 与 CAS 工件见 [`../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md`](../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md)。
+2026-09-01 的后续实现把 `endlessWpKnowledgeRunner` 恢复为只委派给新 TypeScript CLI 的兼容门面，并增加 `ProjectEvaluator` 端口及受信本地实现。固定 commit `cfef082d7a9e5d434777374bd6b99ef8cd309cfc` 的 ohMyWorkPanel 验收实际完成“参考实现 1/1 → 首版 0/1 与 `ITERATE` → Correction → 增量知识修订 → fresh 代码生成 → 最终 279/279 与 `PASS` → 原子发布”；原源码工作树在验收前已包含另一 Agent 的改动，验收前后 HEAD 与 dirty 状态保持不变，未被读取、覆盖或纳入固定 commit 快照。命令、工具链、run ID 与 CAS 工件见 [`../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md`](../notes/2026-09-01-ohmyworkpanel-real-source-e2e.md)。
 
 因此“独立 EvalRunner 尚未实现”的旧结论更新为：受信项目的固定快照执行评测已实现并有真实证据；真实 Agent/GLM、敌对代码 OS 隔离、reference bug 双轨审批和 RUNNING lease 回收仍未实现。该验收不能被解释为生产级不可信 C++ 沙箱或模型质量证明。
