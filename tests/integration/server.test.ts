@@ -35,6 +35,12 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     assert.equal(accepted.status, 201);
     const payload = await accepted.json();
     assert.equal(payload.version.status, 'CANDIDATE');
+    const defaultQuery = await fetch(`${base}/api/v1/query?q=${encodeURIComponent('行为')}`);
+    assert.equal((await defaultQuery.json()).hits.length, 0);
+    const allStatusQuery = await fetch(`${base}/api/v1/query?q=${encodeURIComponent('行为')}&status=`);
+    const allStatusPayload = await allStatusQuery.json();
+    assert.equal(allStatusPayload.hits.length, 1);
+    assert.equal(allStatusPayload.hits[0].status, 'CANDIDATE');
     const page = await fetch(`${base}/`);
     assert.equal(page.status, 200);
     assert.match(await page.text(), /可验证知识控制台/);

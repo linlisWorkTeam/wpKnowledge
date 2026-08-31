@@ -95,10 +95,16 @@ export function createKnowledgeServer(input: {
         return;
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/query') {
+        const requestedStatuses = url.searchParams.get('status');
+        const statuses = requestedStatuses === null
+          ? ['VERIFIED']
+          : requestedStatuses
+            ? requestedStatuses.split(',').filter(Boolean)
+            : ['CANDIDATE', 'VERIFIED', 'LOW_CONFIDENCE', 'SUPERSEDED'];
         send(response, 200, await composition.query.search({
           query: url.searchParams.get('q') ?? '',
           top: Number(url.searchParams.get('top') ?? 8),
-          statuses: (url.searchParams.get('status') ?? 'VERIFIED').split(',').filter(Boolean),
+          statuses,
           category: url.searchParams.get('category') ?? undefined,
         }));
         return;

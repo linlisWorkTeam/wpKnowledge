@@ -44,7 +44,7 @@ async function loadList() {
   const query = search.value.trim()
   const selectedStatus = status.value
   if (query) {
-    const result = await request(`/api/v1/query?q=${encodeURIComponent(query)}&status=${encodeURIComponent(selectedStatus || 'VERIFIED')}`)
+    const result = await request(`/api/v1/query?q=${encodeURIComponent(query)}&status=${encodeURIComponent(selectedStatus)}`)
     list.innerHTML = result.hits.map(card).join('') || '<p class="muted">没有命中。</p>'
   } else {
     const result = await request(`/api/v1/knowledge?status=${encodeURIComponent(selectedStatus)}`)
