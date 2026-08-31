@@ -143,6 +143,51 @@ MR 的 validator 能检查 7 个 Schema 的语法、元 Schema、交叉引用、
 
 这不能证明 19 项业务测试有代码缺陷，但证明文档中的 `87/87` 在当前环境不可复现，也证明工具链 preflight、跳过/阻塞语义和 CI 镜像需要成为正式交付物。
 
+## `endlessWpKnowledgeRunner` 是否需要彻底重构
+
+结论：如果它要成为新 MR 的编排核心，需要结构性重构；但不建议从零重写。它当前更准确的定位是“知识目录运营与检索子系统”，不是“知识到代码再生成并进行行为验证的飞轮”。
+
+当前实现的主闭环是 `获取 → OKF 卡片 → 文档质量打分 → verified/draft → BM25 检索 → 使用反馈`。其评分主要验证溯源、结构、时效、去重、可验证锚点和使用反馈；文档也明确把“知识 → 代码还原”列为未来的强评测环。因此它不能直接承担新规范中的 CodeAgent、真实执行 oracle、Core Gate、行为等价、checkpoint 恢复和确定性发布语义。
+
+### 应保留并迁移
+
+- OKF 卡片、来源锚点和知识目录边界；
+- 确定性文档质量信号，但降级为候选知识的 Quality Gate，而不是 Verified Knowledge Publication Gate；
+- verified 版本保护、history、反馈 ledger 和 BM25/质量重排；
+- source scan、CLI fixture 和当前 18 项通过的回归测试；
+- Dashboard 的读模型和知识检索交互。
+
+### 应重构
+
+- `目录位置 + frontmatter` 状态机改为显式领域状态、事件和 ArtifactRef；
+- 无事务/无锁文件写入改为 CAS + SQLite 元数据事务、幂等键和原子 publish pointer；
+- DSH 插件通过 shell 启动 Python CLI 的方式改为有版本的 AgentProvider/KnowledgeService 契约；
+- harvester timer 改为可恢复、可取消、可重试的 workflow job；
+- Dashboard 直接加载并调用 Store/Scorer 改为只读 API/read model，写操作经过应用服务和权限校验；
+- 文档质量门禁与代码行为门禁分离，禁止仅凭文档分数自动发布“Verified Knowledge”；
+- JSON 配置增加版本化 Schema，状态迁移、评分解释和发布规则成为可测试契约。
+
+### 应删除或退出主路径
+
+- 自制 YAML 子集解析器，替换为受维护且严格校验的格式实现；
+- 依赖人工 `cordis_define` 的动态插件源码复制流程；
+- 把同一个确定性评分函数重复执行多次并将零方差解释为统计置信度；
+- 未认证的内嵌 HTTP 写接口；
+- 已提交的 `__pycache__`/`.pyc` 产物；
+- 仅凭启发式文档评分写入 `verified` 的语义。
+
+### 推荐迁移方式
+
+采用 Strangler Pattern，而不是 big-bang rewrite：
+
+1. 冻结当前 CLI、知识卡和检索行为，以 18 项现有测试加 golden fixtures 建立兼容基线。
+2. 在旧实现外增加 `KnowledgeCatalog`、`ArtifactStore`、`QualityGate`、`Retriever` 等接口；先由旧模块实现。
+3. 让新飞轮通过适配器调用这些接口，把代码行为评测和 Publication Gate 放在新核心中。
+4. 逐步把存储迁到 CAS + SQLite，并做双读/双写结果比较；确认等价后再切换。
+5. 最后移除 shell CLI 桥接和动态 DSH 插件；只有在回归、数据迁移、回滚演练都通过后，才删除旧实现。
+
+建议同时把模块重命名为更准确的 `knowledge-catalog` 或 `knowledge-operations`，避免继续把它误认为整个 Knowledge Flywheel。
+
 ## 推荐实施路线
 
 ### Phase 0：先让规范可以合入

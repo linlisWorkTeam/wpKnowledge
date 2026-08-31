@@ -77,6 +77,25 @@ commit：`b150a551b8d465e31e418e1b2eaf5e79bbb7d28e`
 - E2B 是组合 PoC，不上传/挂载宿主工作区，也不是完整 Harness 迁移。
 - 官方 README 将项目标为 developer preview，并警告会有兼容性破坏。
 
+## `endlessWpKnowledgeRunner` 当前验证
+
+在基线 commit `6999099f2d7ffb1f37aca743674f325072fe39fd` 的隔离检出目录执行：
+
+```text
+python -m unittest discover -s tests -v
+```
+
+结果为 18 项通过、0 项失败，覆盖 ingest gate、劣化版本保护、history、liveMode scan、OKF roundtrip、BM25、反馈、评分信号、路径名安全和 provenance 约束。
+
+源码与文档确认的边界：
+
+- 当前门禁验证知识卡文档质量，不执行“知识 → 代码 → 行为等价”强评测；
+- 文件写入没有事务和锁；
+- DSH 插件通过 shell 调 Python CLI，动态插件依赖 DSH 进程生命周期；
+- Dashboard 直接加载 runner 模块，并暴露会修改 feedback/rescore 状态的接口；
+- 仓库跟踪了 `__pycache__/*.pyc` 生成文件；
+- 设计文档仍写“15 项测试”，与当前实际 18 项存在文档漂移。
+
 ## 未确认事项
 
 1. 真实 GLM/DeepSeek 模型在固定 fixture 上的成功率、波动和成本。
