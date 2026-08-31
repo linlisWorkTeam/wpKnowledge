@@ -34,7 +34,7 @@ function normalizedStatus(value: string): string {
 }
 
 export function translateLegacyArgs(argv: string[]): string[] {
-  const filtered = argv.filter((token) => token !== '--json');
+  const filtered = argv.filter((token) => !['--json', '--no-feedback'].includes(token));
   if (filtered.includes('--root')) {
     throw new Error('LEGACY_ARGUMENT_UNSUPPORTED: --root; configure WP_FLYWHEEL_HOME instead');
   }
@@ -57,7 +57,7 @@ export function translateLegacyArgs(argv: string[]): string[] {
   } else if (command === 'query') {
     translated.push('query');
   } else if (command === 'get') {
-    translated.push('query', '--q', valueAfter(filtered, '--name'), '--top', '1', '--status', 'CANDIDATE,VERIFIED,LOW_CONFIDENCE,SUPERSEDED');
+    translated.push('get', '--module', valueAfter(filtered, '--name'));
   } else if (command === 'feedback') {
     translated.push('feedback', '--module', valueAfter(filtered, '--name'));
   } else {

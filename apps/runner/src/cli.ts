@@ -59,7 +59,7 @@ function help(): void {
   process.stdout.write(`  migrate-legacy [--root knowledge]\n`);
   process.stdout.write(`  scan\n`);
   process.stdout.write(`  list [--status CANDIDATE,VERIFIED]\n`);
-  process.stdout.write(`  get --version ID\n`);
+  process.stdout.write(`  get (--version ID | --module ID)\n`);
   process.stdout.write(`  query --q TEXT [--top 8 --status VERIFIED]\n`);
   process.stdout.write(`  feedback (--version ID | --module ID) --action hit|rate|correct [--rating 0..5 --note TEXT]\n`);
   process.stdout.write(`  create-run --module ID [--policy local-v1]\n`);
@@ -125,7 +125,11 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
       return;
     }
     if (args.command === 'get') {
-      const value = await composition.query.get(required(args, 'version'));
+      const explicitVersion = option(args, 'version');
+      const moduleId = option(args, 'module');
+      const versionId = explicitVersion || (moduleId ? composition.repository.latestKnowledgeVersion(moduleId)?.versionId : '');
+      if (!versionId) throw new Error('ARGUMENT_REQUIRED: --version or an existing --module');
+      const value = await composition.query.get(versionId);
       if (!value) throw new Error('NOT_FOUND: knowledge version');
       jsonOutput(value);
       return;

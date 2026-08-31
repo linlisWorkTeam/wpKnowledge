@@ -44,6 +44,34 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     const page = await fetch(`${base}/`);
     assert.equal(page.status, 200);
     assert.match(await page.text(), /可验证知识控制台/);
+
+    const authHeaders = { 'content-type': 'application/json', authorization: 'Bearer test-secret' };
+    const post = (path: string, input: Record<string, unknown>) => fetch(`${base}${path}`, {
+      method: 'POST', headers: authHeaders, body: JSON.stringify(input),
+    });
+    const createdRun = await post('/api/v1/runs', { moduleId: 'server-card', policyId: 'local-v1' });
+    assert.equal(createdRun.status, 201);
+    const runId = String((await createdRun.json()).runId);
+    for (const state of ['PLANNED', 'GENERATING', 'EVALUATING']) {
+      const transition = await post('/api/v1/transition', { runId, state });
+      assert.equal(transition.status, 200, await transition.text());
+    }
+    const evidenceRef = await instance.composition.artifacts.put(Buffer.from('{"passed":true}'), 'application/json');
+    const evaluated = await post('/api/v1/evaluate', {
+      runId, versionId: payload.version.versionId, evidenceRefs: [evidenceRef],
+      toolchainFingerprint: 'server-test@1', criticalFailures: 0,
+      testsPassed: 1, testsTotal: 1, stability: 1,
+    });
+    const evaluatedPayload = await evaluated.json();
+    assert.equal(evaluated.status, 201, JSON.stringify(evaluatedPayload));
+    const decision = evaluatedPayload.decision;
+    assert.equal(decision.outcome, 'PASS');
+    assert.equal(instance.composition.repository.getRun(runId)?.state, 'REVIEWING');
+    const published = await post('/api/v1/publish', {
+      runId, versionId: payload.version.versionId, decisionId: decision.decisionId,
+    });
+    assert.equal(published.status, 201, await published.text());
+    assert.equal(instance.composition.service.getKnowledgeVersion(payload.version.versionId)?.status, 'VERIFIED');
   } finally {
     instance.server.close();
     await once(instance.server, 'close');

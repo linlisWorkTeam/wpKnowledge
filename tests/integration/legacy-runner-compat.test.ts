@@ -13,9 +13,10 @@ test('legacy arguments map to the single TypeScript core', () => {
     ['ingest', '--module', 'module-a', '--source', 'source.md', '--content', 'body'],
   );
   assert.deepEqual(
-    translateLegacyArgs(['query', '--q', 'gate', '--status', 'draft']),
+    translateLegacyArgs(['query', '--q', 'gate', '--status', 'draft', '--no-feedback']),
     ['query', '--q', 'gate', '--status', 'CANDIDATE'],
   );
+  assert.deepEqual(translateLegacyArgs(['get', '--name', 'module-a']), ['get', '--module', 'module-a']);
   assert.throws(() => translateLegacyArgs(['eval', '--name', 'module-a']), /LEGACY_COMMAND_RETIRED/);
 });
 
@@ -34,6 +35,11 @@ test('legacy facade writes only the shared SQLite and CAS runtime', () => {
     ]);
     assert.equal(ingest.status, 0, ingest.stderr);
     assert.equal(JSON.parse(ingest.stdout).version.status, 'CANDIDATE');
+    const get = run(['get', '--name', 'legacy-module']);
+    assert.equal(get.status, 0, get.stderr);
+    const fullCard = JSON.parse(get.stdout);
+    assert.equal(fullCard.moduleId, 'legacy-module');
+    assert.equal(fullCard.body, GOOD_BODY);
     const status = run(['status']);
     assert.equal(status.status, 0, status.stderr);
     assert.equal(JSON.parse(status.stdout).knowledgeTotal, 1);

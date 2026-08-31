@@ -162,6 +162,7 @@ export class KnowledgeFlywheelService {
       versionId: version.versionId, outcome: decision.outcome,
       reasonCodes: decision.reasonCodes,
     }, now));
+    this.transition(run.runId, 'REVIEWING');
     return { report, decision };
   }
 

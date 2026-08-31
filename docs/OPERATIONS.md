@@ -53,7 +53,7 @@ npm run knowledge -- publish `
   --decision <pass-decision-id>
 ```
 
-The CLI rejects publication when the decision is not PASS, evidence belongs to another run/version, provenance is absent, or the body artifact fails integrity verification.
+Recording an evaluation moves the run from `EVALUATING` to `REVIEWING`; this applies equally to CLI and HTTP callers. The CLI rejects publication when the decision is not PASS, evidence belongs to another run/version, provenance is absent, or the body artifact fails integrity verification.
 
 ## Fixed-commit real-source acceptance
 

@@ -69,6 +69,7 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
         finalCommands: [
           { tool: 'node', args: ['--test', 'src/module.test.js'], repetitions: 2 },
           { tool: 'node', args: ['--check', 'src/module.js'] },
+          { tool: 'node', args: ['-e', 'if (!(process.env.HOME || process.env.USERPROFILE)) process.exit(1)'] },
         ],
       },
       service: composition.service,

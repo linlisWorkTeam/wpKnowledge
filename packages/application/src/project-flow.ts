@@ -197,8 +197,9 @@ function assertGeneratedPaths(files: GeneratedProjectFile[], allowed: string[]):
 
 function markdownSection(body: string, name: string): { before: string; section: string; after: string } {
   const headings = [...body.matchAll(/^##\s+(.+?)\s*$/gm)];
-  const index = headings.findIndex((match) => match[1] === name);
-  if (index < 0) throw new Error(`KNOWLEDGE_SECTION_MISSING: ${name}`);
+  const matching = headings.filter((match) => match[1] === name);
+  if (matching.length !== 1) throw new Error(`KNOWLEDGE_SECTION_AMBIGUOUS: ${name}`);
+  const index = headings.indexOf(matching[0]!);
   const start = headings[index]?.index;
   const end = headings[index + 1]?.index ?? body.length;
   if (start === undefined || end === undefined) throw new Error(`KNOWLEDGE_SECTION_MISSING: ${name}`);
@@ -298,7 +299,6 @@ export async function runRealSourceFlow(input: {
     testsPassed: firstEvaluation.testsPassed, testsTotal: firstEvaluation.testsTotal,
     stability: firstEvaluation.stability, infrastructureFailure: firstEvaluation.infrastructureFailure,
   }, input.policy);
-  run = input.service.transition(run.runId, 'REVIEWING');
   if (firstDecision.outcome !== 'ITERATE') {
     throw new Error(`FIRST_ITERATION_MUST_FAIL: ${firstDecision.outcome}`);
   }
@@ -375,7 +375,6 @@ export async function runRealSourceFlow(input: {
     testsPassed: finalEvaluation.testsPassed, testsTotal: finalEvaluation.testsTotal,
     stability: finalEvaluation.stability, infrastructureFailure: finalEvaluation.infrastructureFailure,
   }, input.policy);
-  run = input.service.transition(run.runId, 'REVIEWING');
   if (finalDecision.outcome !== 'PASS') throw new Error(`FINAL_GATE_NOT_PASS: ${finalDecision.outcome}`);
   const publication = await input.service.publish(
     run.runId, finalCandidate.version.versionId, finalDecision.decisionId,

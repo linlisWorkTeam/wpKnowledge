@@ -33,6 +33,7 @@ function digest(value: string | Uint8Array): string {
 function syncText(executable: string, args: string[], cwd: string, allowFailure = false): string {
   const result = spawnSync(executable, args, {
     cwd,
+    env: executionEnvironment(),
     encoding: 'utf8',
     shell: false,
     windowsHide: true,
@@ -95,7 +96,7 @@ function resolveTool(tool: ProjectTool): ResolvedTool {
 
 function executionEnvironment(): NodeJS.ProcessEnv {
   const allowed = new Set([
-    'PATH', 'Path', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT', 'TEMP', 'TMP', 'USERPROFILE',
+    'PATH', 'Path', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT', 'TEMP', 'TMP', 'HOME', 'USERPROFILE',
     'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramData',
     'RUSTUP_HOME', 'CARGO_HOME', 'PNPM_HOME', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE',
   ]);
@@ -163,6 +164,7 @@ async function capture(
     let stderr: Buffer<ArrayBufferLike> = Buffer.alloc(0);
     let timedOut = false;
     let outputLimitExceeded = false;
+    let aborted = false;
     let settled = false;
 
     const append = (current: Buffer<ArrayBufferLike>, chunk: Buffer<ArrayBufferLike>): Buffer<ArrayBufferLike> => {
@@ -182,7 +184,10 @@ async function capture(
       timedOut = true;
       terminateProcessTree(child.pid);
     }, timeoutMs);
-    const abort = () => terminateProcessTree(child.pid);
+    const abort = () => {
+      aborted = true;
+      terminateProcessTree(child.pid);
+    };
     signal?.addEventListener('abort', abort, { once: true });
     child.once('error', (error) => {
       if (settled) return;
@@ -196,6 +201,10 @@ async function capture(
       settled = true;
       clearTimeout(timeout);
       signal?.removeEventListener('abort', abort);
+      if (aborted) {
+        reject(new Error('PROJECT_EVALUATION_CANCELLED'));
+        return;
+      }
       resolvePromise({
         exitCode,
         timedOut,
@@ -235,8 +244,11 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
   }): Promise<ProjectSnapshot> {
     const repositoryRoot = realpathSync(resolve(input.repositoryRoot));
     const checkoutHead = syncText('git', ['rev-parse', 'HEAD'], repositoryRoot);
+    if (input.expectedCommit && !/^[0-9a-f]{40}$/i.test(input.expectedCommit)) {
+      throw new Error(`PROJECT_COMMIT_INVALID: ${input.expectedCommit}`);
+    }
     const commit = input.expectedCommit
-      ? syncText('git', ['rev-parse', `${input.expectedCommit}^{commit}`], repositoryRoot)
+      ? syncText('git', ['rev-parse', '--verify', `${input.expectedCommit}^{commit}`], repositoryRoot)
       : checkoutHead;
     if (input.expectedCommit && commit.toLowerCase() !== input.expectedCommit.toLowerCase()) {
       throw new Error(`PROJECT_COMMIT_MISMATCH: expected ${input.expectedCommit}, resolved ${commit}`);
@@ -306,11 +318,19 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
         if (!Array.isArray(command.args) || command.args.some((arg) => typeof arg !== 'string' || arg.includes('\0'))) {
           throw new Error('PROJECT_ARGUMENT_DENIED');
         }
+        const timeoutMs = command.timeoutMs ?? 120_000;
+        const maxOutputBytes = command.maxOutputBytes ?? 1_048_576;
+        if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1 || timeoutMs > 1_800_000) {
+          throw new Error(`PROJECT_TIMEOUT_INVALID: ${timeoutMs}`);
+        }
+        if (!Number.isSafeInteger(maxOutputBytes) || maxOutputBytes < 1 || maxOutputBytes > 16_777_216) {
+          throw new Error(`PROJECT_OUTPUT_LIMIT_INVALID: ${maxOutputBytes}`);
+        }
         const commandCwd = command.cwd ? pathInside(workspace, command.cwd) : workspace;
         if (command.cwd) assertNoSymlink(workspace, command.cwd);
         const captured = await capture(
           resolveTool(command.tool), command.args, commandCwd,
-          command.timeoutMs ?? 120_000, command.maxOutputBytes ?? 1_048_576,
+          timeoutMs, maxOutputBytes,
           redactionRoots, signal,
         );
         const counts = countTests(`${captured.stdout}\n${captured.stderr}`, captured.exitCode);
