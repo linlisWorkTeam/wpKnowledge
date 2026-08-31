@@ -28,4 +28,4 @@
 
 ## P0-A Review 清单
 
-`AC-SPEC-001` 还检查：accepted 文件无阻塞性占位标记；Schema 可解析且 `$id` 唯一；权限矩阵无空单元格；状态全集与转换目标一致；Domain 禁止 SDK/语言类型；全部 P0 有场景。P0-A 通过是创建独立 P0-B Spike 的前置条件，不代表 Spike 已通过或生产可用。
+`AC-SPEC-001` 还检查：accepted 文件无阻塞性占位标记；Schema 通过 Draft 2020-12 元校验且 `$id` 唯一；跨文件 `$ref` 可从同一 registry 解析；每个 Agent 角色的合法/非法 fixture 分别通过/失败；权限矩阵无空单元格；状态全集与转换目标一致；Domain 禁止 SDK/语言类型；全部 P0 有场景。可重复的基础校验入口为 `python specs/13-verification/validate_specs.py`。P0-A 通过是创建独立 P0-B Spike 的前置条件，不代表 Spike 已通过或生产可用。

@@ -10,7 +10,7 @@
     "languageId": {"type": "string", "pattern": "^[a-z][a-z0-9+.-]*$"},
     "pluginVersion": {"type": "string", "minLength": 1},
     "payload": {"type": "object"},
-    "artifactRefs": {"type": "array", "items": {"$ref": "artifact-ref.schema.json"}}
+    "artifactRefs": {"type": "array", "items": {"$ref": "https://wpknowledge.local/schemas/artifact-ref/v1"}}
   },
   "additionalProperties": false
 }

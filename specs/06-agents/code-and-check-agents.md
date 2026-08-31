@@ -4,7 +4,7 @@
 
 - **职责**：仅根据候选知识和公开接口，在 fresh session 中生成可构建实现。
 - **输入 Schema**：`agent-command.schema.json` 的 `codegen` payload：knowledgeRef、publicInterfaceRefs、languageId、buildContractRef。
-- **输出 Schema**：`agent-result.schema.json` 的 `codeArtifact` payload。
+- **输出 Schema**：`agent-result.schema.json` 的 `codeArtifact` payload，至少包含 `codeRef`，可附 `buildManifestRef`。
 - **禁止**：读取参考源码、探针、候选/门禁测试、旧轮实现和生成者推理历史；不得运行门禁或自称通过。
 
 ## CheckAgent
