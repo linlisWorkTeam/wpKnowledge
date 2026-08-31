@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://wpknowledge.local/schemas/agent-command/v1",
+  "title": "AgentCommand",
+  "type": "object",
+  "required": ["schemaVersion", "commandId", "runId", "agentType", "generationKey", "payload"],
+  "properties": {
+    "schemaVersion": {"const": "1.0.0"},
+    "commandId": {"type": "string", "minLength": 1},
+    "runId": {"type": "string", "minLength": 1},
+    "agentType": {"enum": ["orchestrator", "docgen", "docworker", "testgen", "codegen", "check", "review"]},
+    "generationKey": {"type": "string", "minLength": 16},
+    "payload": {
+      "type": "object",
+      "required": ["moduleId", "inputRefs"],
+      "properties": {
+        "moduleId": {"type": "string", "minLength": 1},
+        "languageId": {"type": "string", "pattern": "^[a-z][a-z0-9+.-]*$"},
+        "inputRefs": {"type": "array", "items": {"$ref": "artifact-ref.schema.json"}},
+        "corrections": {"type": "array", "items": {"$ref": "correction.schema.json"}},
+        "criteria": {"type": "array", "items": {"type": "string", "minLength": 1}},
+        "resourceClaims": {"type": "array", "items": {"type": "string", "minLength": 1}}
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
