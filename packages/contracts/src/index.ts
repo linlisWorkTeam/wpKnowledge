@@ -42,6 +42,10 @@ export interface FlywheelRepository {
     gateEvent: DomainEvent,
     transitionEvent: DomainEvent,
   ): void;
+  getEvaluationAndDecision(runId: string, versionId: string): {
+    report: EvaluationReport;
+    decision: GateDecision;
+  } | null;
   getGateDecision(decisionId: string): GateDecision | null;
   publish(
     publicationKey: string,

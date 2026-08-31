@@ -331,6 +331,25 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
     });
   }
 
+  getEvaluationAndDecision(runId: string, versionId: string): {
+    report: EvaluationReport;
+    decision: GateDecision;
+  } | null {
+    const reportRow = this.database.prepare(`
+      SELECT report_json FROM evaluations
+      WHERE run_id = ? AND version_id = ? ORDER BY rowid DESC LIMIT 1
+    `).get(runId, versionId) as Record<string, unknown> | undefined;
+    const decisionRow = this.database.prepare(`
+      SELECT decision_json FROM gate_decisions
+      WHERE run_id = ? AND version_id = ? ORDER BY rowid DESC LIMIT 1
+    `).get(runId, versionId) as Record<string, unknown> | undefined;
+    if (!reportRow || !decisionRow) return null;
+    return {
+      report: parse<EvaluationReport>(reportRow.report_json),
+      decision: parse<GateDecision>(decisionRow.decision_json),
+    };
+  }
+
   getGateDecision(decisionId: string): GateDecision | null {
     const row = this.database.prepare('SELECT decision_json FROM gate_decisions WHERE decision_id = ?').get(decisionId) as Record<string, unknown> | undefined;
     return row ? parse<GateDecision>(row.decision_json) : null;

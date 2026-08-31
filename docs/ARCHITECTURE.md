@@ -25,7 +25,7 @@ DSH / CLI / HTTP / future LangGraph
 
 1. Ingestion commits Markdown bytes to CAS and creates a `CANDIDATE` version in SQLite.
 2. The deterministic Quality Gate reports structure, provenance, verification anchors and substance. `ACCEPTED` means the candidate is suitable for behavioral evaluation; it does not mean correct.
-3. A run moves through explicit monotonic states. An `EvaluationReport` binds test totals, critical failures, stability, toolchain fingerprint and immutable evidence artifacts.
+3. A run moves through explicit monotonic states. An `EvaluationReport` binds test totals, critical failures, stability, toolchain fingerprint and immutable evidence artifacts. The report, Gate decision, review transition and their events commit in one transaction; an identical retry replays the same persisted result and a conflicting retry is rejected.
 4. The deterministic Gate returns `PASS`, `ITERATE`, `ROLLBACK` or `STOPPED`.
 5. Publication verifies CAS integrity and performs one SQLite transaction that updates the run, supersedes the previous verified version, verifies the new version, appends the event and creates the publication receipt.
 

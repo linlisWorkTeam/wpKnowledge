@@ -124,7 +124,6 @@ export class KnowledgeFlywheelService {
   async recordEvaluation(input: EvaluationInput, policy: GatePolicy): Promise<{ report: EvaluationReport; decision: GateDecision }> {
     const run = this.requireRun(input.runId);
     const version = this.requireVersion(input.versionId);
-    assertInvariant(run.state === 'EVALUATING', 'run must be EVALUATING before recording a behavioral evaluation');
     assertInvariant(run.moduleId === version.moduleId, 'run and knowledge version module must match');
     assertInvariant(policy.policyId === run.policyId, 'evaluation policy must match the run policy');
     assertInvariant(policy.minimumStability >= 0 && policy.minimumStability <= 1, 'policy minimumStability must be between 0 and 1');
@@ -136,7 +135,8 @@ export class KnowledgeFlywheelService {
     assertInvariant(Number.isSafeInteger(input.testsPassed) && Number.isSafeInteger(input.testsTotal), 'test totals must be integers');
     assertInvariant(input.testsTotal > 0 && input.testsPassed >= 0 && input.testsTotal >= input.testsPassed, 'behavioral evaluation must execute at least one test');
     assertInvariant(input.stability >= 0 && input.stability <= 1, 'stability must be between 0 and 1');
-    for (const ref of input.inputRefs ?? [version.bodyRef]) {
+    const inputRefs = input.inputRefs ?? [version.bodyRef];
+    for (const ref of inputRefs) {
       assertArtifactRef(ref);
       assertInvariant(await this.artifacts.verify(ref), `evaluation input failed integrity verification: ${ref.artifactId}`);
     }
@@ -144,10 +144,29 @@ export class KnowledgeFlywheelService {
       assertArtifactRef(ref);
       assertInvariant(await this.artifacts.verify(ref), `evaluation evidence failed integrity verification: ${ref.artifactId}`);
     }
+    if (run.state === 'REVIEWING') {
+      const existing = this.repository.getEvaluationAndDecision(run.runId, version.versionId);
+      assertInvariant(existing !== null, 'reviewing run is missing its evaluation decision');
+      const sameRefs = (left: ArtifactRef[], right: ArtifactRef[]) =>
+        left.map((ref) => ref.artifactId).join('\0') === right.map((ref) => ref.artifactId).join('\0');
+      assertInvariant(
+        sameRefs(existing.report.inputRefs, inputRefs)
+        && sameRefs(existing.report.evidenceRefs, input.evidenceRefs)
+        && existing.report.toolchainFingerprint === input.toolchainFingerprint
+        && existing.report.criticalFailures === input.criticalFailures
+        && existing.report.testsPassed === input.testsPassed
+        && existing.report.testsTotal === input.testsTotal
+        && existing.report.stability === input.stability
+        && existing.report.infrastructureFailure === (input.infrastructureFailure ?? false),
+        'evaluation replay input collision',
+      );
+      return existing;
+    }
+    assertInvariant(run.state === 'EVALUATING', 'run must be EVALUATING before recording a behavioral evaluation');
     const now = this.clock();
     const report: EvaluationReport = {
       reportId: randomUUID(), runId: run.runId, versionId: version.versionId,
-      inputRefs: input.inputRefs ?? [version.bodyRef], evidenceRefs: input.evidenceRefs,
+      inputRefs, evidenceRefs: input.evidenceRefs,
       toolchainFingerprint: input.toolchainFingerprint,
       criticalFailures: input.criticalFailures,
       testsPassed: input.testsPassed,

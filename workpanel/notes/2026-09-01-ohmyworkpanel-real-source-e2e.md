@@ -25,7 +25,7 @@ npm run acceptance:ohmyworkpanel -- `
   --output summary
 ```
 
-依赖准备在快照中执行 `pnpm install --frozen-lockfile --prefer-offline`。参考门执行定向 Vitest；首版门执行同一测试并要求失败；最终门依次执行五次定向 Vitest、完整前端测试、生产构建和 Rust library 测试。
+本次最终证据保存在 fresh runtime `D:/AI/wpKnowledge-pr11/.workpanel/ohmy-e2e-final6`。依赖准备在快照中执行 `pnpm install --frozen-lockfile --prefer-offline`。参考门执行定向 Vitest；首版门执行同一测试并要求失败；最终门依次执行五次定向 Vitest、完整前端测试、生产构建和 Rust library 测试。
 
 ## 工具链
 
@@ -43,7 +43,7 @@ npm run acceptance:ohmyworkpanel -- `
 
 ## 闭环结果
 
-最终 fresh 复验运行 ID：`31520d49-3a92-4fc7-9bcb-44eee7bb0028`。
+最终 fresh 复验运行 ID：`fad0b5ff-cfb7-4943-8f97-9b552099ab93`。
 
 | 阶段 | 结果 | 测试 | 门禁 |
 |---|---:|---:|---|
@@ -59,7 +59,7 @@ npm run acceptance:ohmyworkpanel -- `
 - Rust library 测试 150 项通过；
 - 合计 279/279，稳定度 1；
 - 最终知识版本 `kv_08b9f7eec15a280cf70f3bf4` 为 `VERIFIED`；
-- Gate decision `bbb17235-957c-46ff-a101-d9bc29b7096c`；
+- Gate decision `205647bd-8838-4656-8e25-1bcafdf1123d`；
 - publication key `ohmyworkpanel-mentions:kv_08b9f7eec15a280cf70f3bf4:local-v1`；
 - 重复发布返回同一 receipt，证明幂等重放。
 
@@ -71,12 +71,12 @@ npm run acceptance:ohmyworkpanel -- `
 |---|---|
 | 场景定义（含命令配置） | `sha256:f95968d6f21cc498ced0112a6a550fc3b9e3e12976531c37b361b754b66989ed` |
 | 源码 manifest | `sha256:14ff2f68e052f19bad6edf870063dda90f3398d9d461cf909a326a2144e42395` |
-| 参考实现执行证据 | `sha256:4e1f2d56ea554ceefa5060130668d04261524afe4392820d7d3e5384141434ea` |
-| 首版失败执行证据 | `sha256:89dc30b13f6d272f40c2df6a800d536d49408e007204a6a87da3b486fe315539` |
+| 参考实现执行证据 | `sha256:0f1852f588d60cdea2295b78f0ee33f07eee06777a2976d5b6885d25c9a6bd59` |
+| 首版失败执行证据 | `sha256:ef140a3bef85ca52651c8475bf8895641d0b14ee48db3adc7742722a64eb3e8e` |
 | 修订前知识正文 | `sha256:0ccb7fb3067f469d5bd199bbb93de3aea1dc1c6ad03215f91f4098a88a330bdf` |
 | 修订后知识正文 | `sha256:42a3e0f51c01f7b2084ba9be650c81a90ab47694aa2973d13e3559604ed10101` |
-| 最终 279/279 执行证据 | `sha256:96a0ea4eb9a265b2299173432adb0d0b3325729315642f4c98385f11b2c7e45d` |
-| 完整闭环报告 | `sha256:3a181a093cb6ae768f8b34acd015eaed9da19535b9aca14a7c7964ed77a029eb` |
+| 最终 279/279 执行证据 | `sha256:43f0b4696c9486306084823cd031caeafc0c90aadd519fc368d68973a61ce109` |
+| 完整闭环报告 | `sha256:3fd7bcca5e06afaf08c5eb02ce02d5c45968ece49aec1be0282beb0b5ebde80c` |
 
 最终报告记录了源码路径、remote、commit、dirty 状态、生成文件摘要、准备与门禁命令的 argv、执行次数、退出码、超时/输出上限状态、经过路径与凭据脱敏的 stdout/stderr、测试计数、工具链版本、知识版本谱系、Correction、门禁、发布 receipt 和有序事件序列。
 

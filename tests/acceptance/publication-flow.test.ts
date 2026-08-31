@@ -11,7 +11,7 @@ test('candidate becomes VERIFIED only after integrity-checked evidence and deter
     run = fixture.service.transition(run.runId, 'GENERATING');
     run = fixture.service.transition(run.runId, 'EVALUATING');
     const evidence = await fixture.artifacts.put(Buffer.from(JSON.stringify({ tests: 12, passed: 12 })), 'application/json');
-    const { decision } = await fixture.service.recordEvaluation({
+    const evaluationInput = {
       runId: run.runId,
       versionId: candidate.version.versionId,
       evidenceRefs: [evidence],
@@ -20,9 +20,18 @@ test('candidate becomes VERIFIED only after integrity-checked evidence and deter
       testsPassed: 12,
       testsTotal: 12,
       stability: 1,
-    }, fixture.config.publicationGate);
+    };
+    const { decision } = await fixture.service.recordEvaluation(evaluationInput, fixture.config.publicationGate);
     assert.equal(decision.outcome, 'PASS');
     assert.equal(fixture.repository.getRun(run.runId)?.state, 'REVIEWING');
+    const eventsAfterEvaluation = fixture.repository.listEvents(run.runId);
+    const replayedEvaluation = await fixture.service.recordEvaluation(evaluationInput, fixture.config.publicationGate);
+    assert.equal(replayedEvaluation.decision.decisionId, decision.decisionId);
+    assert.deepEqual(fixture.repository.listEvents(run.runId), eventsAfterEvaluation);
+    await assert.rejects(
+      fixture.service.recordEvaluation({ ...evaluationInput, testsPassed: 11 }, fixture.config.publicationGate),
+      /evaluation replay input collision/,
+    );
     const first = await fixture.service.publish(run.runId, candidate.version.versionId, decision.decisionId);
     const replay = await fixture.service.publish(run.runId, candidate.version.versionId, decision.decisionId);
     assert.equal(first.replayed, false);
