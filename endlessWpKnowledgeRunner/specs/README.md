@@ -4,4 +4,5 @@
 
 ## 阅读入口
 
+- [前台产品设计](04-product/frontend-product-design.md)：产品定位、信息架构、核心页面、自动化体验、API 需求和分阶段验收。
 - [用户用例与交互时序](05-workflows/user-use-cases.md)：知识消费、候选发布、失败迭代、固定 commit 验收和旧 Runner 兼容调用。

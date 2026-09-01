@@ -15,4 +15,4 @@ node endlessWpKnowledgeRunner/fw.mjs status
 
 ## Specifications
 
-The Runner-facing use cases, actor boundaries, supported entry points, and Mermaid interaction sequences are defined in [`specs/05-workflows/user-use-cases.md`](specs/05-workflows/user-use-cases.md). The repository-level `specs/` directory remains the normative source for shared domain, gate, security, and acceptance contracts.
+The Runner-facing [product specification](specs/README.md), [frontend product design](specs/04-product/frontend-product-design.md), use cases, actor boundaries, supported entry points, and interaction sequences live under `endlessWpKnowledgeRunner/specs/`. The repository-level `specs/` directory remains the normative source for shared domain, gate, security, and acceptance contracts.
