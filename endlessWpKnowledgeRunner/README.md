@@ -1,8 +1,8 @@
 # endlessWpKnowledgeRunner compatibility facade
 
-This directory preserves the established Runner entrypoint while delegating every supported operation to the repository's TypeScript Knowledge Flywheel. It owns no store, quality authority, HTTP server, timer, Python package, or DSH shell bridge.
+This directory preserves the established Runner entrypoint while delegating every state-changing operation to the repository's TypeScript Knowledge Flywheel. It owns no independent store, quality authority, timer, Python package, or DSH shell bridge.
 
-The productized browser assets live in `web/`; `apps/runner/src/server.ts` remains the HTTP adapter and serves those assets without moving Registry, Gate, workflow, or publication authority into this compatibility directory.
+The product console is self-contained here: `web/` owns browser assets, `src/server.ts` owns the HTTP adapter, and `src/console-read-model.ts` owns its read-only SQLite projection. `apps/runner/src/server.ts` is only the established launch/import compatibility facade. Registry writes, Gate, workflow, and publication authority remain in the shared TypeScript core.
 
 ```powershell
 node endlessWpKnowledgeRunner/fw.mjs init

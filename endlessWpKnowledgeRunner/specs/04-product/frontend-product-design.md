@@ -73,6 +73,22 @@
 
 ## 4. 信息架构
 
+### 4.1 实现目录边界
+
+本产品控制台的新增代码必须收口在 `endlessWpKnowledgeRunner/`：
+
+```text
+endlessWpKnowledgeRunner/
+├── specs/                  # Runner 专属产品、用例与时序规范
+├── src/
+│   ├── server.ts           # Console HTTP adapter
+│   └── console-read-model.ts # 只读 Run / Evidence 投影
+├── tests/                  # Console 集成测试
+└── web/                    # HTML、CSS 与浏览器交互
+```
+
+`apps/runner/src/server.ts` 仅作为已有 npm 命令和导入路径的兼容门面，不承载 Console 实现。Console 不得为了页面查询扩张共享 `packages/application`、`packages/contracts` 或写侧 SQLite Repository；状态变更仍只能委托共享应用服务。
+
 ```text
 Knowledge Flywheel
 ├── 概览 Overview

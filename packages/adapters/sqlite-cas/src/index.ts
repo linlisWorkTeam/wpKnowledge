@@ -13,8 +13,7 @@ import type {
   KnowledgeStatus, KnowledgeVersion,
 } from '../../../domain/src/index.ts';
 import type {
-  ArtifactStore, CandidateInput, FlywheelRepository, NodeCheckpoint, RunEvaluationRecord,
-  SequencedDomainEvent,
+  ArtifactStore, CandidateInput, FlywheelRepository, NodeCheckpoint,
 } from '../../../contracts/src/index.ts';
 
 function json(value: unknown): string {
@@ -250,13 +249,6 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
     return row ? this.runFromRow(row) : null;
   }
 
-  listRuns(states?: string[]): FlywheelRun[] {
-    const rows = this.database.prepare('SELECT * FROM runs ORDER BY updated_at DESC, rowid DESC').all() as Record<string, unknown>[];
-    return rows
-      .map((row) => this.runFromRow(row))
-      .filter((run) => !states?.length || states.includes(run.state));
-  }
-
   updateRun(run: FlywheelRun, event: DomainEvent): void {
     this.transaction(() => {
       const result = this.database.prepare(`
@@ -363,22 +355,6 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
     return row ? parse<GateDecision>(row.decision_json) : null;
   }
 
-  listEvaluations(runId: string): RunEvaluationRecord[] {
-    const rows = this.database.prepare(`
-      SELECT report_json,
-        (SELECT decision_json FROM gate_decisions AS decision
-          WHERE decision.run_id = evaluation.run_id AND decision.version_id = evaluation.version_id
-          ORDER BY decision.rowid DESC LIMIT 1) AS decision_json
-      FROM evaluations AS evaluation WHERE run_id = ? ORDER BY rowid
-    `).all(runId) as Record<string, unknown>[];
-    return rows
-      .filter((row) => row.decision_json !== null)
-      .map((row) => ({
-        report: parse<EvaluationReport>(row.report_json),
-        decision: parse<GateDecision>(row.decision_json),
-      }));
-  }
-
   publish(
     publicationKey: string,
     run: FlywheelRun,
@@ -431,23 +407,6 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
       SELECT event_json FROM events WHERE run_id = ? ORDER BY event_seq
     `).all(runId) as Record<string, unknown>[];
     return rows.map((row) => parse<DomainEvent>(row.event_json));
-  }
-
-  listSequencedEvents(runId: string): SequencedDomainEvent[] {
-    const rows = this.database.prepare(`
-      SELECT event_seq, event_json FROM events WHERE run_id = ? ORDER BY event_seq
-    `).all(runId) as Record<string, unknown>[];
-    return rows.map((row) => ({
-      eventSeq: Number(row.event_seq),
-      event: parse<DomainEvent>(row.event_json),
-    }));
-  }
-
-  listCheckpoints(runId: string): NodeCheckpoint[] {
-    const rows = this.database.prepare(`
-      SELECT * FROM checkpoints WHERE run_id = ? ORDER BY updated_at, rowid
-    `).all(runId) as Record<string, unknown>[];
-    return rows.map((row) => this.checkpointFromRow(row));
   }
 
   getCheckpoint(generationKey: string): NodeCheckpoint | null {

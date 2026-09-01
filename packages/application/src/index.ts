@@ -274,37 +274,6 @@ export class KnowledgeFlywheelService {
     return this.repository.listKnowledgeVersions(statuses);
   }
 
-  getRun(runId: string): FlywheelRun | null {
-    return this.repository.getRun(runId);
-  }
-
-  listRuns(states?: string[]): FlywheelRun[] {
-    return this.repository.listRuns(states);
-  }
-
-  listRunSummaries(states?: string[]): Record<string, unknown>[] {
-    return this.repository.listRuns(states).map((run) => ({
-      ...run,
-      latestDecision: this.repository.listEvaluations(run.runId).at(-1)?.decision ?? null,
-    }));
-  }
-
-  getRunSnapshot(runId: string): Record<string, unknown> | null {
-    const run = this.repository.getRun(runId);
-    if (!run) return null;
-    const versions = this.repository.listKnowledgeVersions()
-      .filter((version) => version.moduleId === run.moduleId);
-    const evaluations = this.repository.listEvaluations(runId);
-    return {
-      run,
-      versions,
-      evaluations,
-      checkpoints: this.repository.listCheckpoints(runId),
-      events: this.repository.listSequencedEvents(runId),
-      latestDecision: evaluations.at(-1)?.decision ?? null,
-    };
-  }
-
   recordFeedback(versionId: string, action: string, rating: number | null, note = ''): void {
     this.requireVersion(versionId);
     assertInvariant(['hit', 'rate', 'correct'].includes(action), 'unsupported feedback action');
