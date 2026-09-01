@@ -10,7 +10,7 @@
 |---|---|---|---|
 | UC-KF-001 | 知识消费者 | 只使用已验证知识并提交反馈 | KF-SYS-006、KF-SYS-016；AC-OBS-001、AC-COMPAT-001 |
 | UC-KF-002 | 知识治理者 | 将有来源的候选知识经独立评测发布为 `VERIFIED` | KF-SYS-005、KF-SYS-006、KF-SYS-009、KF-SYS-015；AC-EVAL-002、AC-PUB-001 |
-| UC-KF-003 | 工程师 / Orchestrator | 在失败后归因、局部修订并 fresh 再生成 | KF-SYS-001、KF-SYS-007、KF-SYS-008；AC-FLOW-001、AC-FLOW-002、AC-FLOW-003 |
+| UC-KF-003 | 工程师（启动与异常治理） | 启动由 Workflow Service 自动驱动的失败归因、局部修订与 fresh 再生成 | KF-SYS-001、KF-SYS-007、KF-SYS-008；AC-FLOW-001、AC-FLOW-002、AC-FLOW-003 |
 | UC-KF-004 | 发布验收者 | 对固定 commit 完成可复验的真实源码闭环 | KF-SYS-017、NFR-011；AC-E2E-001 |
 | UC-KF-005 | 旧 Runner 调用方 | 保持旧命令可用且不产生第二套事实源 | KF-SYS-016；AC-COMPAT-001 |
 
@@ -20,7 +20,9 @@
 |---|---|
 | 知识消费者 | 查询、读取和反馈；不授予知识发布权限。 |
 | 知识治理者 | 提交来源、候选内容、策略和由受信评测器产生的证据；只在 Gate `PASS` 后请求发布。 |
-| Orchestrator / Workflow Service | 推进 Run、调度节点、持久化 checkpoint；不得输出具有发布权威的主观结论。 |
+| 工程师 | 启动 Run、选择策略，并处理 `STOPPED`、`LOW_CONFIDENCE` 或需要批准的异常；不得代替 Gate 判定结果。 |
+| OrchestratorAgent | 生成节点 DAG、资源声明和委派计划；不写知识、实现或测试，也不决定 Gate 结果。 |
+| Workflow Service | 按计划自动推进 Run、调用 Agent、持久化 checkpoint，并根据确定性 Gate 选择下一条状态边。 |
 | DocGen / CodeGen / Review | 分别生成知识、实现和 Correction；职责及可见数据受权限矩阵限制。 |
 | EvalRunner | 独立执行构建与测试，提交不可变执行证据。 |
 | Deterministic Gate | 根据固化策略和证据产生 `PASS / ITERATE / ROLLBACK / STOPPED`。 |
@@ -152,6 +154,8 @@ Run、version、decision 和 evidence ID 必须由前一步返回值传给下一
 ### 前置条件与结果
 
 - 当前 Run 已在 `REVIEWING`，且 Gate 结果为 `ITERATE` 或 `ROLLBACK`。
+- 工程师只负责启动 Run、固化策略和处理异常；正常迭代必须由 Workflow Service 自动驱动到终态，不要求工程师逐节点推进。
+- OrchestratorAgent 只生成计划和委派关系，不得决定下一状态；状态转换只能接受确定性 GateDecision。
 - Review 必须输出包含知识路径、判据、证据和风险的结构化 Correction。
 - DocGen 只能修改 Correction 指定的知识范围；人工修订同样只能产生新候选。
 - CodeGen 必须在 fresh 工作区根据新知识重新生成，不得读取上一轮实现或参考实现。
@@ -159,47 +163,58 @@ Run、version、decision 和 evidence ID 必须由前一步返回值传给下一
 ```mermaid
 sequenceDiagram
     autonumber
-    actor Engineer as 工程师 / Orchestrator
+    actor Engineer as 工程师
+    participant Workflow as Workflow Service
+    participant Orchestrator as OrchestratorAgent
     participant Registry as Registry / CAS
     participant Review as ReviewAgent
     participant Doc as DocGen
     participant Code as CodeAgent
     participant Eval as EvalRunner
     participant Gate as Deterministic Gate
+    participant Publisher as Knowledge Publisher
 
-    Engineer->>Registry: 读取失败版本、EvaluationReport 和证据
-    Engineer->>Review: review(knowledgeRef, evaluationRef, criterion)
-    Review-->>Engineer: Correction(path, criterion, evidenceRefs, risk)
-    Engineer->>Registry: 保存 Correction Artifact
+    Engineer->>Workflow: 启动 Run + 固化 Policy
+    Workflow->>Orchestrator: plan(moduleRefs, policyRef)
+    Orchestrator-->>Workflow: 节点 DAG + resourceClaims
+    Workflow->>Workflow: 校验 Schema、依赖和资源冲突
 
-    alt 前次 Gate = ITERATE
-        Engineer->>Registry: Run → ITERATING → GENERATING
-        Engineer->>Doc: revise(baseKnowledgeRef, correctionRef)
-        Doc-->>Engineer: Knowledge v+1
-        Engineer->>Engineer: 校验指定范围外字节未改变
-    else 前次 Gate = ROLLBACK
-        Engineer->>Registry: Run → ROLLING_BACK
-        Registry-->>Engineer: historical best KnowledgeVersion
-        Engineer->>Registry: Run → GENERATING
+    loop Gate 非终态且仍有预算
+        Workflow->>Registry: 读取当前版本、EvaluationReport 和证据
+        alt 前次 Gate = ITERATE
+            Workflow->>Review: review(knowledgeRef, evaluationRef, criterion)
+            Review-->>Workflow: Correction(path, criterion, evidenceRefs, risk)
+            Workflow->>Registry: 保存 Correction；Run → ITERATING → GENERATING
+            Workflow->>Doc: revise(baseKnowledgeRef, correctionRef)
+            Doc-->>Workflow: Knowledge v+1
+            Workflow->>Workflow: 校验指定范围外字节未改变
+            Workflow->>Registry: 保存新 CANDIDATE 与 parent lineage
+        else 前次 Gate = ROLLBACK
+            Workflow->>Registry: Run → ROLLING_BACK；读取 historical best
+            Registry-->>Workflow: historical best KnowledgeVersion
+            Workflow->>Registry: Run → GENERATING
+        end
+
+        Workflow->>Code: fresh generate(newKnowledgeRef, publicInterfaceRefs)
+        Code-->>Workflow: new implementation Artifact
+        Workflow->>Registry: Run → EVALUATING
+        Workflow->>Eval: build and test in isolated workspace
+        Eval-->>Workflow: EvaluationReport + immutable evidence
+        Workflow->>Gate: decide(report, policy)
+        Gate-->>Workflow: PASS / ITERATE / ROLLBACK / STOPPED
     end
 
-    Engineer->>Code: fresh generate(newKnowledgeRef, publicInterfaceRefs)
-    Code-->>Engineer: new implementation Artifact
-    Engineer->>Registry: Run → EVALUATING
-    Engineer->>Eval: build and test in isolated workspace
-    Eval-->>Gate: EvaluationReport + evidence
-    Gate-->>Engineer: PASS / ITERATE / ROLLBACK / STOPPED
-
-    alt PASS
-        Engineer->>Registry: 原子发布新版本
-    else 仍有预算
-        Engineer->>Review: 下一轮归因
-    else STOPPED
-        Engineer->>Registry: LOW_CONFIDENCE + 治理证据
+    alt Gate = PASS
+        Workflow->>Publisher: publish(runId, versionId, decisionId)
+        Publisher->>Registry: 原子 VERIFIED + event + receipt
+        Workflow-->>Engineer: 发布结果与审计引用
+    else Gate = STOPPED
+        Workflow->>Registry: LOW_CONFIDENCE + 治理证据
+        Workflow-->>Engineer: 请求人工治理
     end
 ```
 
-发布后的人工修改不得原地覆盖 `VERIFIED` 内容，而必须创建新 KnowledgeVersion 和新 Run，重新执行本用例。
+发布后的人工修改不得原地覆盖 `VERIFIED` 内容，而必须创建新 KnowledgeVersion 和新 Run，重新执行本用例。工程师可以取消 Run 或处理治理请求，但不得在正常迭代中代替 Workflow Service 手工选择下一条状态边。
 
 ## UC-KF-004：固定 commit 的真实源码发布验收
 
@@ -320,6 +335,6 @@ sequenceDiagram
 ## 当前实现边界
 
 - UC-KF-001、UC-KF-002 的核心存储、查询、评测录入和发布路径已实现；通用评测的进程执行仍由独立受信评测器负责。
-- UC-KF-003 的状态、Correction 薄切片、增量修订和 fresh 再生成已在固定场景实现；自动 historical-best `ROLLBACK`、完整 TestGen/oracle 和生产 Orchestrator 仍按追踪矩阵标为 `Partial` 或 `Planned`。
+- UC-KF-003 的状态、Correction 薄切片、增量修订、fresh 再生成和 PASS 后发布已在固定场景自动编排；通用 CLI 仍需人工逐步推进。自动 historical-best `ROLLBACK`、完整 TestGen/oracle、真实 AgentProvider 和生产 Orchestrator 仍按追踪矩阵标为 `Partial` 或 `Planned`。
 - UC-KF-004 已以确定性 Scenario Agent 和受信 ProjectEvaluator 实现，不得外推为真实 GLM 质量或敌对代码隔离证明。
 - UC-KF-005 已实现为兼容门面，且不拥有发布能力。
