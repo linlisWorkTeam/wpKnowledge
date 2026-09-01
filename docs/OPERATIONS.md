@@ -81,6 +81,14 @@ npm run knowledge:serve
 
 Open `http://127.0.0.1:4174`. Read endpoints do not require credentials. Mutation endpoints require `Authorization: Bearer <local-secret>`; with no configured token, writes return `503 WRITE_API_DISABLED`.
 
+For an explicitly public, read-only deployment, override the configured listener without enabling the write token:
+
+```bash
+WP_KNOWLEDGE_HOST=0.0.0.0 WP_KNOWLEDGE_PORT=80 npm run knowledge:serve
+```
+
+Then open `http://<server-public-ip>/`. The cloud security group must allow inbound TCP traffic to the selected port. Prefer restricting the source CIDR to the operator's IP; do not expose mutation endpoints over plain HTTP. Use a TLS reverse proxy before enabling `WP_KNOWLEDGE_WRITE_TOKEN` on any non-local interface.
+
 The product console provides Overview, Runs, Knowledge, Governance, Evidence and Settings views. Run observation uses `GET /api/v1/runs`, `GET /api/v1/runs/:runId` and the ordered event tail at `GET /api/v1/runs/:runId/events?after=<event-seq>`. The browser remains read-only by default; the operator token is held only in current-page memory and is currently used by the feedback form. Generic automatic Run start is intentionally disabled until the server-side Workflow Command API exists; the browser never simulates orchestration by chaining raw transition calls.
 
 The stable local API prefix is `/api/v1`. `/health` remains unversioned for process probes.

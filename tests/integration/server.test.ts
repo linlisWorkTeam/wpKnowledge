@@ -4,8 +4,26 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createKnowledgeServer } from '../../apps/runner/src/server.ts';
+import { createKnowledgeServer, resolveServerBinding } from '../../apps/runner/src/server.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
+
+test('server binding defaults to config and supports explicit deployment overrides', () => {
+  assert.deepEqual(
+    resolveServerBinding({ host: '127.0.0.1', port: 4174 }, {}),
+    { host: '127.0.0.1', port: 4174 },
+  );
+  assert.deepEqual(
+    resolveServerBinding(
+      { host: '127.0.0.1', port: 4174 },
+      { WP_KNOWLEDGE_HOST: '0.0.0.0', WP_KNOWLEDGE_PORT: '8080' },
+    ),
+    { host: '0.0.0.0', port: 8080 },
+  );
+  assert.throws(
+    () => resolveServerBinding({ host: '127.0.0.1', port: 4174 }, { WP_KNOWLEDGE_PORT: 'invalid' }),
+    /WP_KNOWLEDGE_PORT must be 1\.\.65535/,
+  );
+});
 
 test('HTTP adapter rejects missing credentials and accepts authenticated candidates', async () => {
   const runtimeDir = mkdtempSync(join(tmpdir(), 'wp-server-'));

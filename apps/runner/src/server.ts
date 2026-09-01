@@ -7,6 +7,25 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { createComposition } from './composition.ts';
 
+export interface ServerBinding {
+  host: string;
+  port: number;
+}
+
+export function resolveServerBinding(
+  configured: ServerBinding,
+  environment: Partial<Pick<NodeJS.ProcessEnv, 'WP_KNOWLEDGE_HOST' | 'WP_KNOWLEDGE_PORT'>> = process.env,
+): ServerBinding {
+  const host = environment.WP_KNOWLEDGE_HOST?.trim() || configured.host;
+  const rawPort = environment.WP_KNOWLEDGE_PORT?.trim();
+  const port = rawPort ? Number(rawPort) : configured.port;
+  if (!host) throw new Error('CONFIG_INVALID: server host must not be empty');
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+    throw new Error('CONFIG_INVALID: WP_KNOWLEDGE_PORT must be 1..65535');
+  }
+  return { host, port };
+}
+
 const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../endlessWpKnowledgeRunner/web');
 const assets = new Map([
   ['/', 'index.html'],
@@ -236,7 +255,8 @@ export function createKnowledgeServer(input: {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const instance = createKnowledgeServer();
-  instance.server.listen(instance.composition.config.server.port, instance.composition.config.server.host, () => {
-    process.stdout.write(`wpKnowledge dashboard: http://${instance.composition.config.server.host}:${instance.composition.config.server.port}\n`);
+  const binding = resolveServerBinding(instance.composition.config.server);
+  instance.server.listen(binding.port, binding.host, () => {
+    process.stdout.write(`wpKnowledge dashboard: http://${binding.host}:${binding.port}\n`);
   });
 }
