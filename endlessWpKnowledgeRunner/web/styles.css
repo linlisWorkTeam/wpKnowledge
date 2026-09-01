@@ -10,7 +10,7 @@
   --border: #273140;
   --border-soft: #202936;
   --text: #eef2f7;
-  --muted: #91a0b4;
+  --muted: #9aa8ba;
   --faint: #65758a;
   --accent: #71d4ff;
   --accent-strong: #27b6f6;
@@ -34,7 +34,7 @@
   --text: #17212b;
   --muted: #586b7d;
   --faint: #718397;
-  --accent: #087ca9;
+  --accent: #07769f;
   --accent-strong: #006f9e;
   --success: #087c58;
   --warning: #92610f;
@@ -308,6 +308,7 @@ dialog label { display: grid; gap: 7px; color: #bbc6d3; font-size: .7rem; }
 :root[data-theme="light"] .panel { background: linear-gradient(145deg, #ffffff, #f8fafb); box-shadow: 0 12px 35px rgba(46,65,78,.07); }
 :root[data-theme="light"] .counter { background: #e7eef3; color: #536779; }
 :root[data-theme="light"] .metric { background: linear-gradient(145deg, #ffffff, #f2f6f8); }
+:root[data-theme="light"] .skip-link { color: #ffffff; }
 :root[data-theme="light"] .capability-list li,
 :root[data-theme="light"] .run-identity b { color: #2f4050; }
 :root[data-theme="light"] .run-row:hover { background: #edf3f6; }
