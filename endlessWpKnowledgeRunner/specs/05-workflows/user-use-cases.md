@@ -1,0 +1,325 @@
+# 用户用例与交互时序
+
+**状态：Accepted｜版本：1.0.0｜基线日期：2026-09-01**
+
+本文把需求、验收场景和用户入口连接成可执行的交互视图。时序图中的“必须 / 不得”具有规范性；具体能力是否已经落地，以[追踪矩阵](../../../specs/13-verification/traceability-matrix.md)为准。
+
+## 用例目录
+
+| 用例 ID | 主要用户 | 用户目标 | 需求与验收映射 |
+|---|---|---|---|
+| UC-KF-001 | 知识消费者 | 只使用已验证知识并提交反馈 | KF-SYS-006、KF-SYS-016；AC-OBS-001、AC-COMPAT-001 |
+| UC-KF-002 | 知识治理者 | 将有来源的候选知识经独立评测发布为 `VERIFIED` | KF-SYS-005、KF-SYS-006、KF-SYS-009、KF-SYS-015；AC-EVAL-002、AC-PUB-001 |
+| UC-KF-003 | 工程师 / Orchestrator | 在失败后归因、局部修订并 fresh 再生成 | KF-SYS-001、KF-SYS-007、KF-SYS-008；AC-FLOW-001、AC-FLOW-002、AC-FLOW-003 |
+| UC-KF-004 | 发布验收者 | 对固定 commit 完成可复验的真实源码闭环 | KF-SYS-017、NFR-011；AC-E2E-001 |
+| UC-KF-005 | 旧 Runner 调用方 | 保持旧命令可用且不产生第二套事实源 | KF-SYS-016；AC-COMPAT-001 |
+
+## 参与者与责任
+
+| 参与者 | 责任 |
+|---|---|
+| 知识消费者 | 查询、读取和反馈；不授予知识发布权限。 |
+| 知识治理者 | 提交来源、候选内容、策略和由受信评测器产生的证据；只在 Gate `PASS` 后请求发布。 |
+| Orchestrator / Workflow Service | 推进 Run、调度节点、持久化 checkpoint；不得输出具有发布权威的主观结论。 |
+| DocGen / CodeGen / Review | 分别生成知识、实现和 Correction；职责及可见数据受权限矩阵限制。 |
+| EvalRunner | 独立执行构建与测试，提交不可变执行证据。 |
+| Deterministic Gate | 根据固化策略和证据产生 `PASS / ITERATE / ROLLBACK / STOPPED`。 |
+| Knowledge Publisher | 在一个事务中更新知识、Run、事件和 publication receipt。 |
+
+## UC-KF-001：查询已验证知识并反馈
+
+### 前置条件与结果
+
+- Registry 已初始化，并且至少存在一个已通过行为门禁的 `VERIFIED` 版本。
+- 未显式指定状态时，查询必须只返回 `VERIFIED` 知识。
+- 反馈必须形成独立记录，不得直接修改知识正文、状态或 GateDecision。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 知识消费者
+    participant Client as Dashboard / CLI / DSH
+    participant Query as Query Service
+    participant Registry as SQLite Registry
+    participant CAS as Artifact Store
+
+    User->>Client: 输入查询词
+    Client->>Query: query(q, status=VERIFIED)
+    Query->>Registry: 检索已发布版本及元数据
+    Registry-->>Query: KnowledgeVersion 命中
+    Query->>CAS: 读取并校验正文 Artifact
+    CAS-->>Query: 完整正文
+    Query-->>Client: 排序结果 + provenance + versionId
+    Client-->>User: 展示可使用的知识
+
+    opt 用户评价或指出错误
+        User->>Client: hit / rate / correct + note
+        Client->>Registry: 保存 Feedback(versionId)
+        Registry-->>Client: accepted
+        Note over Registry: Feedback 不直接改变<br/>VERIFIED 权限或正文
+        Client-->>User: 反馈已记录
+    end
+```
+
+### 用户入口
+
+| 目的 | 入口 |
+|---|---|
+| 查询 | `npm run knowledge -- query --q <text>` |
+| 精确读取 | `npm run knowledge -- get --module <module-id>` 或 `--version <version-id>` |
+| 反馈 | `npm run knowledge -- feedback --module <module-id> --action hit\|rate\|correct` |
+| 图形界面 | 启动 `npm run knowledge:serve` 后访问本地 Dashboard |
+| Agent/DSH | `wp_knowledge_query`、`wp_knowledge_feedback`；不得发布 |
+
+## UC-KF-002：从候选到 VERIFIED
+
+### 前置条件与结果
+
+- 知识治理者必须提供稳定 `moduleId`、非空 Markdown 和至少一个 provenance。
+- Quality Gate 的 `ACCEPTED` 只允许候选进入行为评测，不代表知识正确。
+- 通用 `evaluate` 入口只接收受信评测报告，不负责启动编译或测试进程。
+- 只有与 Run、版本和证据范围一致的 `PASS` 决策可以发布。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Governor as 知识治理者
+    participant CLI as CLI / Protected API
+    participant Service as Flywheel Service
+    participant CAS as Artifact Store
+    participant Registry as SQLite Registry
+    participant Evaluator as 独立评测器
+    participant Gate as Deterministic Gate
+    participant Publisher as Knowledge Publisher
+
+    Governor->>CLI: ingest(Markdown, provenance)
+    CLI->>Service: ingestCandidate()
+    Service->>CAS: 写正文并生成 sha256 ArtifactRef
+    Service->>Service: 执行 Quality Gate
+    Service->>Registry: 保存 CANDIDATE + parent + quality
+    Service-->>Governor: versionId + QualityReport
+
+    alt Quality = REJECTED
+        Note over Governor,Registry: 候选可以保留，但不得进入行为 Gate
+    else Quality = ACCEPTED
+        Governor->>CLI: create-run(moduleId, policyId)
+        CLI->>Service: CREATED → PLANNED → GENERATING → EVALUATING
+        Service->>Registry: 逐次保存状态和事件
+
+        Governor->>Evaluator: 使用候选执行独立构建与测试
+        Evaluator-->>Governor: report + immutable evidence
+        Governor->>CLI: evaluate(runId, versionId, evidence, metrics)
+        CLI->>CAS: 保存并校验证据
+        CLI->>Service: recordEvaluation()
+        Service->>Gate: decide(report, policy)
+        Gate-->>Service: GateDecision
+        Service->>Registry: 原子保存 Report + Decision + REVIEWING + events
+        Service-->>Governor: outcome + decisionId
+
+        alt outcome = PASS
+            Governor->>CLI: publish(runId, versionId, decisionId)
+            CLI->>Publisher: 校验正文、provenance、证据和作用域
+            Publisher->>Registry: 原子 supersede + VERIFIED + event + receipt
+            Registry-->>Governor: publicationKey
+        else outcome = ITERATE
+            Service-->>Governor: 创建 Correction 并进入 UC-KF-003
+        else outcome = ROLLBACK
+            Service-->>Governor: 选择 historical best 并进入 UC-KF-003
+        else outcome = STOPPED
+            Service-->>Governor: 转 LOW_CONFIDENCE，交由人工治理
+        end
+    end
+```
+
+### 用户操作顺序
+
+```text
+init
+  → ingest
+  → create-run
+  → transition PLANNED
+  → transition GENERATING
+  → transition EVALUATING
+  → 在独立环境执行测试
+  → evaluate
+  → 若 PASS，则 publish
+```
+
+Run、version、decision 和 evidence ID 必须由前一步返回值传给下一步，不得按名称猜测或跨 Run 复用。
+
+## UC-KF-003：失败归因与知识迭代
+
+### 前置条件与结果
+
+- 当前 Run 已在 `REVIEWING`，且 Gate 结果为 `ITERATE` 或 `ROLLBACK`。
+- Review 必须输出包含知识路径、判据、证据和风险的结构化 Correction。
+- DocGen 只能修改 Correction 指定的知识范围；人工修订同样只能产生新候选。
+- CodeGen 必须在 fresh 工作区根据新知识重新生成，不得读取上一轮实现或参考实现。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Engineer as 工程师 / Orchestrator
+    participant Registry as Registry / CAS
+    participant Review as ReviewAgent
+    participant Doc as DocGen
+    participant Code as CodeAgent
+    participant Eval as EvalRunner
+    participant Gate as Deterministic Gate
+
+    Engineer->>Registry: 读取失败版本、EvaluationReport 和证据
+    Engineer->>Review: review(knowledgeRef, evaluationRef, criterion)
+    Review-->>Engineer: Correction(path, criterion, evidenceRefs, risk)
+    Engineer->>Registry: 保存 Correction Artifact
+
+    alt 前次 Gate = ITERATE
+        Engineer->>Registry: Run → ITERATING → GENERATING
+        Engineer->>Doc: revise(baseKnowledgeRef, correctionRef)
+        Doc-->>Engineer: Knowledge v+1
+        Engineer->>Engineer: 校验指定范围外字节未改变
+    else 前次 Gate = ROLLBACK
+        Engineer->>Registry: Run → ROLLING_BACK
+        Registry-->>Engineer: historical best KnowledgeVersion
+        Engineer->>Registry: Run → GENERATING
+    end
+
+    Engineer->>Code: fresh generate(newKnowledgeRef, publicInterfaceRefs)
+    Code-->>Engineer: new implementation Artifact
+    Engineer->>Registry: Run → EVALUATING
+    Engineer->>Eval: build and test in isolated workspace
+    Eval-->>Gate: EvaluationReport + evidence
+    Gate-->>Engineer: PASS / ITERATE / ROLLBACK / STOPPED
+
+    alt PASS
+        Engineer->>Registry: 原子发布新版本
+    else 仍有预算
+        Engineer->>Review: 下一轮归因
+    else STOPPED
+        Engineer->>Registry: LOW_CONFIDENCE + 治理证据
+    end
+```
+
+发布后的人工修改不得原地覆盖 `VERIFIED` 内容，而必须创建新 KnowledgeVersion 和新 Run，重新执行本用例。
+
+## UC-KF-004：固定 commit 的真实源码发布验收
+
+### 前置条件与结果
+
+- 用户提供包含场景所固定 commit 的受信 Git 仓库。
+- 系统必须通过 `git archive` 在源仓库外创建临时快照，不得 checkout、覆盖或清理用户工作区。
+- 当前场景的 SchemaValidatedScenarioAgent 只证明契约和编排，不证明在线模型质量。
+- TrustedProjectEvaluator 不是敌对代码沙箱；来源或生成代码不受信时必须拒绝运行。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Validator as 发布验收者
+    participant Runner as Project Acceptance Runner
+    participant Git as 受信 Git 仓库
+    participant Agent as Scenario Agent
+    participant Eval as TrustedProjectEvaluator
+    participant Gate as Deterministic Gate
+    participant Store as Registry / CAS
+
+    Validator->>Runner: acceptance(repository, runtime)
+    Runner->>Git: inspect(exact 40-char commit)
+    Git-->>Runner: commit + checkoutHead + dirty
+    Runner->>Git: git archive(fixed commit)
+    Git-->>Runner: 仓库外临时快照
+
+    Runner->>Eval: 执行 reference commands
+    Eval->>Store: 保存 reference evidence
+    Eval-->>Runner: reference 通过
+
+    Runner->>Agent: DocGen v1
+    Agent-->>Store: CANDIDATE v1
+    Runner->>Agent: CodeGen v1
+    Agent-->>Runner: implementation v1
+    Runner->>Eval: 在临时快照执行 v1
+    Eval-->>Gate: 首轮失败证据
+    Gate-->>Runner: ITERATE
+
+    Runner->>Agent: Review(failure evidence)
+    Agent-->>Store: Correction
+    Runner->>Agent: 仅修订指定知识章节
+    Agent-->>Store: CANDIDATE v2，parent=v1
+    Runner->>Agent: fresh CodeGen v2
+    Agent-->>Runner: implementation v2
+    Runner->>Eval: 执行最终白名单命令
+    Eval-->>Gate: 完整测试证据
+    Gate-->>Runner: PASS
+    Runner->>Store: 原子发布 v2
+    Store-->>Runner: VERIFIED + publication receipt
+    Runner->>Store: 重放相同 publish
+    Store-->>Runner: 同一 receipt，replayed=true
+
+    Runner->>Git: 再次 inspect
+    Git-->>Runner: checkoutHead 和 dirty 未变化
+    Runner-->>Validator: runId + evidenceRefs + GateDecision + receipt
+```
+
+### 用户入口
+
+```text
+npm run acceptance:ohmyworkpanel --
+  --repository <受信仓库路径>
+  --runtime <仓库外运行目录>
+  --output summary
+```
+
+固定 commit 来自场景定义；用户不得用任意分支 HEAD 隐式替换。完整流程和证据要求见[真实源码验收工作流](../../../specs/05-workflows/real-source-acceptance.md)。
+
+## UC-KF-005：旧 Runner 兼容调用
+
+### 前置条件与结果
+
+- 旧调用方继续以 `endlessWpKnowledgeRunner/fw.mjs` 作为进程入口。
+- 兼容层必须和新 CLI 共用 `WP_FLYWHEEL_HOME` 指向的 SQLite/CAS。
+- 兼容层不得实现第二套状态机、评分权威、定时器或发布路径。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Legacy as 旧自动化脚本
+    participant Facade as endlessWpKnowledgeRunner/fw.mjs
+    participant CLI as TypeScript CLI
+    participant Core as Knowledge Flywheel
+    participant Store as Shared SQLite / CAS
+
+    Legacy->>Facade: init / ingest / query / get / status / scan / feedback
+    Facade->>Facade: 确定性映射旧参数
+    Facade->>CLI: 调用同一命令入口
+    CLI->>Core: 执行应用服务
+    Core->>Store: 读写唯一 Registry
+    Store-->>Legacy: 返回新核心结果
+
+    alt score / eval / harvest
+        Legacy->>Facade: 调用已退休命令
+        Facade-->>Legacy: 明确失败 + 迁移指引
+    else 使用 --root 选择平行存储
+        Legacy->>Facade: --root <path>
+        Facade-->>Legacy: 拒绝参数
+    end
+```
+
+旧 `verified` 查询状态映射到 `VERIFIED`，旧 `draft` 映射到 `CANDIDATE`；旧 `eval` 不得映射到新发布流程，因为它缺少完整行为证据和 Gate 权威。
+
+## 接口与权限约束
+
+| 接口 | 适用用户 | 能力边界 |
+|---|---|---|
+| CLI | 本地知识治理者 | 支持完整候选、Run、评测报告录入和发布操作。 |
+| Dashboard / HTTP GET | 知识消费者 | 只读；默认查询 `VERIFIED`。 |
+| HTTP POST | 受信本地治理者 | 未配置写 token 时返回 `503`；Bearer token 无效时返回 `401`。 |
+| DSH Adapter | Agent 消费者 | 查询、状态、扫描、候选录入和反馈；不能发布。 |
+| Legacy facade | 旧自动化 | 只映射保留命令；不能恢复旧评分或发布语义。 |
+| Project acceptance | 发布验收者 | 仅用于固定 commit、受信源码和白名单命令。 |
+
+所有写入口最终必须经过同一 Application Service、Registry 和 CAS。入口差异不得改变 `CANDIDATE → EvaluationReport → GateDecision → VERIFIED` 的权威链。
+
+## 当前实现边界
+
+- UC-KF-001、UC-KF-002 的核心存储、查询、评测录入和发布路径已实现；通用评测的进程执行仍由独立受信评测器负责。
+- UC-KF-003 的状态、Correction 薄切片、增量修订和 fresh 再生成已在固定场景实现；自动 historical-best `ROLLBACK`、完整 TestGen/oracle 和生产 Orchestrator 仍按追踪矩阵标为 `Partial` 或 `Planned`。
+- UC-KF-004 已以确定性 Scenario Agent 和受信 ProjectEvaluator 实现，不得外推为真实 GLM 质量或敌对代码隔离证明。
+- UC-KF-005 已实现为兼容门面，且不拥有发布能力。

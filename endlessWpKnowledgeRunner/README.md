@@ -12,3 +12,7 @@ node endlessWpKnowledgeRunner/fw.mjs status
 `init`, `ingest`, `query`, `get`, `status`, `scan`, and `feedback` map to the versioned core CLI. Legacy `verified` maps to `VERIFIED`; legacy `draft` maps to `CANDIDATE`. `--force-draft` is redundant because ingestion can only create candidates.
 
 `score`, `eval`, and `harvest` fail with migration guidance. Their previous semantics either treated document quality as publication authority or relied on non-recoverable timer state. Use the real-source workflow and independent EvalRunner for behavioral verification. Set `WP_FLYWHEEL_HOME` to choose the shared SQLite/CAS runtime location; the removed `--root` flag is intentionally not reinterpreted.
+
+## Specifications
+
+The Runner-facing use cases, actor boundaries, supported entry points, and Mermaid interaction sequences are defined in [`specs/05-workflows/user-use-cases.md`](specs/05-workflows/user-use-cases.md). The repository-level `specs/` directory remains the normative source for shared domain, gate, security, and acceptance contracts.

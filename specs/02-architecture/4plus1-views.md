@@ -2,7 +2,7 @@
 
 ## 场景视图（+1）
 
-`源码快照 → Doc/Test 两条独立链路 → 知识驱动 Code → Check → 确定性 Eval → Review → iterate/rollback/pass`。关键场景详见 `AC-FLOW-001`、`AC-SEC-001`、`AC-REC-001`。
+`源码快照 → Doc/Test 两条独立链路 → 知识驱动 Code → Check → 确定性 Eval → Review → iterate/rollback/pass`。关键场景详见 `AC-FLOW-001`、`AC-SEC-001`、`AC-REC-001`；面向知识消费者、治理者、工程师、验收者和旧调用方的交互见[endlessWpKnowledgeRunner 用户用例与交互时序](../../endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md)。
 
 ## 逻辑视图
 
@@ -28,4 +28,3 @@ V1 部署在个人电脑：runner + SQLite checkpoint/run registry + 本地文�
 ## 约束验证
 
 架构测试扫描 `packages/domain` 禁止 `dsh`、`langgraph`、`temporal`、编译器 AST 包依赖；语言插件契约测试使用非 C++ 假插件证明核心无语言假设。
-

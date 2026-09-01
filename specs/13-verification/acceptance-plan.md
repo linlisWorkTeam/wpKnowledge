@@ -2,6 +2,8 @@
 
 所有场景使用 Given/When/Then，可自动化场景为发布阻塞项。
 
+验收场景对应的用户目标、参与者边界、成功/失败分支和接口入口见[endlessWpKnowledgeRunner 用户用例与交互时序](../../endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md)。
+
 | ID | 场景 |
 |---|---|
 | AC-SPEC-001 | Given 本规范集，When 执行 spec lint，Then 每个 SYS/NFR P0 ID 在追踪矩阵中恰有一行且实现、测试、场景非空。 |

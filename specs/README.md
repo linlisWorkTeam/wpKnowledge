@@ -10,7 +10,7 @@
 2. [系统需求](01-requirements/system-requirements.md)与[非功能需求](01-requirements/non-functional-requirements.md)
 3. [系统上下文](02-architecture/system-context.md)与 [4+1 视图](02-architecture/4plus1-views.md)
 4. [领域模型](03-domain/domain-model.md)
-5. [知识飞轮工作流](05-workflows/knowledge-flywheel-workflow.md)、[断点恢复](05-workflows/checkpoint-and-recovery.md)与[真实源码验收](05-workflows/real-source-acceptance.md)
+5. [知识飞轮工作流](05-workflows/knowledge-flywheel-workflow.md)、[endlessWpKnowledgeRunner 用户用例与交互时序](../endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md)、[断点恢复](05-workflows/checkpoint-and-recovery.md)与[真实源码验收](05-workflows/real-source-acceptance.md)
 6. [Agent 规范](06-agents/README.md)、[语言插件](07-language-plugins/language-plugin-contract.md)、[评测与发布门禁](08-evaluation/evaluation-model.md)
 7. [数据边界](09-security/data-boundaries.md)、[验收计划](13-verification/acceptance-plan.md)和[追踪矩阵](13-verification/traceability-matrix.md)
 8. [ADR](adr/README.md)与可机器校验的 [JSON Schema](schemas/README.md)
