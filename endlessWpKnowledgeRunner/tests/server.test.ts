@@ -4,8 +4,8 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createKnowledgeServer, resolveServerBinding } from '../../apps/runner/src/server.ts';
-import { GOOD_BODY } from '../helpers/fixture.ts';
+import { createKnowledgeServer, resolveServerBinding } from '../src/server.ts';
+import { GOOD_BODY } from '../../tests/helpers/fixture.ts';
 
 test('server binding defaults to config and supports explicit deployment overrides', () => {
   assert.deepEqual(

@@ -25,21 +25,10 @@ export interface CandidateInput {
   createdAt: string;
 }
 
-export interface RunEvaluationRecord {
-  report: EvaluationReport;
-  decision: GateDecision;
-}
-
-export interface SequencedDomainEvent {
-  eventSeq: number;
-  event: DomainEvent;
-}
-
 export interface FlywheelRepository {
   initialize(): void;
   saveRun(run: FlywheelRun, event: DomainEvent): void;
   getRun(runId: string): FlywheelRun | null;
-  listRuns(states?: string[]): FlywheelRun[];
   updateRun(run: FlywheelRun, event: DomainEvent): void;
   saveCandidate(input: CandidateInput, event: DomainEvent): KnowledgeVersion;
   getKnowledgeVersion(versionId: string): KnowledgeVersion | null;
@@ -58,7 +47,6 @@ export interface FlywheelRepository {
     decision: GateDecision;
   } | null;
   getGateDecision(decisionId: string): GateDecision | null;
-  listEvaluations(runId: string): RunEvaluationRecord[];
   publish(
     publicationKey: string,
     run: FlywheelRun,
@@ -69,8 +57,6 @@ export interface FlywheelRepository {
   getPublication(publicationKey: string): { publicationKey: string; versionId: string; publishedAt: string } | null;
   recordFeedback(versionId: string, action: string, rating: number | null, note: string, now: string): void;
   listEvents(runId: string): DomainEvent[];
-  listSequencedEvents(runId: string): SequencedDomainEvent[];
-  listCheckpoints(runId: string): NodeCheckpoint[];
   getCheckpoint(generationKey: string): NodeCheckpoint | null;
   claimCheckpoint(checkpoint: NodeCheckpoint): NodeCheckpoint;
   commitCheckpoint(generationKey: string, outputRefs: ArtifactRef[], event: DomainEvent, now: string): NodeCheckpoint;
