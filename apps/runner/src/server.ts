@@ -7,7 +7,26 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { createComposition } from './composition.ts';
 
-const webRoot = join(dirname(fileURLToPath(import.meta.url)), '../web');
+export interface ServerBinding {
+  host: string;
+  port: number;
+}
+
+export function resolveServerBinding(
+  configured: ServerBinding,
+  environment: Partial<Pick<NodeJS.ProcessEnv, 'WP_KNOWLEDGE_HOST' | 'WP_KNOWLEDGE_PORT'>> = process.env,
+): ServerBinding {
+  const host = environment.WP_KNOWLEDGE_HOST?.trim() || configured.host;
+  const rawPort = environment.WP_KNOWLEDGE_PORT?.trim();
+  const port = rawPort ? Number(rawPort) : configured.port;
+  if (!host) throw new Error('CONFIG_INVALID: server host must not be empty');
+  if (!Number.isSafeInteger(port) || port < 1 || port > 65535) {
+    throw new Error('CONFIG_INVALID: WP_KNOWLEDGE_PORT must be 1..65535');
+  }
+  return { host, port };
+}
+
+const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../endlessWpKnowledgeRunner/web');
 const assets = new Map([
   ['/', 'index.html'],
   ['/index.html', 'index.html'],
@@ -81,6 +100,53 @@ export function createKnowledgeServer(input: {
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/status') {
         send(response, 200, composition.service.status());
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/capabilities') {
+        send(response, 200, {
+          writeEnabled: Boolean(writeToken),
+          automatedWorkflow: false,
+          trustedProjectEvaluation: true,
+          hostileCodeIsolation: false,
+          authentication: writeToken ? 'bearer' : 'disabled',
+        });
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/runs') {
+        const states = (url.searchParams.get('state') ?? '').split(',').filter(Boolean);
+        send(response, 200, { runs: composition.service.listRunSummaries(states.length ? states : undefined) });
+        return;
+      }
+      if (request.method === 'GET' && url.pathname.startsWith('/api/v1/runs/')) {
+        const suffix = url.pathname.slice('/api/v1/runs/'.length);
+        const segments = suffix.split('/');
+        const [encodedRunId, child] = segments;
+        if (segments.length > 2) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        const runId = decodeURIComponent(encodedRunId ?? '');
+        const snapshot = composition.service.getRunSnapshot(runId);
+        if (!snapshot) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        if (child === 'events') {
+          const after = Number(url.searchParams.get('after') ?? 0);
+          if (!Number.isSafeInteger(after) || after < 0) {
+            send(response, 400, { error: 'ARGUMENT_INVALID', message: 'after must be a non-negative integer' });
+            return;
+          }
+          const events = (snapshot.events as { eventSeq: number }[])
+            .filter((record) => record.eventSeq > after);
+          send(response, 200, { runId, events });
+          return;
+        }
+        if (child) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        send(response, 200, snapshot);
         return;
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/knowledge') {
@@ -189,7 +255,8 @@ export function createKnowledgeServer(input: {
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const instance = createKnowledgeServer();
-  instance.server.listen(instance.composition.config.server.port, instance.composition.config.server.host, () => {
-    process.stdout.write(`wpKnowledge dashboard: http://${instance.composition.config.server.host}:${instance.composition.config.server.port}\n`);
+  const binding = resolveServerBinding(instance.composition.config.server);
+  instance.server.listen(binding.port, binding.host, () => {
+    process.stdout.write(`wpKnowledge dashboard: http://${binding.host}:${binding.port}\n`);
   });
 }
