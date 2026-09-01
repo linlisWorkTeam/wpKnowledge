@@ -1,10 +1,12 @@
 # wpKnowledge
 
-> 一个 Spec 驱动、证据优先的 Knowledge Flywheel：把研究资料和项目经验转化为可追踪、可评测、可发布的工程知识。
+> 让工程经验先经过真实执行，再进入可复用的知识库。
 
 [![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
-wpKnowledge 不把“文档写得像答案”当成知识已经正确。候选知识必须经过质量检查、独立行为评测和确定性发布门禁；只有证据完整且 Gate 返回 `PASS` 的版本，才能成为可查询的 `VERIFIED` 知识。
+[项目网站](https://linlisworkteam.github.io/wpKnowledge/) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
+
+很多知识库收下文档就算完成。wpKnowledge 会多问一句：这条经验真的跑通过吗？候选知识要经过质量检查、独立行为评测和确定性发布门禁。证据完整、Gate 返回 `PASS` 后，它才会成为可查询的 `VERIFIED` 知识。
 
 当前主实现是 [`endlessWpKnowledgeRunner/`](endlessWpKnowledgeRunner/README.md) 下的 TypeScript Knowledge Flywheel。仓库同时保留研究知识库和历史 Python MVP，二者都不是当前运行时的第二套事实源。
 
@@ -83,7 +85,8 @@ npm run knowledge:serve
 
 | 我想…… | 从这里开始 |
 | --- | --- |
-| 快速运行项目 | [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) |
+| 自己快速运行项目 | [使用者快速入门](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md#路径-a使用者自己配置) |
+| 让 Agent 从零配置并启动 | [Agent Prompt](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md#路径-b交给-agent-配置和启动) |
 | 了解用户在前台如何完成任务 | [用户用例与交互时序](endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md) |
 | 理解产品界面和权限边界 | [前台产品设计](endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md) |
 | 理解架构和知识生命周期 | [架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md) |
@@ -94,6 +97,7 @@ npm run knowledge:serve
 | 报告安全问题 | [安全策略](SECURITY.md) |
 | 查阅全部规范 | [Spec 总入口](endlessWpKnowledgeRunner/specs/README.md) |
 | 浏览研究资料 | [知识库目录](knowledge/知识库目录.md) |
+| 浏览项目官网 | [GitHub Pages](https://linlisworkteam.github.io/wpKnowledge/) |
 
 全部工程文档入口见 [`endlessWpKnowledgeRunner/docs/README.md`](endlessWpKnowledgeRunner/docs/README.md)。
 
@@ -106,7 +110,8 @@ wpKnowledge/
 ├── mvp-flywheel/             # 历史 Python MVP，仅作演进对照
 ├── .github/                  # CI 与协作模板
 ├── CONTRIBUTING.md           # 仓库级贡献流程
-└── SECURITY.md               # 漏洞报告和运行安全边界
+├── SECURITY.md               # 漏洞报告和运行安全边界
+└── LICENSE                   # MIT License
 ```
 
 目录是架构的一部分。新的 Runner 代码、测试、Spec、验收 fixture 或运行文档必须放在 `endlessWpKnowledgeRunner/` 内；根目录不再新增平行的 `apps/`、`packages/`、`specs/`、`tests/` 或 `docs/`。
@@ -129,4 +134,6 @@ npm test
 - 尚未宣称完成：敌对代码 OS 级隔离、通用浏览器自动 Run、完整 RBAC、多节点高可用，以及 live GLM/DeepSeek 模型质量证明。
 - `mvp-flywheel/` 只用于历史对照；旧 `score`、`eval`、`harvest` 语义已明确拒绝，避免形成第二套发布权威。
 
-欢迎从小而可验证的改动开始。仓库目前没有声明开源许可证；在许可证明确前，请不要假设获得了复制、分发或商用授权。
+## License
+
+本项目采用 [MIT License](LICENSE)。使用、修改或分发时请保留许可证和版权声明。

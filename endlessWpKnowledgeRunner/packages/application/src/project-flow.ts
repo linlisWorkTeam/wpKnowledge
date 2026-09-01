@@ -7,6 +7,7 @@ import type {
   ProjectEvaluation, ProjectEvaluator, ProjectSnapshot,
 } from '../../contracts/src/index.ts';
 import type { KnowledgeFlywheelService } from './index.ts';
+import { KNOWLEDGE_WRITING_GUIDE } from './knowledge-writing-guide.ts';
 
 const DOCUMENT_SCHEMA: Record<string, unknown> = {
   type: 'object',
@@ -256,7 +257,11 @@ export async function runRealSourceFlow(input: {
     service: input.service, artifacts: input.artifacts, agent: input.agent,
     runId: run.runId, nodeId: 'docgen', iteration: 0, role: 'docgen',
     inputRefs: [scenarioRef, snapshot.manifestRef],
-    prompt: { moduleId: input.scenario.moduleId, sourceSnapshotRef: snapshot.manifestRef },
+    prompt: {
+      moduleId: input.scenario.moduleId,
+      sourceSnapshotRef: snapshot.manifestRef,
+      writingGuide: KNOWLEDGE_WRITING_GUIDE,
+    },
     outputSchema: DOCUMENT_SCHEMA,
   });
   const firstCandidate = await input.service.ingestCandidate({
@@ -326,6 +331,7 @@ export async function runRealSourceFlow(input: {
       baseKnowledgeRef: firstCandidate.version.bodyRef,
       correctionRef,
       constraint: 'Only revise the affected knowledge path.',
+      writingGuide: KNOWLEDGE_WRITING_GUIDE,
     },
     outputSchema: DOCUMENT_SCHEMA,
   });

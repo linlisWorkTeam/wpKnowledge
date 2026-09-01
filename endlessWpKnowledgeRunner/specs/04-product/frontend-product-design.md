@@ -84,6 +84,7 @@ endlessWpKnowledgeRunner/
 ├── docs/                  # 架构、运维、迁移
 ├── packages/              # 领域、端口、应用与适配器
 ├── specs/                 # 产品、需求、工作流、Schema 与验收规范
+├── site/                  # 双主题 GitHub Pages 项目官网
 ├── tests/                 # unit、contract、integration、acceptance
 └── web/                   # HTML、CSS 与浏览器交互
 ```
@@ -333,19 +334,21 @@ sequenceDiagram
 
 ### 8.1 风格
 
-延续当前深色控制台，但从“科技展示页”收敛为高密度工程工作台：
+界面提供深色和浅色两套主题。两者使用同一套语义 token、信息层级和组件尺寸，只改变颜色值与阴影强度。深色适合长时间观察 Run；浅色适合明亮环境、阅读知识正文和打印截图。
 
-- 背景：`#0A0D12`
-- 一级表面：`#10151D`
-- 二级表面：`#121A25`
-- 边框：`#273140`
-- 主文字：`#EEF2F7`
-- 次文字：`#9AA8BA`
-- 交互强调：`#71D4FF`
-- 成功 / VERIFIED：`#76EFBD`
-- 候选 / 等待：`#FFD27D`
-- 失败：`#FF7D8E`
-- 治理 / LOW_CONFIDENCE：`#C7A6FF`
+| 语义 | 深色 | 浅色 |
+|---|---|---|
+| 背景 | `#080B10` | `#F4F7F9` |
+| 一级表面 | `#10151D` | `#FFFFFF` |
+| 二级表面 | `#121A25` | `#F0F4F7` |
+| 边框 | `#273140` | `#CBD6DF` |
+| 主文字 | `#EEF2F7` | `#17212B` |
+| 次文字 | `#9AA8BA` | `#586B7D` |
+| 交互强调 | `#71D4FF` | `#07769F` |
+| 成功 / VERIFIED | `#76EFBD` | `#087C58` |
+| 候选 / 等待 | `#FFD27D` | `#92610F` |
+| 失败 | `#FF7D8E` | `#B62F48` |
+| 治理 / LOW_CONFIDENCE | `#C7A6FF` | `#7250A8` |
 
 颜色必须同时配合图标和文字，不作为唯一状态表达。
 
@@ -360,7 +363,15 @@ sequenceDiagram
 - `GovernanceAction`：高风险动作、影响说明和确认。
 - `EventTimeline`：按 `event_seq` 排序，不依赖相同时间戳。
 
-### 8.3 响应式策略
+### 8.3 主题切换
+
+- 首次访问跟随 `prefers-color-scheme`。
+- 用户手动切换后，把 `light` 或 `dark` 偏好写入独立的 `localStorage` key；主题数据不得与治理 token 共用存储。
+- 切换按钮必须有可感知名称，并显示切换后的目标主题。
+- 官网和本地 Console 分别适配两套主题。项目官网仍是纯静态页面，不得因为主题切换连接 Registry 或写 API。
+- 状态色在两套主题下都要保持文字、边框或图标提示；正文与背景应满足 WCAG AA 对比度。
+
+### 8.4 响应式策略
 
 - ≥1200px：固定侧栏，Run 图与当前节点双栏。
 - 768–1199px：可折叠侧栏，详情 Drawer。
@@ -444,6 +455,7 @@ sequenceDiagram
 | KF-UI-010 | P1 | Run 必须支持断线重连和按 `event_seq` 恢复，不丢失已持久化状态。 | AC-UI-010 |
 | KF-UI-011 | P1 | 知识消费者可以在不获得发布权限的情况下查询和反馈。 | AC-UI-011 |
 | KF-UI-012 | P1 | 界面必须满足键盘导航、可见焦点、语义标签和非纯颜色状态表达。 | AC-UI-012 |
+| KF-UI-013 | P1 | 项目官网和本地 Console 必须提供深色/浅色主题，首次跟随系统、允许手动切换并独立保存偏好；主题切换不得持久化治理凭据或改变领域状态。 | AC-UI-013 |
 
 ### 12.1 验收场景
 
@@ -461,6 +473,7 @@ sequenceDiagram
 | AC-UI-010 | Given浏览器在第 N 个事件后断线，When恢复，Then先读取 snapshot，再从 N 后续传且事件不重不漏。 |
 | AC-UI-011 | Given只读知识消费者，When查询并提交 feedback，Then反馈被记录但知识状态和 GateDecision 不变。 |
 | AC-UI-012 | Given仅键盘和屏幕阅读器，When完成查询并打开 Run Gate，Then焦点顺序、名称、状态和错误均可感知。 |
+| AC-UI-013 | Given 系统主题为浅色、无已保存偏好，When 首次打开官网或 Console，Then 使用浅色 token；When 用户切换深色并刷新，Then 主题保持且页面没有保存治理 token、发出写请求或改变 Run 状态。 |
 
 ## 13. 实施阶段
 
@@ -495,7 +508,8 @@ sequenceDiagram
 | 能力 | 当前状态 |
 |---|---|
 | 全局 Shell、响应式导航和 Overview | Implemented：桌面侧栏、移动底栏、运行指标和能力边界已接入真实 API |
-| 深色知识目录、状态筛选、知识详情 | Implemented MVP：支持目录筛选、搜索、详情 Drawer、provenance 和正文 |
+| GitHub Pages 项目官网 | Implemented：纯静态、双主题、响应式，提供使用者命令和 Agent 配置 Prompt；不连接 Registry |
+| 双主题知识目录、状态筛选、知识详情 | Implemented MVP：官网和 Console 支持深色/浅色切换；目录筛选、搜索、详情 Drawer、provenance 和正文使用同一套语义状态色 |
 | Quality / Behavioral Gate 区分 | Implemented MVP：分区展示并解释 `ACCEPTED` 不等于 `VERIFIED`；版本 Diff 仍待实现 |
 | Feedback UI | Implemented：使用仅驻留页面内存的 bearer token，明确反馈不改变发布状态 |
 | Run 列表与工作台 | Implemented MVP：新增 Run 列表、snapshot、顺序事件、checkpoint、评测和 Gate API/UI |

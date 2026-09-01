@@ -35,6 +35,7 @@ endlessWpKnowledgeRunner/
 ├── docs/                     # 上手、架构、开发、测试、运维与迁移
 ├── packages/                 # domain、contracts、application、adapters
 ├── specs/                    # 唯一规范性事实源
+├── site/                     # GitHub Pages 项目官网
 ├── tests/                    # unit、contract、integration、acceptance
 ├── web/                      # Console 静态前端
 ├── fw.mjs                    # 旧调用方兼容入口
@@ -55,6 +56,8 @@ npm run knowledge:serve
 ```
 
 打开 <http://127.0.0.1:4174>。详细步骤和预期结果见[快速上手](docs/GETTING_STARTED.md)。
+
+项目官网与本地 Console 分开维护。运行 `npm run site:serve` 可以在 <http://127.0.0.1:4175> 预览静态官网；它不会连接 Registry 或暴露治理能力。
 
 兼容门面 `fw.mjs` 支持 `init`、`ingest`、`query`、`get`、`status`、`scan` 和 `feedback`，并委派给同一个 TypeScript CLI、SQLite Registry 与 CAS。旧 `score`、`eval` 和 `harvest` 会返回迁移说明并失败，避免恢复“文档分数即 verified”的旧语义。
 

@@ -21,6 +21,7 @@
 | KF-SYS-015 | AC-AGENT-002 | Partial | deterministic decideGate | tests/unit/domain.test.ts |
 | KF-SYS-016 | AC-COMPAT-001 | Implemented | endlessWpKnowledgeRunner compatibility facade | tests/integration/legacy-runner-compat.test.ts |
 | KF-SYS-017 | AC-E2E-001 | Implemented | packages/application/project-flow + project EvalRunner | tests/acceptance/real-source-flow.test.ts + ../knowledge/3.workpanel/证据/2026-09-01-ohMyWorkPanel真实源码验收.md |
+| KF-SYS-018 | AC-DOC-001 | Implemented | packages/application/src/knowledge-writing-guide.ts + quality-policy.ts + project-flow.ts | tests/unit/quality-policy.test.ts + tests/acceptance/real-source-flow.test.ts |
 | NFR-001 | AC-SEC-002 | Partial | apps/runner/src/server.ts | tests/integration/server.test.ts |
 | NFR-002 | AC-REC-001 | Partial | checkpoints + publication transaction | tests/integration/sqlite-cas.test.ts |
 | NFR-003 | AC-REC-002 | Implemented | GenerationKey and publication key | tests/integration/sqlite-cas.test.ts + tests/acceptance/publication-flow.test.ts |

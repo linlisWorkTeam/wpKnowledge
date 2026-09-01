@@ -30,6 +30,12 @@
 | AC-COMPAT-001 | Given 旧 Runner 的 init/ingest/query/status/scan/feedback 调用，When 通过兼容入口执行，Then 参数被确定性映射到新 CLI、所有持久状态仅写入同一 SQLite/CAS，已退休且会错误表达发布权威的 score/eval/harvest 调用明确失败。 |
 | AC-E2E-001 | Given 固定 commit 且基线门禁通过的 ohMyWorkPanel 源码，When 在仓库外隔离副本运行两轮知识驱动再生成，Then 首轮真实测试失败并形成带证据 Correction，第二轮 fresh 生成通过前端全测、生产构建与 Rust 全测，最终只发布第二版且 run 审计包含全部节点、评测与发布证据。 |
 
+## P1 内容质量验收
+
+| ID | 场景 |
+|---|---|
+| AC-DOC-001 | Given DocGenAgent 首次生成或按 Correction 修订中文知识，When Orchestrator 发送生成请求并执行 Quality Gate，Then 两轮 Prompt 都包含自然写作约束，模板化填充、无来源宣传词和超长段落会降低 `humanReadability` 并形成 weak point；任何润色都不得改变事实、来源、验收条件或安全边界。 |
+
 ## P0-A Review 清单
 
 `AC-SPEC-001` 还检查：accepted 文件无阻塞性占位标记；Schema 通过 Draft 2020-12 元校验且 `$id` 唯一；跨文件 `$ref` 可从同一 registry 解析；每个 Agent 角色的合法/非法 fixture 分别通过/失败；权限矩阵无空单元格；状态全集与转换目标一致；Domain 禁止 SDK/语言类型；全部 P0 有场景。可重复的基础校验入口为 `npm run validate:specs`。P0-A 通过是创建独立 P0-B Spike 的前置条件，不代表 Spike 已通过或生产可用。

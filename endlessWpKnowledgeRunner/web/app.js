@@ -6,6 +6,7 @@ const registryIndicator = document.querySelector('#registry-indicator')
 const registryLabel = document.querySelector('#registry-label')
 const governanceCount = document.querySelector('#governance-count')
 const modePill = document.querySelector('#mode-pill')
+const themeButton = document.querySelector('#theme-button')
 const operatorButton = document.querySelector('#operator-button')
 const operatorDialog = document.querySelector('#operator-dialog')
 const operatorForm = document.querySelector('#operator-form')
@@ -18,6 +19,25 @@ const drawerContent = document.querySelector('#drawer-content')
 const drawerClose = document.querySelector('#drawer-close')
 const drawerBackdrop = document.querySelector('#drawer-backdrop')
 const toast = document.querySelector('#toast')
+
+function applyTheme(theme, persist = false) {
+  const normalized = theme === 'light' ? 'light' : 'dark'
+  document.documentElement.dataset.theme = normalized
+  themeButton.textContent = normalized === 'dark' ? '☼ 浅色' : '◐ 深色'
+  themeButton.setAttribute('aria-label', normalized === 'dark' ? '切换到浅色主题' : '切换到深色主题')
+  if (persist) {
+    try { localStorage.setItem('wp-knowledge-theme', normalized) } catch {}
+  }
+}
+
+let initialTheme = 'dark'
+try {
+  const savedTheme = localStorage.getItem('wp-knowledge-theme')
+  initialTheme = savedTheme === 'light' || savedTheme === 'dark'
+    ? savedTheme
+    : (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+} catch {}
+applyTheme(initialTheme)
 
 const PAGE_META = {
   overview: ['运行概览', '观察自动化运行、知识发布和需要人工介入的异常。'],
@@ -533,6 +553,10 @@ operatorButton.addEventListener('click', () => {
     return
   }
   operatorDialog.showModal()
+})
+
+themeButton.addEventListener('click', () => {
+  applyTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light', true)
 })
 
 operatorForm.addEventListener('submit', (event) => {
