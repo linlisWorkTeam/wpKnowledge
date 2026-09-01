@@ -15,7 +15,16 @@ WorkPanel 架构、实现分析、规划和评审证据。
 - [WorkPanel 2.0.0 架构评审](调研/WorkPanel%202.0.0架构评审.md)
 - [WorkPanelConnecter 当前实现分析](调研/WorkPanelConnecter当前实现分析.md)
 - [endlessWpKnowledgeRunner 飞轮实现分析](调研/endlessWpKnowledgeRunner飞轮实现分析.md)
+- [WorkPanel 综合分析报告](调研/WorkPanel综合分析报告.md)
+- [2026-08-31 P0-A 知识飞轮可行性评审](调研/2026-08-31-P0-A知识飞轮可行性评审.md)
+- [2026-09-01 PR #11 知识飞轮交付测评](调研/2026-09-01-PR11知识飞轮交付测评.md)
 - [Connecter P0-P3 修改计划](规划/Connecter%20P0-P3修改计划.md)
+
+## 评审证据
+
+- [2026-08-31 P0-A 评审证据](证据/2026-08-31-P0-A评审证据.md)
+- [2026-09-01 PR #11 开发复验记录](证据/2026-09-01-PR11开发复验记录.md)
+- [2026-09-01 ohMyWorkPanel 真实源码验收](证据/2026-09-01-ohMyWorkPanel真实源码验收.md)
 
 ## 对外交流文档
 

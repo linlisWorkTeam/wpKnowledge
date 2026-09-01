@@ -2,14 +2,14 @@
 
 **状态：Accepted，MVP 实现中｜版本：0.2.0｜日期：2026-09-01**
 
-本文定义 `endlessWpKnowledgeRunner` 从只读知识 Dashboard 演进为 Knowledge Flywheel 产品控制台的用户体验、信息架构、交互边界、接口需求和验收标准。共享领域状态、Gate、安全和发布语义仍以仓库根目录的 [`specs/`](../../../specs/README.md) 为准；前台不得创造第二套状态或发布权威。
+本文定义 `endlessWpKnowledgeRunner` 从只读知识 Dashboard 演进为 Knowledge Flywheel 产品控制台的用户体验、信息架构、交互边界、接口需求和验收标准。本组件的领域状态、Gate、安全和发布语义以同一组件内的[规范总入口](../README.md)为准；前台不得创造第二套状态或发布权威。
 
 关联规范：
 
 - [用户用例与交互时序](../05-workflows/user-use-cases.md)
-- [知识飞轮工作流](../../../specs/05-workflows/knowledge-flywheel-workflow.md)
-- [数据边界与权限矩阵](../../../specs/09-security/data-boundaries.md)
-- [知识发布门禁](../../../specs/08-evaluation/knowledge-publication-gate.md)
+- [知识飞轮工作流](../05-workflows/knowledge-flywheel-workflow.md)
+- [数据边界与权限矩阵](../09-security/data-boundaries.md)
+- [知识发布门禁](../08-evaluation/knowledge-publication-gate.md)
 
 ## 1. 产品定位
 
@@ -79,15 +79,16 @@
 
 ```text
 endlessWpKnowledgeRunner/
-├── specs/                  # Runner 专属产品、用例与时序规范
-├── src/
-│   ├── server.ts           # Console HTTP adapter
-│   └── console-read-model.ts # 只读 Run / Evidence 投影
-├── tests/                  # Console 集成测试
-└── web/                    # HTML、CSS 与浏览器交互
+├── acceptance/            # 固定源码验收 fixture
+├── apps/runner/src/       # CLI、HTTP、composition 与 Console read model
+├── docs/                  # 架构、运维、迁移
+├── packages/              # 领域、端口、应用与适配器
+├── specs/                 # 产品、需求、工作流、Schema 与验收规范
+├── tests/                 # unit、contract、integration、acceptance
+└── web/                   # HTML、CSS 与浏览器交互
 ```
 
-`apps/runner/src/server.ts` 仅作为已有 npm 命令和导入路径的兼容门面，不承载 Console 实现。Console 不得为了页面查询扩张共享 `packages/application`、`packages/contracts` 或写侧 SQLite Repository；状态变更仍只能委托共享应用服务。
+Console HTTP adapter 与只读投影分别位于 `apps/runner/src/server.ts` 和 `apps/runner/src/console-read-model.ts`。Console 不得为了页面查询扩张 `packages/application`、`packages/contracts` 或写侧 SQLite Repository；状态变更仍只能委托共享应用服务。
 
 ```text
 Knowledge Flywheel

@@ -13,10 +13,9 @@
     "types": ["node"]
   },
   "include": [
-    "apps/**/*.ts",
-    "endlessWpKnowledgeRunner/**/*.ts",
-    "packages/**/*.ts",
-    "specs/**/*.ts",
-    "tests/**/*.ts"
+    "endlessWpKnowledgeRunner/apps/**/*.ts",
+    "endlessWpKnowledgeRunner/packages/**/*.ts",
+    "endlessWpKnowledgeRunner/specs/**/*.ts",
+    "endlessWpKnowledgeRunner/tests/**/*.ts"
   ]
 }
