@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { main } from '../apps/runner/src/cli.ts';
-import { translateLegacyArgs } from './src/compat.ts';
+import { main } from './apps/runner/src/cli.ts';
+import { translateLegacyArgs } from './apps/runner/src/compat.ts';
 
 try {
   await main(translateLegacyArgs(process.argv.slice(2)));

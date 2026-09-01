@@ -4,21 +4,17 @@
 
 ## 仓库边界
 
-- `packages/domain/`：纯领域模型、状态转换、ArtifactRef 和确定性 Gate。
-- `packages/contracts/`：Artifact、Agent、Sandbox、LanguagePlugin 和 Registry 端口。
-- `packages/application/`：候选知识、质量门禁、行为评测、发布、检查点与检索应用服务。
-- `packages/adapters/`：SQLite/CAS、旧 OKF 数据迁移和 DSH HTTP 适配器。
-- `apps/runner/`：CLI、受保护的 HTTP API 和只读 Dashboard。
+- `endlessWpKnowledgeRunner/`：Knowledge Flywheel 的完整组件根目录，包含应用入口、领域/应用/适配器代码、产品控制台、Spec、验收 fixture、测试和运维文档。
 - `knowledge/`：研究资料和旧 OKF 卡片的 Git 可评审来源；不再充当运行时状态数据库。
-- `specs/`：需求、架构、Agent、工作流、Schema、ADR 和验收规范。
+- `mvp-flywheel/`：历史 Python MVP，仅用于对照，不是当前 TypeScript Flywheel 的运行入口或规范事实源。
 
-目录职责、来源编号、分类和插入规则见 [`knowledge/知识库目录.md`](knowledge/知识库目录.md)。新运行时架构见 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)，旧系统迁移见 [`docs/MIGRATION.md`](docs/MIGRATION.md)。
+目录职责、来源编号、分类和插入规则见 [`knowledge/知识库目录.md`](knowledge/知识库目录.md)。当前组件入口见 [`endlessWpKnowledgeRunner/README.md`](endlessWpKnowledgeRunner/README.md)，规范见 [`endlessWpKnowledgeRunner/specs/README.md`](endlessWpKnowledgeRunner/specs/README.md)，运行时架构见 [`endlessWpKnowledgeRunner/docs/ARCHITECTURE.md`](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md)。
 
 ## 信任语义
 
 候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有独立评测器提交的 `EvaluationReport` 绑定完整性可校验的执行证据，并通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。仓库现已提供固定 commit 的受信项目 EvalRunner：它在临时 `git archive` 工作区执行白名单工具并记录命令、版本、退出码和截断输出；它不是敌对代码沙箱，不能外推为不可信 C++ 的生产隔离证明。
 
-旧 `endlessWpKnowledgeRunner` 的 Python 实现已被移除，其目录保留为 Node 兼容门面：`fw.mjs` 只把仍受支持的 init、ingest、query、get、status、scan 和 feedback 命令委派给同一个 TypeScript CLI、SQLite Registry 与 CAS。旧目录状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在；score、eval 和 harvest 会明确拒绝，避免形成第二套事实源。
+旧 `endlessWpKnowledgeRunner` 的 Python 实现已被移除；该目录现在是完整 TypeScript Flywheel 组件，而非兼容文件夹。`fw.mjs` 只把仍受支持的 init、ingest、query、get、status、scan 和 feedback 命令委派给组件内同一个 CLI、SQLite Registry 与 CAS。旧状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在；score、eval 和 harvest 会明确拒绝，避免形成第二套事实源。
 
 ## 来源知识域
 
@@ -40,7 +36,7 @@ DeepSeek Harness（DSH）可借鉴性分析，作为 WorkPanel 机制样本，�
 
 知识飞轮的设计、研究、知识格式、评测和检索资料，入口见 [`knowledge/2.wiki/README.md`](knowledge/2.wiki/README.md)。
 
-- [设计文档](knowledge/2.wiki/设计/README.md)
+- [设计文档索引](knowledge/2.wiki/README.md)
 - [研究材料](knowledge/2.wiki/研究/README.md)
 - [脚本](knowledge/2.wiki/脚本/)
 
@@ -48,8 +44,8 @@ DeepSeek Harness（DSH）可借鉴性分析，作为 WorkPanel 机制样本，�
 
 LinlisWorkPanel 架构、实现分析、规划和调研证据。
 
-- [Knowledge Flywheel PR #11 交付与全项目测评](workpanel/docs/2026-09-01-pr11-verified-knowledge-flywheel-delivery-report.md)
-- [WorkPanel 调研长期综合入口](workpanel/docs/workpanel-analysis-report.md)
+- [Knowledge Flywheel PR #11 交付与全项目测评](knowledge/3.workpanel/调研/2026-09-01-PR11知识飞轮交付测评.md)
+- [WorkPanel 调研长期综合入口](knowledge/3.workpanel/调研/WorkPanel综合分析报告.md)
 - [综合架构分析](knowledge/3.workpanel/调研/LinlisWorkPanel综合架构分析.md)
 - [WorkPanel 2.0.0 架构评审](knowledge/3.workpanel/调研/WorkPanel%202.0.0架构评审.md)
 - [WorkPanel Connecter 愿景符合度与可扩展性评审](knowledge/3.workpanel/调研/WorkPanel%20Connecter愿景符合度与可扩展性评审.md)
@@ -91,6 +87,6 @@ $env:WP_KNOWLEDGE_WRITE_TOKEN = '<local-secret>'
 npm run knowledge:serve
 ```
 
-Dashboard 默认监听 `http://127.0.0.1:4174`。页面默认处于只读模式；配置 `WP_KNOWLEDGE_WRITE_TOKEN` 后可以在当前页面内存中进入治理模式并提交 feedback，但自动 Run、状态转换和发布不会作为普通页面按钮暴露。没有 token 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)。
+Dashboard 默认监听 `http://127.0.0.1:4174`。页面默认处于只读模式；配置 `WP_KNOWLEDGE_WRITE_TOKEN` 后可以在当前页面内存中进入治理模式并提交 feedback，但自动 Run、状态转换和发布不会作为普通页面按钮暴露。没有 token 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`endlessWpKnowledgeRunner/docs/OPERATIONS.md`](endlessWpKnowledgeRunner/docs/OPERATIONS.md)。
 
 服务器部署时可通过 `WP_KNOWLEDGE_HOST` 和 `WP_KNOWLEDGE_PORT` 覆盖监听地址，例如以只读方式运行 `WP_KNOWLEDGE_HOST=0.0.0.0 WP_KNOWLEDGE_PORT=80 npm run knowledge:serve`。公网写操作应放在 TLS 反向代理之后，并在云安全组中限制来源地址。

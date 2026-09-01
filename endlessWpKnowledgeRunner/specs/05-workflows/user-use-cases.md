@@ -2,7 +2,7 @@
 
 **状态：Accepted｜版本：1.0.0｜基线日期：2026-09-01**
 
-本文把需求、验收场景和用户入口连接成可执行的交互视图。时序图中的“必须 / 不得”具有规范性；具体能力是否已经落地，以[追踪矩阵](../../../specs/13-verification/traceability-matrix.md)为准。
+本文把需求、验收场景和用户入口连接成可执行的交互视图。时序图中的“必须 / 不得”具有规范性；具体能力是否已经落地，以[追踪矩阵](../13-verification/traceability-matrix.md)为准。
 
 这些用例的页面信息架构、交互状态、API 需求和产品验收见[前台产品设计](../04-product/frontend-product-design.md)。
 
@@ -284,7 +284,7 @@ npm run acceptance:ohmyworkpanel --
   --output summary
 ```
 
-固定 commit 来自场景定义；用户不得用任意分支 HEAD 隐式替换。完整流程和证据要求见[真实源码验收工作流](../../../specs/05-workflows/real-source-acceptance.md)。
+固定 commit 来自场景定义；用户不得用任意分支 HEAD 隐式替换。完整流程和证据要求见[真实源码验收工作流](real-source-acceptance.md)。
 
 ## UC-KF-005：旧 Runner 兼容调用
 
