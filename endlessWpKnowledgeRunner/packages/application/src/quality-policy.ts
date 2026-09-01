@@ -1,5 +1,6 @@
 import type { ProvenanceRef } from '../../domain/src/index.ts';
 import type { QualityPolicy, QualityReport } from '../../contracts/src/index.ts';
+import { assessKnowledgeReadability } from './knowledge-writing-guide.ts';
 
 function clamp(value: number): number {
   return Math.max(0, Math.min(1, value));
@@ -23,6 +24,7 @@ export class DeterministicQualityPolicy implements QualityPolicy {
     const pinned = input.provenance.some((source) => Boolean(
       source.pinned || source.commit || source.lines || source.symbol || source.url,
     ));
+    const readability = assessKnowledgeReadability(body);
     const signals = {
       provenance: clamp(input.provenance.length ? (pinned ? 1 : 0.65) : 0),
       structure: clamp(
@@ -33,16 +35,21 @@ export class DeterministicQualityPolicy implements QualityPolicy {
       ),
       verifiability: verification ? 1 : 0,
       substance: clamp(body.trim().length / 600),
+      humanReadability: readability.score,
     };
     const score = Math.round(100 * (
-      signals.provenance * 0.35 + signals.structure * 0.30 +
-      signals.verifiability * 0.20 + signals.substance * 0.15
+      signals.provenance * 0.30 + signals.structure * 0.25 +
+      signals.verifiability * 0.20 + signals.substance * 0.15 +
+      signals.humanReadability * 0.10
     ));
     const weakPoints: string[] = [];
     if (signals.provenance < 1) weakPoints.push('provenance: add a pinned commit, symbol, line range, or URL');
     if (signals.structure < 0.8) weakPoints.push('structure: add explanation and explicit sections');
     if (signals.verifiability < 1) weakPoints.push('verifiability: add a reproducible command, metric, or evidence link');
     if (signals.substance < 0.5) weakPoints.push('substance: candidate is too short to support reliable reuse');
+    if (signals.humanReadability < 0.75) {
+      weakPoints.push('readability: replace formulaic filler and oversized paragraphs with direct, concrete language');
+    }
     return {
       score,
       outcome: score >= this.threshold ? 'ACCEPTED' : 'REJECTED',

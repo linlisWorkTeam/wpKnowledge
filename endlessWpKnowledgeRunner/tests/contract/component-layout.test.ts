@@ -31,6 +31,7 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'docs/TESTING.md',
     'packages/domain/src/index.ts',
     'specs/README.md',
+    'site/index.html',
     'tests/integration/server.test.ts',
     'web/index.html',
     'runner.config.json',
@@ -44,8 +45,10 @@ test('repository onboarding and contribution surfaces remain present', () => {
     'README.md',
     'CONTRIBUTING.md',
     'SECURITY.md',
+    'LICENSE',
     '.github/pull_request_template.md',
     '.github/workflows/ci.yml',
+    '.github/workflows/pages.yml',
   ]) {
     assert.equal(existsSync(required), true, `missing repository guidance: ${required}`);
   }
@@ -58,6 +61,7 @@ test('active repository guidance and WorkPanel documents have valid relative lin
     'SECURITY.md',
     '.github/pull_request_template.md',
     join(componentRoot, 'README.md'),
+    join(componentRoot, 'site/README.md'),
     'knowledge/3.workpanel/README.md',
     ...markdownFiles(join(componentRoot, 'docs')),
     ...markdownFiles(join(componentRoot, 'specs')),

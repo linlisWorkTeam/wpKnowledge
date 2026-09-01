@@ -103,3 +103,14 @@ WP_KNOWLEDGE_WRITE_TOKEN=<local-secret>
 ```
 
 The adapter registers `wp_knowledge_query`, `wp_knowledge_status`, `wp_knowledge_scan`, `wp_knowledge_ingest_candidate` and `wp_knowledge_feedback`. It has no shell dependency and cannot publish knowledge. Scan roots are fixed in `runner.config.json`; callers cannot request arbitrary filesystem paths.
+
+## GitHub Pages project site
+
+The project website is a separate static surface. It explains the product and links to documentation, but never connects to the local Registry or mutation API.
+
+```bash
+npm run site:check
+npm run site:serve
+```
+
+Open <http://127.0.0.1:4175>. After merge to `main`, `.github/workflows/pages.yml` publishes `endlessWpKnowledgeRunner/site/`. A repository administrator must select **GitHub Actions** as the Pages source once in Settings → Pages. The expected public URL is <https://linlisworkteam.github.io/wpKnowledge/>.

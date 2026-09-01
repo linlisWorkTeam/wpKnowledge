@@ -16,6 +16,7 @@ const Ajv2020 = Ajv2020Import as unknown as new (options: Record<string, unknown
 
 export class SchemaValidatedScenarioAgent implements AgentProvider {
   readonly responses: ScenarioResponse[];
+  readonly requests: AgentRequest[] = [];
   private cursor = 0;
 
   constructor(responses: ScenarioResponse[]) {
@@ -24,6 +25,7 @@ export class SchemaValidatedScenarioAgent implements AgentProvider {
 
   async run(request: AgentRequest, signal?: AbortSignal): Promise<Record<string, unknown>> {
     if (signal?.aborted) throw new Error('AGENT_CANCELLED');
+    this.requests.push(structuredClone(request));
     const fixture = this.responses[this.cursor];
     if (!fixture) throw new Error(`SCENARIO_EXHAUSTED: unexpected ${request.role}`);
     if (fixture.role !== request.role) {

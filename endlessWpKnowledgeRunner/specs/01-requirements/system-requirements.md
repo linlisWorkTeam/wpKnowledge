@@ -21,6 +21,7 @@
 | KF-SYS-015 | P0 | OrchestratorAgent 只负责计划、委派和汇总；`pass/iterate/rollback/stopped` 必须由确定性门禁规则决定。 | AC-AGENT-002 |
 | KF-SYS-016 | P0 | `endlessWpKnowledgeRunner` 的旧入口必须作为新 TypeScript 核心的兼容层保留；兼容层不得维护第二套知识状态、评分权威或写入路径。 | AC-COMPAT-001 |
 | KF-SYS-017 | P0 | 发布前必须以固定 commit 的真实可运行源码完成一次可复验闭环：参考门禁通过、首轮生成失败、Review 产生 Correction、DocGen 增量修订、CodeAgent fresh 再生成、独立 EvalRunner 全门禁通过、确定性发布并可按 runId 审计。 | AC-E2E-001 |
+| KF-SYS-018 | P1 | DocGenAgent 生成中文知识时必须遵循面向工程师的自然写作约束：直接说明结论和适用条件，用具体证据代替宣传或模糊归因，并保留术语、限定条件与不确定性；Quality Gate 应报告模板腔和超长段落，但文风不得覆盖事实、Schema 或行为门禁。 | AC-DOC-001 |
 
 ## P0-B Spike（P0-A 后独立开展）
 
@@ -31,4 +32,3 @@
 | SPK-003 | 内部 GLM 满足结构化输出、工具调用、上下文和稳定性要求。 | 固定语料重复试验和错误分布。 | Provider 降级/重试并阻止发布，不更换契约。 |
 | SPK-004 | Artifact Store 可提供内容寻址、原子发布和校验。 | 并发写、损坏检测、去重、恢复实验。 | V1 本地文件 CAS + SQLite 元数据。 |
 | SPK-005 | C++ 沙箱可证明源码/测试隔离并限制资源。 | 路径穿越、符号链接、进程树、网络、CPU/内存测试。 | 阻止 C++ 生产运行，不弱化隔离。 |
-

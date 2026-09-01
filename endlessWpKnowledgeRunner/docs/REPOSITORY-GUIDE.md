@@ -22,6 +22,7 @@ wpKnowledge/
 - `apps/`：可执行入口和 composition root；
 - `packages/`：领域、应用、契约和 Adapter；
 - `web/`：产品控制台；
+- `site/`：GitHub Pages 项目官网和本地静态预览工具；
 - `specs/`：规范性事实源、ADR 和 Schema；
 - `tests/`：unit、contract、integration 和 acceptance；
 - `acceptance/`：固定项目场景和 fixture；
@@ -50,6 +51,7 @@ ohMyWorkPanel 相关研究、PR 评审和证据统一放在 `knowledge/3.workpan
 | SQLite、CAS、DSH、Agent、Evaluator 实现 | `endlessWpKnowledgeRunner/packages/adapters/` |
 | CLI、HTTP、Console read model | `endlessWpKnowledgeRunner/apps/runner/src/` |
 | 浏览器资产 | `endlessWpKnowledgeRunner/web/` |
+| 项目介绍、公开快速入门和 GitHub Pages 资产 | `endlessWpKnowledgeRunner/site/` |
 | 需求、用例、工作流、ADR、Schema | `endlessWpKnowledgeRunner/specs/` |
 | 自动化验证 | `endlessWpKnowledgeRunner/tests/` 对应层级 |
 | 使用或维护当前组件的说明 | `endlessWpKnowledgeRunner/docs/` |

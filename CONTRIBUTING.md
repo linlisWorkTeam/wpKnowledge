@@ -92,3 +92,5 @@ PR 描述应当包含：
 5. PR 是否诚实陈述未运行或无法证明的部分。
 
 安全问题不要在公开 Issue 中披露细节，请按 [`SECURITY.md`](SECURITY.md) 报告。
+
+提交贡献即表示你同意该贡献按仓库的 [MIT License](LICENSE) 发布。

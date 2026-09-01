@@ -9,6 +9,8 @@
   "scripts": {
     "knowledge": "node endlessWpKnowledgeRunner/apps/runner/src/cli.ts",
     "knowledge:serve": "node endlessWpKnowledgeRunner/apps/runner/src/server.ts",
+    "site:serve": "node endlessWpKnowledgeRunner/site/dev-server.mjs",
+    "site:check": "node --test endlessWpKnowledgeRunner/tests/contract/site.test.ts",
     "acceptance:ohmyworkpanel": "node endlessWpKnowledgeRunner/apps/runner/src/project-acceptance.ts",
     "test": "node --test --test-concurrency=1",
     "test:architecture": "node --test endlessWpKnowledgeRunner/tests/contract/architecture.test.ts",

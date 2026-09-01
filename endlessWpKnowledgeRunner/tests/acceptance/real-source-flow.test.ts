@@ -79,6 +79,16 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
       policy: composition.config.publicationGate,
     });
     agent.assertConsumed();
+    const docgenPrompts = agent.requests
+      .filter((request) => request.role === 'docgen')
+      .map((request) => JSON.parse(request.prompt) as Record<string, unknown>);
+    assert.equal(docgenPrompts.length, 2);
+    for (const prompt of docgenPrompts) {
+      const guide = prompt.writingGuide as { locale?: string; principles?: unknown[]; priority?: string };
+      assert.equal(guide.locale, 'zh-CN');
+      assert.ok((guide.principles?.length ?? 0) >= 4);
+      assert.match(guide.priority ?? '', /事实/);
+    }
     assert.equal(report.referenceEvaluation.passed, true);
     assert.equal(report.firstEvaluation.passed, false);
     assert.equal(report.firstDecision.outcome, 'ITERATE');

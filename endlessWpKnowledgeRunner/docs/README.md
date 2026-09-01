@@ -6,13 +6,14 @@
 
 | 任务 | 文档 | 适合谁 |
 | --- | --- | --- |
-| 第一次安装、初始化和打开 Console | [GETTING_STARTED.md](GETTING_STARTED.md) | 使用者、评审者 |
+| 第一次安装、初始化和打开 Console；或把完整配置 Prompt 交给 Agent | [GETTING_STARTED.md](GETTING_STARTED.md) | 使用者、Agent、评审者 |
 | 理解组件边界和知识生命周期 | [ARCHITECTURE.md](ARCHITECTURE.md) | 开发者、架构师 |
 | 搭建开发环境和实现变更 | [DEVELOPMENT.md](DEVELOPMENT.md) | 贡献者、Agent |
 | 选择测试层级和提交证据 | [TESTING.md](TESTING.md) | 贡献者、评审者 |
 | 确定目录和文件归属 | [REPOSITORY-GUIDE.md](REPOSITORY-GUIDE.md) | 所有贡献者 |
 | 摄取、评测、发布、验收和部署 | [OPERATIONS.md](OPERATIONS.md) | 操作员、维护者 |
 | 从旧 Runner 迁移 | [MIGRATION.md](MIGRATION.md) | 旧版本使用者 |
+| 本地预览或发布项目官网 | [site/README.md](../site/README.md) | 维护者 |
 
 ## 按角色阅读
 
