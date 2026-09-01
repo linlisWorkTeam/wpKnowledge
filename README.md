@@ -91,4 +91,4 @@ $env:WP_KNOWLEDGE_WRITE_TOKEN = '<local-secret>'
 npm run knowledge:serve
 ```
 
-Dashboard 默认监听 `http://127.0.0.1:4174`。GET API 和页面只读；没有 `WP_KNOWLEDGE_WRITE_TOKEN` 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)。
+Dashboard 默认监听 `http://127.0.0.1:4174`。页面默认处于只读模式；配置 `WP_KNOWLEDGE_WRITE_TOKEN` 后可以在当前页面内存中进入治理模式并提交 feedback，但自动 Run、状态转换和发布不会作为普通页面按钮暴露。没有 token 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`docs/OPERATIONS.md`](docs/OPERATIONS.md)。

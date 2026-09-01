@@ -19,7 +19,7 @@ DSH / CLI / HTTP / future LangGraph
 
 `packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. Architecture tests enforce these rules.
 
-`endlessWpKnowledgeRunner/fw.mjs` is a compatibility facade at the CLI edge. It imports the same TypeScript command entry point and therefore cannot own a second registry, lifecycle, score, or publication authority.
+`endlessWpKnowledgeRunner/fw.mjs` is a compatibility facade at the CLI edge. The same directory owns Runner-facing browser assets and product specs, while `apps/runner/src/server.ts` remains the HTTP adapter. All paths delegate to the same application services and therefore cannot own a second registry, lifecycle, score, workflow, or publication authority.
 
 ## Knowledge lifecycle
 

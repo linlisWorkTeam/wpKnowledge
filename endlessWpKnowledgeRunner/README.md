@@ -2,6 +2,8 @@
 
 This directory preserves the established Runner entrypoint while delegating every supported operation to the repository's TypeScript Knowledge Flywheel. It owns no store, quality authority, HTTP server, timer, Python package, or DSH shell bridge.
 
+The productized browser assets live in `web/`; `apps/runner/src/server.ts` remains the HTTP adapter and serves those assets without moving Registry, Gate, workflow, or publication authority into this compatibility directory.
+
 ```powershell
 node endlessWpKnowledgeRunner/fw.mjs init
 node endlessWpKnowledgeRunner/fw.mjs ingest --file knowledge/inbox/example.md --name example --source knowledge/inbox/example.md --pinned

@@ -43,7 +43,11 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     assert.equal(allStatusPayload.hits[0].status, 'CANDIDATE');
     const page = await fetch(`${base}/`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /可验证知识控制台/);
+    assert.match(await page.text(), /Knowledge Flywheel Console/);
+
+    const capabilities = await (await fetch(`${base}/api/v1/capabilities`)).json();
+    assert.equal(capabilities.writeEnabled, true);
+    assert.equal(capabilities.automatedWorkflow, false);
 
     const authHeaders = { 'content-type': 'application/json', authorization: 'Bearer test-secret' };
     const post = (path: string, input: Record<string, unknown>) => fetch(`${base}${path}`, {
@@ -72,6 +76,36 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     });
     assert.equal(published.status, 201, await published.text());
     assert.equal(instance.composition.service.getKnowledgeVersion(payload.version.versionId)?.status, 'VERIFIED');
+
+    const runsPayload = await (await fetch(`${base}/api/v1/runs`)).json();
+    assert.equal(runsPayload.runs.length, 1);
+    assert.equal(runsPayload.runs[0].runId, runId);
+    assert.equal(runsPayload.runs[0].state, 'VERIFIED');
+    assert.equal(runsPayload.runs[0].latestDecision.outcome, 'PASS');
+    const verifiedRuns = await (await fetch(`${base}/api/v1/runs?state=VERIFIED`)).json();
+    assert.equal(verifiedRuns.runs.length, 1);
+
+    const snapshotResponse = await fetch(`${base}/api/v1/runs/${encodeURIComponent(runId)}`);
+    assert.equal(snapshotResponse.status, 200);
+    const snapshot = await snapshotResponse.json();
+    assert.equal(snapshot.run.runId, runId);
+    assert.equal(snapshot.evaluations.length, 1);
+    assert.equal(snapshot.evaluations[0].decision.outcome, 'PASS');
+    assert.equal(snapshot.latestDecision.decisionId, decision.decisionId);
+    assert.equal(snapshot.versions[0].status, 'VERIFIED');
+    assert.ok(snapshot.events.length >= 7);
+    assert.deepEqual(snapshot.events.map((record: { eventSeq: number }) => record.eventSeq),
+      snapshot.events.map((_: unknown, index: number) => index + 1));
+
+    const eventTail = await (await fetch(
+      `${base}/api/v1/runs/${encodeURIComponent(runId)}/events?after=2`,
+    )).json();
+    assert.ok(eventTail.events.length > 0);
+    assert.ok(eventTail.events.every((record: { eventSeq: number }) => record.eventSeq > 2));
+    const invalidEventCursor = await fetch(
+      `${base}/api/v1/runs/${encodeURIComponent(runId)}/events?after=invalid`,
+    );
+    assert.equal(invalidEventCursor.status, 400);
   } finally {
     instance.server.close();
     await once(instance.server, 'close');
@@ -87,6 +121,8 @@ test('HTTP mutation API is disabled when no write token is configured', async ()
   const address = instance.server.address();
   assert.ok(address && typeof address === 'object');
   try {
+    const capabilities = await (await fetch(`http://127.0.0.1:${address.port}/api/v1/capabilities`)).json();
+    assert.equal(capabilities.writeEnabled, false);
     const response = await fetch(`http://127.0.0.1:${address.port}/api/v1/ingest`, {
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });

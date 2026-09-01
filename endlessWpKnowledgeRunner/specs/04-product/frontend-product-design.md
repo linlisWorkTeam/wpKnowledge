@@ -1,6 +1,6 @@
 # Knowledge Flywheel 前台产品设计
 
-**状态：Proposed｜版本：0.1.0｜日期：2026-09-01**
+**状态：Accepted，MVP 实现中｜版本：0.2.0｜日期：2026-09-01**
 
 本文定义 `endlessWpKnowledgeRunner` 从只读知识 Dashboard 演进为 Knowledge Flywheel 产品控制台的用户体验、信息架构、交互边界、接口需求和验收标准。共享领域状态、Gate、安全和发布语义仍以仓库根目录的 [`specs/`](../../../specs/README.md) 为准；前台不得创造第二套状态或发布权威。
 
@@ -477,13 +477,15 @@ sequenceDiagram
 
 | 能力 | 当前状态 |
 |---|---|
-| 深色知识目录、状态筛选、知识详情 | Partial：已存在基础只读页面 |
-| Quality / Behavioral Gate 区分 | Partial：已展示，但缺少解释、证据导航和版本血缘 |
-| Feedback UI | Planned：API 已有，页面未接入 |
-| Run 列表与工作台 | Planned：Repository 有单 Run 和事件能力，HTTP 无查询接口 |
+| 全局 Shell、响应式导航和 Overview | Implemented：桌面侧栏、移动底栏、运行指标和能力边界已接入真实 API |
+| 深色知识目录、状态筛选、知识详情 | Implemented MVP：支持目录筛选、搜索、详情 Drawer、provenance 和正文 |
+| Quality / Behavioral Gate 区分 | Implemented MVP：分区展示并解释 `ACCEPTED` 不等于 `VERIFIED`；版本 Diff 仍待实现 |
+| Feedback UI | Implemented：使用仅驻留页面内存的 bearer token，明确反馈不改变发布状态 |
+| Run 列表与工作台 | Implemented MVP：新增 Run 列表、snapshot、顺序事件、checkpoint、评测和 Gate API/UI |
 | 自动 Run 启动 | Planned：固定场景已有自动流，通用 CLI/API 尚未编排 |
-| 实时事件 | Planned：事件已持久化，尚无 SSE 和增量查询接口 |
+| 实时事件 | Partial：已提供 `after=event_seq` 增量查询，SSE 和自动重连尚未实现 |
 | Correction / Diff | Partial：固定场景有 Correction 和范围校验，尚无通用查询/UI |
-| Governance | Planned |
+| Governance | Partial：已从终态 Run 形成只读队列，治理决议 Command API 尚未实现 |
+| Evidence | Implemented MVP：聚合 EvaluationReport、GateDecision、工具链、测试和证据引用摘要 |
 | 真实在线 Agent | Planned |
 | 敌对代码安全执行 | Planned；安全能力完成前必须 fail closed |

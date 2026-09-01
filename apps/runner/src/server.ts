@@ -7,7 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { createComposition } from './composition.ts';
 
-const webRoot = join(dirname(fileURLToPath(import.meta.url)), '../web');
+const webRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../endlessWpKnowledgeRunner/web');
 const assets = new Map([
   ['/', 'index.html'],
   ['/index.html', 'index.html'],
@@ -81,6 +81,53 @@ export function createKnowledgeServer(input: {
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/status') {
         send(response, 200, composition.service.status());
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/capabilities') {
+        send(response, 200, {
+          writeEnabled: Boolean(writeToken),
+          automatedWorkflow: false,
+          trustedProjectEvaluation: true,
+          hostileCodeIsolation: false,
+          authentication: writeToken ? 'bearer' : 'disabled',
+        });
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/runs') {
+        const states = (url.searchParams.get('state') ?? '').split(',').filter(Boolean);
+        send(response, 200, { runs: composition.service.listRunSummaries(states.length ? states : undefined) });
+        return;
+      }
+      if (request.method === 'GET' && url.pathname.startsWith('/api/v1/runs/')) {
+        const suffix = url.pathname.slice('/api/v1/runs/'.length);
+        const segments = suffix.split('/');
+        const [encodedRunId, child] = segments;
+        if (segments.length > 2) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        const runId = decodeURIComponent(encodedRunId ?? '');
+        const snapshot = composition.service.getRunSnapshot(runId);
+        if (!snapshot) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        if (child === 'events') {
+          const after = Number(url.searchParams.get('after') ?? 0);
+          if (!Number.isSafeInteger(after) || after < 0) {
+            send(response, 400, { error: 'ARGUMENT_INVALID', message: 'after must be a non-negative integer' });
+            return;
+          }
+          const events = (snapshot.events as { eventSeq: number }[])
+            .filter((record) => record.eventSeq > after);
+          send(response, 200, { runId, events });
+          return;
+        }
+        if (child) {
+          send(response, 404, { error: 'NOT_FOUND' });
+          return;
+        }
+        send(response, 200, snapshot);
         return;
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/knowledge') {

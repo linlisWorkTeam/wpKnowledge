@@ -81,6 +81,8 @@ npm run knowledge:serve
 
 Open `http://127.0.0.1:4174`. Read endpoints do not require credentials. Mutation endpoints require `Authorization: Bearer <local-secret>`; with no configured token, writes return `503 WRITE_API_DISABLED`.
 
+The product console provides Overview, Runs, Knowledge, Governance, Evidence and Settings views. Run observation uses `GET /api/v1/runs`, `GET /api/v1/runs/:runId` and the ordered event tail at `GET /api/v1/runs/:runId/events?after=<event-seq>`. The browser remains read-only by default; the operator token is held only in current-page memory and is currently used by the feedback form. Generic automatic Run start is intentionally disabled until the server-side Workflow Command API exists; the browser never simulates orchestration by chaining raw transition calls.
+
 The stable local API prefix is `/api/v1`. `/health` remains unversioned for process probes.
 
 ## DSH
