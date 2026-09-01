@@ -24,6 +24,11 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'acceptance/ohmyworkpanel/scenario.json',
     'apps/runner/src/server.ts',
     'docs/ARCHITECTURE.md',
+    'docs/DEVELOPMENT.md',
+    'docs/GETTING_STARTED.md',
+    'docs/README.md',
+    'docs/REPOSITORY-GUIDE.md',
+    'docs/TESTING.md',
     'packages/domain/src/index.ts',
     'specs/README.md',
     'tests/integration/server.test.ts',
@@ -34,9 +39,24 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
   }
 });
 
-test('active component and consolidated WorkPanel documents have valid relative links', () => {
+test('repository onboarding and contribution surfaces remain present', () => {
+  for (const required of [
+    'README.md',
+    'CONTRIBUTING.md',
+    'SECURITY.md',
+    '.github/pull_request_template.md',
+    '.github/workflows/ci.yml',
+  ]) {
+    assert.equal(existsSync(required), true, `missing repository guidance: ${required}`);
+  }
+});
+
+test('active repository guidance and WorkPanel documents have valid relative links', () => {
   const documents = [
     'README.md',
+    'CONTRIBUTING.md',
+    'SECURITY.md',
+    '.github/pull_request_template.md',
     join(componentRoot, 'README.md'),
     'knowledge/3.workpanel/README.md',
     ...markdownFiles(join(componentRoot, 'docs')),

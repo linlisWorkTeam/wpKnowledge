@@ -1,92 +1,132 @@
 # wpKnowledge
 
-知识飞轮平台、可验证知识注册表与研究知识库。
+> 一个 Spec 驱动、证据优先的 Knowledge Flywheel：把研究资料和项目经验转化为可追踪、可评测、可发布的工程知识。
 
-## 仓库边界
+[![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
-- `endlessWpKnowledgeRunner/`：Knowledge Flywheel 的完整组件根目录，包含应用入口、领域/应用/适配器代码、产品控制台、Spec、验收 fixture、测试和运维文档。
-- `knowledge/`：研究资料和旧 OKF 卡片的 Git 可评审来源；不再充当运行时状态数据库。
-- `mvp-flywheel/`：历史 Python MVP，仅用于对照，不是当前 TypeScript Flywheel 的运行入口或规范事实源。
+wpKnowledge 不把“文档写得像答案”当成知识已经正确。候选知识必须经过质量检查、独立行为评测和确定性发布门禁；只有证据完整且 Gate 返回 `PASS` 的版本，才能成为可查询的 `VERIFIED` 知识。
 
-目录职责、来源编号、分类和插入规则见 [`knowledge/知识库目录.md`](knowledge/知识库目录.md)。当前组件入口见 [`endlessWpKnowledgeRunner/README.md`](endlessWpKnowledgeRunner/README.md)，规范见 [`endlessWpKnowledgeRunner/specs/README.md`](endlessWpKnowledgeRunner/specs/README.md)，运行时架构见 [`endlessWpKnowledgeRunner/docs/ARCHITECTURE.md`](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md)。
+当前主实现是 [`endlessWpKnowledgeRunner/`](endlessWpKnowledgeRunner/README.md) 下的 TypeScript Knowledge Flywheel。仓库同时保留研究知识库和历史 Python MVP，二者都不是当前运行时的第二套事实源。
 
-## 信任语义
+## 先看结论
 
-候选知识先经过确定性文档质量门禁，但质量合格不会自动成为 `VERIFIED`。只有独立评测器提交的 `EvaluationReport` 绑定完整性可校验的执行证据，并通过确定性 Publication Gate 后，系统才能用幂等 publication key 发布知识。仓库现已提供固定 commit 的受信项目 EvalRunner：它在临时 `git archive` 工作区执行白名单工具并记录命令、版本、退出码和截断输出；它不是敌对代码沙箱，不能外推为不可信 C++ 的生产隔离证明。
+| 你关心的问题 | 当前答案 |
+| --- | --- |
+| 它解决什么问题？ | 让 Agent/工程师从失败中形成可复用知识，并用真实执行证据阻止“未经验证的经验”进入正式知识库。 |
+| 输入是什么？ | Markdown 知识候选、固定 commit 的受信项目源码、Agent 生成物和独立评测报告。 |
+| 输出是什么？ | CAS 中的不可变工件、SQLite 中可追踪的 Run/Event、Correction、GateDecision 与幂等发布回执。 |
+| 用户怎么使用？ | 通过 CLI 初始化/摄取/查询，通过 Web Console 查看运行、知识、治理和证据。 |
+| Agent 会自动学习吗？ | 工作流支持失败归因、结构化 Correction、增量修订和重新生成；当前通用自动 Run 入口仍由受信 Orchestrator 驱动，不允许浏览器或普通 Agent 绕过 Gate 自行发布。 |
+| 当前安全边界？ | 固定源码验收只面向受信代码；它限制命令、环境、时间和输出，但不是敌对代码的 OS 沙箱。 |
 
-旧 `endlessWpKnowledgeRunner` 的 Python 实现已被移除；该目录现在是完整 TypeScript Flywheel 组件，而非兼容文件夹。`fw.mjs` 只把仍受支持的 init、ingest、query、get、status、scan 和 feedback 命令委派给组件内同一个 CLI、SQLite Registry 与 CAS。旧状态机、自制 YAML 解析器、Python shell 桥接、动态 DSH 插件和“文档分数即 verified”语义不再存在；score、eval 和 harvest 会明确拒绝，避免形成第二套事实源。
+## 工作方式
 
-## 来源知识域
+```mermaid
+flowchart LR
+    A[Markdown / Git source] --> B[Candidate + CAS]
+    B --> C[Quality Gate]
+    C --> D[Generate]
+    D --> E[Independent Evaluation]
+    E --> F{Publication Gate}
+    F -->|ITERATE| G[Correction + knowledge revision]
+    G --> D
+    F -->|PASS| H[VERIFIED publication]
+    F -->|ROLLBACK / STOPPED| I[Stop with evidence]
+```
 
-数字前缀用于稳定标识来源域，不代表优先级。文档文件名直接使用内容标题；研究日期保留在正文或元数据中，不再放在文件名中。
+这里的核心约束是：Agent 可以提出知识、生成代码、分析失败并修订候选，但不能把自己的判断直接升级为发布权限。状态变更、评测证据和发布都由共享 Application Service、Registry 与确定性 Gate 管理。
 
-### 1.dshAnalysis
+## 五分钟开始
 
-DeepSeek Harness（DSH）可借鉴性分析，作为 WorkPanel 机制样本，不等于把整个 DSH 接入飞轮。
+### 环境要求
 
-- [DSH 可借鉴性分析报告](knowledge/1.dshAnalysis/调研/DSH可借鉴性分析报告.md)
-- [DSH 反汇编调查](knowledge/1.dshAnalysis/调研/DSH反汇编调查.md)
-- [DSH 白话图文版](knowledge/1.dshAnalysis/调研/DSH白话图文版.md)
-- [DSH 插件化拆解](knowledge/1.dshAnalysis/调研/DSH插件化拆解.md)
-- [DSH 插件化专业技术报告](knowledge/1.dshAnalysis/调研/DSH插件化专业技术报告.md)
-- [DSH 分析任务书](knowledge/1.dshAnalysis/任务/DSH分析任务书.md)
-- [DSH 分析过程笔记](knowledge/1.dshAnalysis/作者随笔/DSH分析过程笔记.md)
+- Git
+- Node.js 24 或更高版本
+- npm
 
-### 2.wiki
+### 安装与验证
 
-知识飞轮的设计、研究、知识格式、评测和检索资料，入口见 [`knowledge/2.wiki/README.md`](knowledge/2.wiki/README.md)。
-
-- [设计文档索引](knowledge/2.wiki/README.md)
-- [研究材料](knowledge/2.wiki/研究/README.md)
-- [脚本](knowledge/2.wiki/脚本/)
-
-### 3.workpanel
-
-LinlisWorkPanel 架构、实现分析、规划和调研证据。
-
-- [Knowledge Flywheel PR #11 交付与全项目测评](knowledge/3.workpanel/调研/2026-09-01-PR11知识飞轮交付测评.md)
-- [WorkPanel 调研长期综合入口](knowledge/3.workpanel/调研/WorkPanel综合分析报告.md)
-- [综合架构分析](knowledge/3.workpanel/调研/LinlisWorkPanel综合架构分析.md)
-- [WorkPanel 2.0.0 架构评审](knowledge/3.workpanel/调研/WorkPanel%202.0.0架构评审.md)
-- [WorkPanel Connecter 愿景符合度与可扩展性评审](knowledge/3.workpanel/调研/WorkPanel%20Connecter愿景符合度与可扩展性评审.md)
-- [endlessWpKnowledgeRunner 飞轮实现分析](knowledge/3.workpanel/调研/endlessWpKnowledgeRunner飞轮实现分析.md)
-- [WorkPanel 架构调研笔记](knowledge/3.workpanel/作者随笔/WorkPanel架构调研笔记.md)
-- [WorkPanel 调研任务书](knowledge/3.workpanel/规划/WorkPanel调研任务书.md)
-
-### 4.workpanelConnecter
-
-WorkPanelConnecter 的设计理念、演进路线、市场竞品、集成分析和证据。
-
-- [综合分析报告](knowledge/4.workpanelConnecter/调研/WorkPanelConnecter综合分析报告.md)
-- [设计理念与演进路线](knowledge/4.workpanelConnecter/调研/WorkPanelConnecter设计理念与演进路线.md)
-- [市场竞品分析](knowledge/4.workpanelConnecter/调研/WorkPanelConnecter市场竞品分析.md)
-- [与 Clowder AI 集成分析](knowledge/4.workpanelConnecter/调研/WorkPanelConnecter与Clowder%20AI集成分析.md)
-- [研究证据](knowledge/4.workpanelConnecter/证据/WorkPanelConnecter研究证据.md)
-
-## 运行
-
-```powershell
-npm install
-npm test
+```bash
+git clone https://github.com/linlisWorkTeam/wpKnowledge.git
+cd wpKnowledge
+npm ci
+npm run typecheck
 npm run validate:specs
+npm test
+```
 
-# 固定 commit 的 ohMyWorkPanel 真实源码闭环（需传入本机检出目录）
-npm run acceptance:ohmyworkpanel -- --repository D:\AI\LinlisWorkPanel --output summary
+### 初始化和浏览知识
 
-# 初始化本地 SQLite/CAS（默认写入 .workpanel/，已忽略）
+```bash
+# 默认在 .workpanel/ 创建本地 SQLite 与 CAS
 npm run knowledge -- init
 
-# 旧 OKF 卡片只迁为 CANDIDATE，不继承旧 verified 权限
+# 将旧 OKF 卡片迁为 CANDIDATE；不会继承旧 verified 权限
 npm run knowledge -- migrate-legacy --root knowledge
 
-# 查询默认只返回已通过行为门禁并发布的 VERIFIED 知识
-npm run knowledge -- query --q connecter
+npm run knowledge -- status
+npm run knowledge -- list --status CANDIDATE
+npm run knowledge -- query --q "workpanel"
+```
 
-# 启用受保护的写 API 后启动 Dashboard
-$env:WP_KNOWLEDGE_WRITE_TOKEN = '<local-secret>'
+新环境尚未发布 `VERIFIED` 版本时，默认查询没有命中是正常结果。完整的摄取、评测与发布流程见[快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md)和[运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md)。
+
+### 启动产品控制台
+
+```bash
 npm run knowledge:serve
 ```
 
-Dashboard 默认监听 `http://127.0.0.1:4174`。页面默认处于只读模式；配置 `WP_KNOWLEDGE_WRITE_TOKEN` 后可以在当前页面内存中进入治理模式并提交 feedback，但自动 Run、状态转换和发布不会作为普通页面按钮暴露。没有 token 时所有 HTTP 写操作 fail closed。完整 CLI 和发布示例见 [`endlessWpKnowledgeRunner/docs/OPERATIONS.md`](endlessWpKnowledgeRunner/docs/OPERATIONS.md)。
+打开 <http://127.0.0.1:4174>。默认是只读模式；如需提交 feedback，可在受信本机设置 `WP_KNOWLEDGE_WRITE_TOKEN` 后启动。公网部署、TLS 和监听地址要求见[运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md#dashboard-and-api)。
 
-服务器部署时可通过 `WP_KNOWLEDGE_HOST` 和 `WP_KNOWLEDGE_PORT` 覆盖监听地址，例如以只读方式运行 `WP_KNOWLEDGE_HOST=0.0.0.0 WP_KNOWLEDGE_PORT=80 npm run knowledge:serve`。公网写操作应放在 TLS 反向代理之后，并在云安全组中限制来源地址。
+## 按角色阅读
+
+| 我想…… | 从这里开始 |
+| --- | --- |
+| 快速运行项目 | [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) |
+| 了解用户在前台如何完成任务 | [用户用例与交互时序](endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md) |
+| 理解产品界面和权限边界 | [前台产品设计](endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md) |
+| 理解架构和知识生命周期 | [架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md) |
+| 修改代码或 Spec | [贡献指南](CONTRIBUTING.md)与[开发指南](endlessWpKnowledgeRunner/docs/DEVELOPMENT.md) |
+| 知道文件应该放在哪里 | [仓库目录规则](endlessWpKnowledgeRunner/docs/REPOSITORY-GUIDE.md) |
+| 运行分层测试 | [测试策略](endlessWpKnowledgeRunner/docs/TESTING.md) |
+| 部署、验收或排障 | [运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md) |
+| 报告安全问题 | [安全策略](SECURITY.md) |
+| 查阅全部规范 | [Spec 总入口](endlessWpKnowledgeRunner/specs/README.md) |
+| 浏览研究资料 | [知识库目录](knowledge/知识库目录.md) |
+
+全部工程文档入口见 [`endlessWpKnowledgeRunner/docs/README.md`](endlessWpKnowledgeRunner/docs/README.md)。
+
+## 仓库地图
+
+```text
+wpKnowledge/
+├── endlessWpKnowledgeRunner/ # 当前 Knowledge Flywheel：代码、Spec、测试、Web、验收、文档
+├── knowledge/                # Git 可评审的研究资料与旧 OKF 输入
+├── mvp-flywheel/             # 历史 Python MVP，仅作演进对照
+├── .github/                  # CI 与协作模板
+├── CONTRIBUTING.md           # 仓库级贡献流程
+└── SECURITY.md               # 漏洞报告和运行安全边界
+```
+
+目录是架构的一部分。新的 Runner 代码、测试、Spec、验收 fixture 或运行文档必须放在 `endlessWpKnowledgeRunner/` 内；根目录不再新增平行的 `apps/`、`packages/`、`specs/`、`tests/` 或 `docs/`。
+
+## Spec 驱动约定
+
+行为变更不是只改代码：先找到或补充 `KF-SYS-*` 需求与用例，再同步领域/工作流规范、追踪矩阵、实现、测试和用户文档。若 Spec 与实现不一致，应把它当作缺陷显式修复，而不是选择其中一个静默忽略。
+
+规范性事实源、关键词和阶段门定义在 [Spec 总入口](endlessWpKnowledgeRunner/specs/README.md)。提交 PR 前请执行：
+
+```bash
+npm run typecheck
+npm run validate:specs
+npm test
+```
+
+## 当前成熟度与限制
+
+- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等 checkpoint、确定性 Gate、原子发布、旧 OKF 迁移、只读优先的产品控制台、无 shell 的 DSH HTTP 适配器，以及固定 commit 的 ohMyWorkPanel 两轮真实源码验收。
+- 尚未宣称完成：敌对代码 OS 级隔离、通用浏览器自动 Run、完整 RBAC、多节点高可用，以及 live GLM/DeepSeek 模型质量证明。
+- `mvp-flywheel/` 只用于历史对照；旧 `score`、`eval`、`harvest` 语义已明确拒绝，避免形成第二套发布权威。
+
+欢迎从小而可验证的改动开始。仓库目前没有声明开源许可证；在许可证明确前，请不要假设获得了复制、分发或商用授权。
