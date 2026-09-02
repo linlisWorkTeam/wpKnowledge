@@ -18,6 +18,23 @@ function graphConfig(runId: string, recursionLimit = 100, signal?: AbortSignal) 
   };
 }
 
+function retryConfig(
+  runId: string,
+  checkpointConfig: Record<string, unknown>,
+  signal: AbortSignal,
+) {
+  const configurable = checkpointConfig.configurable;
+  return {
+    ...checkpointConfig,
+    configurable: {
+      ...(configurable && typeof configurable === 'object' ? configurable : {}),
+      thread_id: runId,
+    },
+    recursionLimit: 100,
+    signal,
+  };
+}
+
 export interface DomainKnowledgeInfrastructureOptions {
   executor: WorkflowStageExecutor;
   observer: WorkflowObserver;
@@ -81,10 +98,19 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
     async resume(runId: string): Promise<WorkflowHandle> {
       if (this.running.has(runId)) return { runId, executionStatus: 'RUNNING' };
       const current = await this.status(runId);
-      if (['COMPLETED', 'FAILED', 'STOPPED', 'CANCELLED'].includes(current.executionStatus)) return current;
+      if (['COMPLETED', 'STOPPED', 'CANCELLED'].includes(current.executionStatus)) return current;
       const controller = new AbortController();
       controllers.set(runId, controller);
-      const promise = this.graph.invoke(null as never, graphConfig(runId, 100, controller.signal)) as Promise<InfrastructureState>;
+      let config = graphConfig(runId, 100, controller.signal);
+      if (current.executionStatus === 'FAILED') {
+        const failedCheckpoint = await this.failedCheckpoint(runId);
+        config = retryConfig(
+          runId,
+          failedCheckpoint as Record<string, unknown>,
+          controller.signal,
+        );
+      }
+      const promise = this.graph.invoke(null as never, config) as Promise<InfrastructureState>;
       this.track(runId, promise);
       return { runId, executionStatus: 'RUNNING' };
     }
@@ -133,6 +159,15 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
         controllers.delete(runId);
       });
       this.running.set(runId, tracked);
+    }
+
+    private async failedCheckpoint(runId: string): Promise<Record<string, unknown>> {
+      for await (const snapshot of this.graph.getStateHistory(graphConfig(runId))) {
+        if (snapshot.next.length > 0 && snapshot.tasks.some((task) => task.error != null)) {
+          return snapshot.config as Record<string, unknown>;
+        }
+      }
+      throw new Error(`WORKFLOW_NOT_RECOVERABLE: ${runId} has no failed checkpoint`);
     }
   }
 

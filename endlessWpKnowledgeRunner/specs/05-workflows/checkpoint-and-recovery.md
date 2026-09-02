@@ -13,16 +13,16 @@
 
 ## 恢复语义
 
-- 启动时 Run Registry 扫描非终态 Run，以 `threadId/runId` 从最后完整 checkpoint 恢复。
+- `workflow-resume` 读取同一 `threadId/runId` 的状态历史。普通中断从最新 checkpoint 继续；执行状态为 `FAILED` 时，选择最近一个包含 task error 的 checkpoint 分支，重新调度该失败 super-step。
 - 节点中途崩溃视为“结果未知”；允许重放，但同 GenerationKey 返回已提交结果或重新执行后 CAS 去重。
 - 模型流式半成品、沙箱临时目录和未提交对象不进入领域状态，恢复时清理。
 - 发布采用 `publicationKey=moduleId+versionId+policyId` 的比较交换；重复发布返回原 receipt。
-- checkpoint 损坏或 Artifact 摘要不符时禁止继续，Run 转 `FAILED` 并记录 `INTEGRITY_FAILURE`。
+- Agent/进程瞬时失败只把 LangGraph 执行标为 `FAILED`，不得自动把 FlywheelRun 写成业务终态。checkpoint 损坏或 Artifact 摘要不符时禁止继续，治理层才把 Run 转为 `FAILED` 并记录 `INTEGRITY_FAILURE`。
 - 进程不会在关机期间继续；取消恢复后维持 `CANCELLED`，不会自动重启。
 
 ## 失败分类
 
-`TRANSIENT` 可按策略退避重试；`AGENT_OUTPUT_INVALID` 允许同节点有限重试；`POLICY_DENIED`、`INTEGRITY_FAILURE`、`UNSUPPORTED_CAPABILITY` 不重试；`RESOURCE_EXHAUSTED` 是否重试由已固化策略决定。所有重试计数进入 checkpoint。
+`TRANSIENT` 可按策略退避重试；`AGENT_OUTPUT_INVALID` 允许同节点有限重试；`POLICY_DENIED`、`INTEGRITY_FAILURE`、`UNSUPPORTED_CAPABILITY` 不重试；`RESOURCE_EXHAUSTED` 是否重试由已固化策略决定。Registry Observer 按 `runId + nodeId + iteration` 计算持久化 attempt，进程重启后的重试不能覆盖上一次失败投影。
 
 ## 崩溃注入点
 

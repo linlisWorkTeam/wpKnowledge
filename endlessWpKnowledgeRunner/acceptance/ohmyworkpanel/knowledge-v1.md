@@ -22,4 +22,4 @@
 
 ## 验证
 
-在固定源码快照运行 `pnpm exec vitest run src/mentions.test.ts`。随后由独立 EvalRunner 保存退出码和输出 Artifact；文档质量合格只产生 CANDIDATE，不能直接发布 VERIFIED。
+在固定源码快照运行 `pnpm exec vitest run src/chat/mentions.test.ts`。随后由独立 EvalRunner 保存退出码和输出 Artifact；文档质量合格只产生 CANDIDATE，不能直接发布 VERIFIED。

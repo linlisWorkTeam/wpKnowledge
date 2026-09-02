@@ -140,8 +140,8 @@ npm test
 
 ## 当前成熟度与限制
 
-- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等业务 checkpoint、确定性 Gate、原子发布、内嵌 domain-knowledge/LangGraph、七类 Agent 与节点前台投影、promptAddon-only 配置、无 shell 的 DSH HTTP 适配器，以及固定 commit 的 ohMyWorkPanel 两轮自动验收。
-- 尚未宣称完成：敌对代码 OS 级隔离、任意项目/候选的通用自动 Run、完整 RBAC、多节点高可用、完整崩溃注入，以及 live GLM/DeepSeek 模型质量证明。
+- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等业务 checkpoint、确定性 Gate、原子发布、内嵌 domain-knowledge/LangGraph、七类 Agent 与节点前台投影、promptAddon-only 配置、DSH 查询适配器、DeepSeek Harness 进程型 AgentProvider，以及固定 commit 的 ohMyWorkPanel 自动验收。2026-09-02 的 live 样例完成质量 65→98 的自动知识迭代并通过 295/295 行为门禁。
+- 尚未宣称完成：CodeAgent 源码视图隔离、敌对代码 OS 级沙箱、任意项目/候选的通用自动 Run、完整 RBAC、多节点高可用、四点崩溃注入，以及 live 模型的重复稳定性/成本证明。进程型 DSH Provider 的 Prompt argv 暴露也需要在生产化前处理。
 - `mvp-flywheel/` 只用于历史对照；旧 `score`、`eval`、`harvest` 语义已明确拒绝，避免形成第二套发布权威。
 
 ## License

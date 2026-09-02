@@ -59,7 +59,9 @@ DSH / CLI / HTTP / Web Console
 
 真实源码验收还定义了 `ProjectEvaluator` Port。本地受信 Adapter 会解析并归档指定 Git commit，在临时目录执行，不改变源码仓库当前 checkout。生成文件只写入临时目录；工具必须在白名单中，且不得经过 shell。完整进程证据最终写入 CAS。
 
-DocGen、CodeGen 和 Review 输出会分别经过 JSON Schema 校验。仓库内置的场景 Provider 是确定性测试设施，不能用来证明 live 模型质量。
+Orchestrator、DocWorker、DocGen、TestGen、Code、Check 和 Review 的输出都会经过角色专属 JSON Schema 校验。默认 Scenario Provider 是确定性测试设施；设置 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness` 后，组合根会调用独立的进程型 DSH Adapter。一次成功 live Run 可以证明接线与样例结果，不能替代重复稳定性试验。
+
+候选正文先过 wpKnowledge Quality Gate。结构、验证锚点或可读性不足时，图会跳过本轮 CodeAgent，将 score、signals 和 weak points 放回下一轮 DocGen 上下文。行为评测仍在候选质量合格后执行，两个 Gate 不能合并。
 
 ## 持久化
 
@@ -69,6 +71,7 @@ DocGen、CodeGen 和 Review 输出会分别经过 JSON Schema 校验。仓库内
 - 状态、Event、GateDecision 和发布指针按事务提交。
 - LangGraph 把执行 checkpoint 写入 `workflow/checkpoints.sqlite`；Registry 仍是业务事实和 Console 投影的唯一存储。
 - `GenerationKey` 标识一次节点副作用。重复执行会返回已提交输出；首个执行尚在运行时，并发重复请求会 fail closed；失败记录可以重试，尝试次数和 Event 历史不会丢失。
+- LangGraph 执行错误保持可恢复：`workflow-resume` 从最近一个带 task error 的 checkpoint 分支继续。它不会自动把 FlywheelRun 写成同名业务终态。
 - publication key 为 `moduleId:versionId:policyId`；重复发布返回既有回执。
 
 <a id="security-boundary"></a>
@@ -78,7 +81,8 @@ DocGen、CodeGen 和 Review 输出会分别经过 JSON Schema 校验。仓库内
 - `/api/v1` 下的 HTTP GET 操作只读。
 - 只有配置 `WP_KNOWLEDGE_WRITE_TOKEN` 且请求携带 Bearer token 时，HTTP 写接口才会启用。
 - token 只是本地受信操作员边界，不是完整的用户、资源和动作授权矩阵。当前评测接口负责记录并校验提交的证据元数据，不自行编译或执行代码。
-- DSH 只访问带版本的 HTTP API，不启动 Python 或 shell。
+- 查询侧 DSH Adapter 只访问带版本的 HTTP API，不启动 Python 或 shell。Agent 执行侧另有 `DeepSeekHarnessHeadlessAgent`，以 `shell=false` 启动固定版本 CLI，并限制工作目录、时长和输出；两者不是同一个 Adapter。
+- Headless CLI 当前把 Prompt 放在进程 argv 中，同权限宿主进程可能读取；正式部署需迁移到 DSH SDK 或 stdin/受保护 IPC。
 - 受信项目评测器会净化环境、拒绝路径穿越和符号链接目标、限制时间与输出，并终止进程树。这些措施用于避免验收任务误伤宿主机；子进程仍共享宿主机内核，不能用来运行敌对代码。
 - 核心层另外定义了 Sandbox Port。真实 OS 隔离 Adapter 在通过逃逸、网络、文件系统和资源测试前，不受信的 C++ 执行必须 fail closed。
 

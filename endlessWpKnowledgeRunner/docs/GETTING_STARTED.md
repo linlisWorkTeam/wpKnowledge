@@ -110,7 +110,9 @@ WP_KNOWLEDGE_WRITE_TOKEN='<local-secret>' npm run knowledge:serve
 npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
 ```
 
-命令会创建 wpKnowledge `FlywheelRun`，以内嵌 LangGraph 执行全部 Agent 节点，并等待失败迭代、独立评测和发布结束。另一个终端打开 Console，就能按同一 `runId` 查看节点状态。当前 Agent provider 是可重复的 fixture；这条路径证明整合和治理约束，不证明 live 模型质量。
+命令会创建 wpKnowledge `FlywheelRun`，以内嵌 LangGraph 执行全部 Agent 节点，并等待失败迭代、独立评测和发布结束。另一个终端打开 Console，就能按同一 `runId` 查看节点状态。默认 Agent Provider 是可重复的 fixture，适合先确认环境与治理链路。
+
+需要接入真实 DeepSeek Harness 时，按 [`deploy/deepseek-harness/README.md`](../deploy/deepseek-harness/README.md) 配置 `OPENCODE_GO_API_KEY`、Provider patch 和工作区 allowlist，再设置 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`。密钥只放进运行时环境，不写配置文件。公开 Web 只是 DSH 自身的临时调试面，知识飞轮 Console 仍由 `knowledge:serve` 提供。
 
 查看 Agent 或为 DocGen 追加一段受信提示词：
 

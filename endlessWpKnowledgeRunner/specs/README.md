@@ -34,4 +34,4 @@ This directory is the normative source for Knowledge Flywheel behavior. Requirem
 
 ## 阶段门
 
-P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等业务副作用、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和无 shell 的 DSH API 适配器。LangGraph 已按 ADR-006 以内嵌 `domain-knowledge` infrastructure 接入：它执行 Agent 节点、并行、循环与 checkpoint，wpKnowledge 继续持有 Run、KnowledgeVersion、评测、发布和审计事实。固定 ohMyWorkPanel 自动场景已经覆盖失败、纠错、fresh 再生成、独立执行评测、节点投影和发布闭环；当前 Provider 仍是 deterministic fixture。内部 GLM、敌对 C++ 沙箱和完整崩溃注入仍待完成，受信真实项目验收不得被外推为 live 模型质量或敌对代码隔离证明。
+P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等业务副作用、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和 DSH 查询适配器。LangGraph 已按 ADR-006 以内嵌 `domain-knowledge` infrastructure 接入；默认 Provider 仍是 deterministic fixture，另有进程型 DeepSeek Harness Provider 跑通 ohMyWorkPanel 单次 live 样例。该样例覆盖 Agent 输出失败恢复、候选质量 65→98 自动迭代、295/295 独立评测与发布，但不代表模型稳定性。CodeAgent 源码视图隔离、敌对 C++ 沙箱、SDK/受保护 IPC 和完整崩溃注入仍待完成。

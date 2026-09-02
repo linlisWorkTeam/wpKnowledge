@@ -102,7 +102,7 @@
           <div class="run-body">
             <div class="run-heading">
               <div>
-                <span class="mono-label">RUN #KF-0042 · ITERATION 02</span>
+                <span class="mono-label">LIVE RUN 2d9d785d… · ITERATION 01</span>
                 <strong>Knowledge verification</strong>
               </div>
               <span class="badge pass">PASS</span>
@@ -117,12 +117,12 @@
             <div class="evidence-stack">
               <div class="evidence-row">
                 <span class="evidence-icon cyan">⌁</span>
-                <div><small>FIXED SOURCE</small><b>commit cfef082 · clean archive</b></div>
+                <div><small>FIXED SOURCE</small><b>commit 3b2e607 · git archive</b></div>
                 <code>PINNED</code>
               </div>
               <div class="evidence-row">
                 <span class="evidence-icon green">✓</span>
-                <div><small>INDEPENDENT EVALUATION</small><b>279 / 279 checks passed</b></div>
+                <div><small>INDEPENDENT EVALUATION</small><b>295 / 295 checks passed</b></div>
                 <code>1.000</code>
               </div>
               <div class="evidence-row">
@@ -135,7 +135,7 @@
               <span><i class="health good"></i> Registry</span>
               <span><i class="health good"></i> CAS</span>
               <span><i class="health good"></i> Evaluator</span>
-              <span class="receipt">sha256:8b9f…c15a</span>
+              <span class="receipt">sha256:c488…4788</span>
             </div>
           </div>
         </div>
@@ -256,8 +256,8 @@
           <span class="use-number">UC / 003</span>
           <div class="use-icon violet" aria-hidden="true">↻</div>
           <h3>让 Agent 从失败中学习</h3>
-          <p>EvalRunner 返回行为失败，Review Agent 生成结构化 Correction，Orchestrator 自动修订局部知识并 fresh generate。</p>
-          <div class="use-flow"><span>Fail</span><i>→</i><span>Correct</span><i>→</i><span>Retry</span></div>
+          <p>Quality Gate 会把结构和验证弱项交还 DocGen；行为失败则由 Review Agent 生成 Correction。两条路径都由 Orchestrator 自动进入下一轮。</p>
+          <div class="use-flow"><span>Fail</span><i>→</i><span>Attribute</span><i>→</i><span>Retry</span></div>
         </article>
 
         <article class="use-card reveal">
@@ -316,10 +316,11 @@
         </div>
         <div class="boundary-list">
           <p><span>01</span>固定项目验收面向受信源码，不是敌对代码的 OS 沙箱。</p>
-          <p><span>02</span>deterministic fixture 证明编排，不证明 live 模型质量。</p>
+          <p><span>02</span>deterministic fixture 只证明编排；一次 live Run 也不能证明模型稳定性。</p>
           <p><span>03</span>Web Console 默认只读，普通 Agent 没有自行发布权限。</p>
           <p><span>04</span>Publication Gate 只接受完整、匹配且可校验的独立证据。</p>
           <p><span>05</span>Agent 只能追加提示词；职责、输入输出、拓扑与工具权限不可替换。</p>
+          <p><span>06</span>CodeAgent 的源码视图尚未完成 OS 级隔离；当前只运行受信项目。</p>
         </div>
       </div>
     </section>

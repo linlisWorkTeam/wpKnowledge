@@ -1,5 +1,6 @@
+import { appendFile, mkdir } from 'node:fs/promises';
 import { readFileSync } from 'node:fs';
-import { dirname, isAbsolute, join, resolve } from 'node:path';
+import { delimiter, dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   AgentCatalogService, AutomatedProjectWorkflowService, DeterministicQualityPolicy,
@@ -10,6 +11,7 @@ import type { AutomatedProjectScenario } from '../../../packages/application/src
 import { DOMAIN_KNOWLEDGE_AGENT_DEFINITIONS } from '../../../infrastructure/domain-knowledge/src/index.ts';
 import { createDomainKnowledgeInfrastructure } from '../../../infrastructure/domain-knowledge/src/index.ts';
 import { TrustedProjectEvaluator } from '../../../packages/adapters/project-eval/src/index.ts';
+import { DeepSeekHarnessHeadlessAgent } from '../../../packages/adapters/deepseek-harness-agent/src/index.ts';
 import {
   LocalCasArtifactStore, SQLiteFlywheelRepository,
 } from '../../../packages/adapters/sqlite-cas/src/index.ts';
@@ -94,13 +96,37 @@ export function createComposition(input: {
     clock: input.clock,
   });
   const workflowObserver = new RegistryWorkflowObserver(repository, input.clock);
+  const agentProviderMode = process.env.WP_FLYWHEEL_AGENT_PROVIDER?.trim() || 'fixture';
+  if (!['fixture', 'deepseek-harness'].includes(agentProviderMode)) {
+    throw new Error('CONFIG_INVALID: WP_FLYWHEEL_AGENT_PROVIDER must be fixture or deepseek-harness');
+  }
   let automatedWorkflowPromise: Promise<AutomatedProjectWorkflowService> | null = null;
   const automatedWorkflow = () => {
     automatedWorkflowPromise ??= (async () => {
+      const auditDirectory = join(runtimeDir, 'demo');
+      const auditPath = join(auditDirectory, 'agent-runs.jsonl');
+      const allowedRoots = (process.env.WP_DSH_ALLOWED_ROOTS?.split(delimiter) ?? [repositoryRoot])
+        .map((root) => root.trim()).filter(Boolean).map((root) => resolve(root));
+      const agent = agentProviderMode === 'deepseek-harness'
+        ? new DeepSeekHarnessHeadlessAgent({
+            command: process.env.WP_DSH_COMMAND?.trim() || 'dsh',
+            args: process.env.WP_DSH_ARGS_JSON
+              ? JSON.parse(process.env.WP_DSH_ARGS_JSON) as string[]
+              : ['--profile', 'headless'],
+            timeoutMs: Number(process.env.WP_DSH_TIMEOUT_MS ?? 600_000),
+            maxOutputBytes: Number(process.env.WP_DSH_MAX_OUTPUT_BYTES ?? 2 * 1024 * 1024),
+            allowedWorkspaceRoots: allowedRoots,
+            onAudit: async (record) => {
+              await mkdir(auditDirectory, { recursive: true });
+              await appendFile(auditPath, `${JSON.stringify(record)}\n`, { encoding: 'utf8', mode: 0o600 });
+            },
+          })
+        : undefined;
       const executor = new OhMyWorkPanelWorkflowExecutor({
         service,
         evaluator: new TrustedProjectEvaluator(artifacts),
         assetRoot: join(componentRoot, 'acceptance', 'ohmyworkpanel'),
+        ...(agent ? { agent } : {}),
       });
       const infrastructure = await createDomainKnowledgeInfrastructure({
         executor,
@@ -124,6 +150,7 @@ export function createComposition(input: {
     scanner,
     agents,
     workflowObserver,
+    agentProviderMode,
     automatedWorkflow,
     close: () => repository.close(),
   };

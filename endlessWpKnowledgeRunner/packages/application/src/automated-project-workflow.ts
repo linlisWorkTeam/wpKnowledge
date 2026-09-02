@@ -1,11 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { resolve, sep } from 'node:path';
+import Ajv2020Import from 'ajv/dist/2020.js';
 import type {
   AgentId,
+  AgentProvider,
   GeneratedProjectFile,
   ProjectEvaluation,
   ProjectEvaluator,
   ProjectSnapshot,
+  QualityReport,
   WorkflowStageExecutor,
   WorkflowStageInput,
   WorkflowStageResult,
@@ -17,6 +20,78 @@ import { assertInvariant, type ArtifactRef, type GateDecision } from '../../doma
 import type { KnowledgeFlywheelService } from './index.ts';
 import type { RealSourceScenario } from './project-flow.ts';
 import { KNOWLEDGE_WRITING_GUIDE } from './knowledge-writing-guide.ts';
+
+const Ajv2020 = Ajv2020Import as unknown as new (options: Record<string, unknown>) => {
+  compile(schema: Record<string, unknown>): {
+    (value: unknown): boolean;
+    errors?: unknown;
+  };
+  errorsText(errors: unknown): string;
+};
+
+const AGENT_OUTPUT_SCHEMAS: Record<AgentId, Record<string, unknown>> = {
+  orchestrator: {
+    type: 'object', required: ['strategy', 'iteration', 'parallel'], additionalProperties: false,
+    properties: {
+      strategy: { type: 'string', minLength: 1 }, iteration: { type: 'integer', minimum: 0 },
+      parallel: { type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } },
+    },
+  },
+  'doc-worker': {
+    type: 'object', required: ['workerId', 'fragment', 'provenance'], additionalProperties: false,
+    properties: {
+      workerId: { type: 'string', minLength: 1 }, fragment: { type: 'string', minLength: 20 },
+      provenance: { type: 'array', minItems: 1, items: { type: 'string', minLength: 1 } },
+    },
+  },
+  'doc-gen': {
+    type: 'object', required: ['body', 'title', 'description'], additionalProperties: false,
+    properties: {
+      body: { type: 'string', minLength: 200 }, title: { type: 'string', minLength: 1 },
+      description: { type: 'string', minLength: 1 },
+    },
+  },
+  'test-gen': {
+    type: 'object', required: ['candidateCommands', 'oracleRequired'], additionalProperties: false,
+    properties: {
+      candidateCommands: { type: 'array', minItems: 1, items: { type: 'object' } },
+      oracleRequired: { type: 'boolean' },
+    },
+  },
+  code: {
+    type: 'object', required: ['files'], additionalProperties: false,
+    properties: {
+      files: {
+        type: 'array', minItems: 1,
+        items: {
+          type: 'object', required: ['path', 'content'], additionalProperties: false,
+          properties: { path: { type: 'string', minLength: 1 }, content: { type: 'string', minLength: 1 } },
+        },
+      },
+    },
+  },
+  check: {
+    type: 'object', required: ['blocking', 'findings', 'scope'], additionalProperties: false,
+    properties: {
+      blocking: { type: 'boolean' }, findings: { type: 'array', items: { type: 'string' } },
+      scope: { type: 'array', items: { type: 'string', minLength: 1 } },
+    },
+  },
+  review: {
+    type: 'object', required: ['blocking', 'recommendation', 'correction'], additionalProperties: false,
+    properties: {
+      blocking: { type: 'boolean' }, recommendation: { enum: ['PASS', 'ITERATE'] },
+      correction: {
+        type: ['object', 'null'],
+        properties: {
+          correctionId: { type: 'string', minLength: 1 }, knowledgePath: { type: 'string', minLength: 1 },
+          criterion: { type: 'string', minLength: 1 }, risk: { type: 'string', minLength: 1 },
+        },
+        required: ['correctionId', 'knowledgePath', 'criterion', 'risk'], additionalProperties: false,
+      },
+    },
+  },
+};
 
 interface AutomatedAssets {
   knowledgeV1: string;
@@ -66,15 +141,18 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
   readonly service: KnowledgeFlywheelService;
   readonly evaluator: ProjectEvaluator;
   readonly assetRoot: string;
+  readonly agent?: AgentProvider;
 
   constructor(input: {
     service: KnowledgeFlywheelService;
     evaluator: ProjectEvaluator;
     assetRoot: string;
+    agent?: AgentProvider;
   }) {
     this.service = input.service;
     this.evaluator = input.evaluator;
     this.assetRoot = resolve(input.assetRoot);
+    this.agent = input.agent;
   }
 
   async execute(input: WorkflowStageInput): Promise<WorkflowStageResult> {
@@ -123,11 +201,14 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
         ...scenario, repositoryRoot: snapshot.repositoryRoot, expectedCommit: snapshot.commit,
       }, null, 2)), 'application/json');
     }
-    const agent = await this.commitAgentOutput(input, {
-      strategy: 'fixed-knowledge-flywheel-v1',
-      iteration: input.iteration,
-      parallel: ['documentation', 'test-generation'],
-    });
+    const output = this.agent
+      ? await this.runLiveAgent(input, scenario, 'orchestrator')
+      : {
+          strategy: 'fixed-knowledge-flywheel-v1',
+          iteration: input.iteration,
+          parallel: ['documentation', 'test-generation'],
+        };
+    const agent = await this.commitAgentOutput(input, output, AGENT_OUTPUT_SCHEMAS.orchestrator);
     return {
       detail: `planned iteration ${input.iteration}`,
       context: { snapshot, scenarioRef, [contextKey(input.nodeId, input.iteration)]: agent },
@@ -139,13 +220,20 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     scenario: AutomatedProjectScenario,
     agentId: AgentId,
   ): Promise<WorkflowStageResult> {
+    if (this.agent) {
+      const output = await this.runLiveAgent(input, scenario, agentId);
+      const ref = await this.commitAgentOutput(input, output, AGENT_OUTPUT_SCHEMAS[agentId]);
+      return {
+        detail: `${agentId} produced schema-validated DeepSeek Harness output`,
+        context: { [contextKey(input.nodeId, input.iteration, input.workerId)]: ref },
+      };
+    }
     let output: Record<string, unknown>;
     if (agentId === 'doc-gen') {
       output = {
         body: this.asset(input.iteration === 0 ? scenario.assets.knowledgeV1 : scenario.assets.knowledgeV2),
         title: scenario.assets.title,
         description: scenario.assets.description,
-        writingGuide: KNOWLEDGE_WRITING_GUIDE,
       };
     } else if (agentId === 'code') {
       output = { files: [{
@@ -176,11 +264,71 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     } else {
       output = { iteration: input.iteration, strategy: 'fixed-knowledge-flywheel-v1' };
     }
-    const ref = await this.commitAgentOutput(input, output);
+    const ref = await this.commitAgentOutput(input, output, AGENT_OUTPUT_SCHEMAS[agentId]);
     return {
       detail: `${agentId} produced schema-bound fixture output`,
       context: { [contextKey(input.nodeId, input.iteration, input.workerId)]: ref },
     };
+  }
+
+  private async runLiveAgent(
+    input: WorkflowStageInput,
+    scenario: AutomatedProjectScenario,
+    agentId: AgentId,
+  ): Promise<Record<string, unknown>> {
+    if (!this.agent) throw new Error('WORKFLOW_LIVE_AGENT_UNAVAILABLE');
+    const evidence: Record<string, unknown> = {
+      moduleId: scenario.moduleId,
+      iteration: input.iteration,
+      workerId: input.workerId ?? null,
+      sourcePaths: scenario.sourcePaths,
+      publicInterfacePaths: scenario.publicInterfacePaths,
+      allowedGeneratedPaths: scenario.allowedGeneratedPaths,
+      writingGuide: agentId === 'doc-gen' ? KNOWLEDGE_WRITING_GUIDE : undefined,
+    };
+    if (agentId === 'doc-worker') {
+      const workerIndex = input.workerIndex ?? 0;
+      evidence.assignedSourcePaths = scenario.sourcePaths.filter((_, index) =>
+        index % Math.max(1, input.workerCount) === workerIndex,
+      );
+    }
+    if (input.iteration > 0) {
+      const previousDocumentRef = input.context[contextKey('doc_gen', input.iteration - 1)] as ArtifactRef | undefined;
+      const previousReviewRef = input.context[contextKey('review', input.iteration - 1)] as ArtifactRef | undefined;
+      if (previousDocumentRef) evidence.previousDocument = await this.readJson<Record<string, unknown>>(previousDocumentRef);
+      if (previousReviewRef) evidence.previousReview = await this.readJson<Record<string, unknown>>(previousReviewRef);
+      const previousQuality = input.context[contextKey('qualityReport', input.iteration - 1)] as QualityReport | undefined;
+      if (previousQuality) evidence.previousQualityFeedback = previousQuality;
+    }
+    if (agentId === 'doc-gen') {
+      const fragments: Record<string, unknown>[] = [];
+      for (const [key, value] of Object.entries(input.context)) {
+        if (!key.startsWith(`doc_worker:${input.iteration}:`)) continue;
+        if (value && typeof value === 'object' && 'artifactId' in value) {
+          fragments.push(await this.readJson<Record<string, unknown>>(value as ArtifactRef));
+        }
+      }
+      evidence.workerFragments = fragments;
+    }
+    const contextualRefs: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(input.context)) {
+      if (!key.endsWith(`:${input.iteration}`) || !value || typeof value !== 'object' || !('artifactId' in value)) continue;
+      if (['code', 'check', 'evaluationEvidenceRef', 'candidateBodyRef'].some((name) => key.startsWith(name))) {
+        contextualRefs[key] = await this.readArtifact(value as ArtifactRef);
+      }
+    }
+    evidence.currentEvidence = contextualRefs;
+    return this.agent.run({
+      role: agentId,
+      prompt: `${input.prompt}\n\n受信工作流上下文：\n${JSON.stringify(evidence)}`,
+      outputSchema: AGENT_OUTPUT_SCHEMAS[agentId],
+      idempotencyKey: `${input.runId}:${input.nodeId}:${input.iteration}:${input.workerId ?? 'main'}`,
+      workspaceRoot: scenario.repositoryRoot,
+      metadata: {
+        runId: input.runId, nodeId: input.nodeId, iteration: input.iteration,
+        workerId: input.workerId ?? null,
+      },
+    }, input.signal);
   }
 
   private async commitCandidate(
@@ -210,13 +358,28 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
         })),
         metadata: { workflow: 'embedded-domain-knowledge', iteration: input.iteration },
       });
-      if (candidate.quality.outcome !== 'ACCEPTED') throw new Error('WORKFLOW_CANDIDATE_QUALITY_REJECTED');
       return [candidate.version.bodyRef];
     });
     const bodyRef = checkpoint.outputRefs[0];
     if (!bodyRef) throw new Error('WORKFLOW_CANDIDATE_CHECKPOINT_EMPTY');
     const version = this.service.repository.findKnowledgeVersionByBody(scenario.moduleId, bodyRef.artifactId);
     if (!version) throw new Error('WORKFLOW_CANDIDATE_VERSION_MISSING');
+    const quality = this.service.qualityPolicy.evaluate(document.body, {
+      title: document.title,
+      description: document.description,
+      provenance: version.provenance,
+    });
+    if (quality.outcome !== 'ACCEPTED') {
+      return {
+        detail: `candidate ${version.versionId} rejected by quality policy (${quality.score})`,
+        route: 'ITERATE',
+        context: {
+          [contextKey('candidateVersionId', input.iteration)]: version.versionId,
+          [contextKey('candidateBodyRef', input.iteration)]: bodyRef,
+          [contextKey('qualityReport', input.iteration)]: quality,
+        },
+      };
+    }
     return {
       detail: `candidate ${version.versionId}`,
       context: {
@@ -310,6 +473,22 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
   }
 
   private async route(input: WorkflowStageInput): Promise<WorkflowStageResult> {
+    const quality = input.context[contextKey('qualityReport', input.iteration)] as QualityReport | undefined;
+    if (quality?.outcome === 'REJECTED') {
+      const run = this.service.repository.getRun(input.runId);
+      if (!run) throw new Error(`WORKFLOW_RUN_NOT_FOUND: ${input.runId}`);
+      const exhausted = run.iteration >= input.maxIterations;
+      if (exhausted && run.state === 'GENERATING') {
+        this.service.transition(input.runId, 'LOW_CONFIDENCE');
+      } else if (!exhausted && run.state === 'GENERATING') {
+        this.service.transition(input.runId, 'ITERATING');
+      }
+      return {
+        detail: `knowledge quality ${quality.score}; ${exhausted ? 'stopped' : 'iterate'}: ${quality.weakPoints.join('; ')}`,
+        route: exhausted ? 'STOPPED' : 'ITERATE',
+        context: { [contextKey('qualityReport', input.iteration)]: quality },
+      };
+    }
     const existing = input.context[contextKey('gateDecision', input.iteration)] as GateDecision | undefined;
     const evaluationRef = input.context[contextKey('evaluationEvidenceRef', input.iteration)] as ArtifactRef | undefined;
     if (!evaluationRef) throw new Error('WORKFLOW_EVALUATION_EVIDENCE_MISSING');
@@ -393,7 +572,16 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     };
   }
 
-  private async commitAgentOutput(input: WorkflowStageInput, output: Record<string, unknown>): Promise<ArtifactRef> {
+  private async commitAgentOutput(
+    input: WorkflowStageInput,
+    output: Record<string, unknown>,
+    schema: Record<string, unknown>,
+  ): Promise<ArtifactRef> {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    const validate = ajv.compile(schema);
+    if (!validate(output)) {
+      throw new Error(`AGENT_OUTPUT_INVALID: ${ajv.errorsText(validate.errors)}`);
+    }
     const inputRefs = Object.values(input.context)
       .filter((value): value is ArtifactRef => Boolean(
         value && typeof value === 'object' && 'artifactId' in value && 'sha256' in value,
@@ -421,6 +609,11 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
 
   private async readJson<T>(ref: ArtifactRef): Promise<T> {
     return JSON.parse(Buffer.from(await this.service.artifacts.get(ref)).toString('utf8')) as T;
+  }
+
+  private async readArtifact(ref: ArtifactRef): Promise<unknown> {
+    const text = Buffer.from(await this.service.artifacts.get(ref)).toString('utf8');
+    return ref.mediaType.includes('json') ? JSON.parse(text) as unknown : text;
   }
 }
 
@@ -452,14 +645,7 @@ export class AutomatedProjectWorkflowService {
   }
 
   async wait(runId: string): Promise<WorkflowExecutionView> {
-    try {
-      const view = await this.workflow.wait(runId);
-      this.synchronizeTerminalRun(runId, view.executionStatus);
-      return view;
-    } catch (error) {
-      this.synchronizeTerminalRun(runId, 'FAILED');
-      throw error;
-    }
+    return this.workflow.wait(runId);
   }
 
   status(runId: string): Promise<WorkflowExecutionView> {
@@ -479,7 +665,9 @@ export class AutomatedProjectWorkflowService {
     runId: string,
     status: WorkflowExecutionView['executionStatus'],
   ): void {
-    const next = status === 'FAILED' ? 'FAILED' : status === 'CANCELLED' ? 'CANCELLED' : null;
+    // Infrastructure failures remain resumable. FlywheelRun only becomes terminal when
+    // the knowledge-governance layer makes that decision (or an operator cancels it).
+    const next = status === 'CANCELLED' ? 'CANCELLED' : null;
     if (!next) return;
     const run = this.flywheel.repository.getRun(runId);
     if (run && !['VERIFIED', 'LOW_CONFIDENCE', 'FAILED', 'CANCELLED'].includes(run.state)) {

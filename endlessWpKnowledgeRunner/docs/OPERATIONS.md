@@ -81,7 +81,7 @@ npm run acceptance:ohmyworkpanel -- `
 
 评测器使用 `git archive`，生成文件只写临时目录；可执行工具限于 `node`、`pnpm` 和 `cargo`。它不经过 shell，会净化继承环境、限制命令时间与输出，并把工具版本、脱敏 argv、退出状态和脱敏输出保存到 CAS。
 
-仓库内置 Agent Provider 重放经过 schema 校验的 fixture。因此，这条命令证明的是编排和执行路径，不是 live GLM/DeepSeek 模型质量。它也不是 OS 沙箱，只能用于受信源码与生成代码。
+默认 Agent Provider 重放经过 Schema 校验的 fixture，因此适合验证编排和执行路径。真实 DeepSeek Harness 接法、OpenCode Go patch 和公网调试说明见 [`deploy/deepseek-harness/README.md`](../deploy/deepseek-harness/README.md)。live 模式仍只能运行受信源码；一次成功样例不是模型稳定性或 OS 隔离证明。
 
 ## 内嵌 LangGraph 工作流
 
@@ -93,6 +93,8 @@ npm run knowledge -- workflow-status --run <run-id>
 npm run knowledge -- workflow-resume --run <run-id>
 npm run knowledge -- workflow-cancel --run <run-id>
 ```
+
+Agent 输出或进程出现可恢复错误时，`workflow-resume` 会从最近带 task error 的 LangGraph checkpoint 分支继续。已提交的 Artifact、Oracle 和 publication 仍由业务 GenerationKey 去重。候选知识未通过 Quality Gate 时不需要人工执行 resume：图会自动跳过本轮 CodeAgent，把质量 weak points 交给下一轮 DocGen。
 
 LangGraph 把执行 checkpoint 写到 `$WP_FLYWHEEL_HOME/workflow/checkpoints.sqlite`。不要把它当作业务 Registry，也不要暴露给浏览器。wpKnowledge SQLite Registry 仍持有 `FlywheelRun`、Agent prompt revision、节点投影、知识版本、评测报告、Event 和发布回执。两层用 `runId` 关联。
 

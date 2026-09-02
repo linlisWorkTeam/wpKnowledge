@@ -28,6 +28,8 @@
 | KF-SYS-022 | AC-E2E-002 | Implemented | packages/application/src/automated-project-workflow.ts + infrastructure/domain-knowledge/src/graph.ts | tests/acceptance/automated-langgraph-flow.test.ts |
 | KF-SYS-023 | AC-DOC-002 | Implemented | web + site + docs + specs + docs/DEVELOPMENT.md completion rule | tests/contract/site.test.ts + tests/contract/component-layout.test.ts |
 | KF-SYS-024 | AC-DOC-003 | Implemented | docs/DOCUMENTATION-I18N.md + repository documentation | tests/contract/component-layout.test.ts + tests/contract/site.test.ts |
+| KF-SYS-025 | AC-E2E-003 | Partial | packages/adapters/deepseek-harness-agent + packages/application/src/automated-project-workflow.ts + deploy/deepseek-harness | tests/integration/deepseek-harness-agent.test.ts + ../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md |
+| KF-SYS-026 | AC-FLOW-005 | Implemented | packages/application/src/automated-project-workflow.ts + infrastructure/domain-knowledge/src/graph.ts | tests/integration/langgraph-infrastructure.test.ts + ../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md |
 | NFR-001 | AC-SEC-002 | Partial | apps/runner/src/server.ts | tests/integration/server.test.ts |
 | NFR-002 | AC-REC-001 | Partial | checkpoints + publication transaction | tests/integration/sqlite-cas.test.ts |
 | NFR-003 | AC-REC-002 | Implemented | GenerationKey and publication key | tests/integration/sqlite-cas.test.ts + tests/acceptance/publication-flow.test.ts |
@@ -40,4 +42,4 @@
 | NFR-010 | AC-FLOW-004 | Planned | packages/application/scheduler | tests/acceptance/resource-claims.test.ts |
 | NFR-011 | AC-E2E-001 | Implemented | project acceptance report + CAS evidence | tests/acceptance/real-source-flow.test.ts + ../knowledge/3.workpanel/证据/2026-09-01-ohMyWorkPanel真实源码验收.md |
 
-`SPK-002` 的 LangGraph 选型结果已由 ADR-006 和自动化测试固化；完整崩溃注入仍作为恢复加固项。其余 Spike 继续以独立报告和可重复脚本验收，不得用当前固定 fixture 或受信执行器代替 Provider、live 模型与敌对沙箱证据。
+`SPK-001` 已以进程型 DeepSeek Harness Provider 跑通固定场景，SDK、stdin/受保护 IPC 和 Prompt argv 暴露仍待处理，因此 `KF-SYS-025` 保持 `Partial`。`SPK-002` 的 LangGraph 选型结果已由 ADR-006 和自动化测试固化；失败 task checkpoint 恢复已有自动化用例，四个崩溃注入点仍是恢复加固项。一次 live Run 不能替代稳定性试验，也不能证明敌对沙箱安全。

@@ -103,4 +103,11 @@ export class RegistryWorkflowObserver implements WorkflowObserver {
       now,
     ));
   }
+
+  nextAttempt(runId: string, nodeId: string, iteration: number): number {
+    const attempts = this.repository.listWorkflowNodeProjections(runId)
+      .filter((projection) => projection.nodeId === nodeId && projection.iteration === iteration)
+      .map((projection) => projection.attempt);
+    return Math.max(0, ...attempts) + 1;
+  }
 }

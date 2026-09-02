@@ -61,7 +61,11 @@ function createNode(deps: GraphDependencies, nodeId: string) {
   return async (state: InfrastructureState): Promise<InfrastructureStateUpdate> => {
     const renderedNodeId = executionNodeId(state, nodeId);
     const attemptKey = `${renderedNodeId}:${state.iteration}`;
-    const attempt = (state.attempts[attemptKey] ?? 0) + 1;
+    const stateAttempt = (state.attempts[attemptKey] ?? 0) + 1;
+    const attempt = Math.max(
+      stateAttempt,
+      deps.observer.nextAttempt?.(state.runId, renderedNodeId, state.iteration) ?? stateAttempt,
+    );
     const agentId = AGENT_BY_NODE[nodeId] ?? null;
     const definition = agentId ? agentDefinition(agentId) : null;
     const promptAddon = agentId ? deps.prompts.getPromptAddon(agentId).trim() : '';
@@ -80,7 +84,9 @@ function createNode(deps: GraphDependencies, nodeId: string) {
         attempt,
         prompt,
         context: state.context,
+        workerCount: state.workerCount,
         ...(state.workerTask ? { workerId: state.workerTask.workerId } : {}),
+        ...(state.workerTask ? { workerIndex: state.workerTask.index } : {}),
         ...(deps.signalFor(state.runId) ? { signal: deps.signalFor(state.runId) } : {}),
       });
       const completedAt = deps.clock();
@@ -129,7 +135,7 @@ export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: 
       ...await node('publication')(state), executionStatus: 'COMPLETED',
     }))
     .addNode('failed', async (state: InfrastructureState): Promise<InfrastructureStateUpdate> => ({
-      executionStatus: 'FAILED', currentNode: 'failed', route: 'FAILED', error: state.error ?? 'workflow failed',
+      executionStatus: 'FAILED', route: 'FAILED', error: state.error ?? 'workflow failed',
     }))
     .addNode('stopped', async (): Promise<InfrastructureStateUpdate> => ({
       executionStatus: 'STOPPED', currentNode: 'stopped', route: 'STOPPED',
@@ -151,7 +157,9 @@ export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: 
     }, ['test_gen', 'doc_worker', 'doc_gen'])
     .addEdge('doc_worker', 'doc_gen')
     .addEdge('doc_gen', 'candidate_knowledge')
-    .addEdge('candidate_knowledge', 'code')
+    .addConditionalEdges('candidate_knowledge', (state: InfrastructureState) =>
+      state.route === 'ITERATE' || state.route === 'STOPPED' ? 'workflow_router' : 'code',
+    ['workflow_router', 'code'])
     .addEdge('code', 'check')
     .addEdge('test_gen', 'oracle_validation')
     .addEdge(['check', 'oracle_validation'], 'evaluation')

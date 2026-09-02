@@ -109,6 +109,7 @@ export function createKnowledgeServer(input: {
           writeEnabled: Boolean(writeToken),
           automatedWorkflow: true,
           langGraphInfrastructure: true,
+          agentProvider: composition.agentProviderMode,
           agentPromptCustomization: 'promptAddon-only',
           trustedProjectEvaluation: true,
           hostileCodeIsolation: false,

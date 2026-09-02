@@ -183,7 +183,7 @@ sequenceDiagram
     Orchestrator-->>Workflow: 节点 DAG + resourceClaims
     Workflow->>Workflow: 校验 Schema、依赖和资源冲突
 
-    loop Gate 非终态且仍有预算
+    loop Quality 或行为 Gate 非终态且仍有预算
         Workflow->>Registry: 读取当前版本、EvaluationReport 和证据
         alt 前次 Gate = ITERATE
             Workflow->>Review: review(knowledgeRef, evaluationRef, criterion)
@@ -199,13 +199,19 @@ sequenceDiagram
             Workflow->>Registry: Run → GENERATING
         end
 
-        Workflow->>Code: fresh generate(newKnowledgeRef, publicInterfaceRefs)
-        Code-->>Workflow: new implementation Artifact
-        Workflow->>Registry: Run → EVALUATING
-        Workflow->>Eval: build and test in isolated workspace
-        Eval-->>Workflow: EvaluationReport + immutable evidence
-        Workflow->>Gate: decide(report, policy)
-        Gate-->>Workflow: PASS / ITERATE / ROLLBACK / STOPPED
+        Workflow->>Workflow: 执行候选 Quality Gate
+        alt Quality Gate 拒绝
+            Workflow->>Registry: 保存 score、signals、weakPoints
+            Workflow->>Doc: 下一轮携带质量反馈；本轮跳过 CodeAgent
+        else Quality Gate 接受
+            Workflow->>Code: fresh generate(newKnowledgeRef, publicInterfaceRefs)
+            Code-->>Workflow: new implementation Artifact
+            Workflow->>Registry: Run → EVALUATING
+            Workflow->>Eval: build and test in isolated workspace
+            Eval-->>Workflow: EvaluationReport + immutable evidence
+            Workflow->>Gate: decide(report, policy)
+            Gate-->>Workflow: PASS / ITERATE / ROLLBACK / STOPPED
+        end
     end
 
     alt Gate = PASS
@@ -226,7 +232,7 @@ sequenceDiagram
 
 - 用户提供包含场景所固定 commit 的受信 Git 仓库。
 - 系统必须通过 `git archive` 在源仓库外创建临时快照，不得 checkout、覆盖或清理用户工作区。
-- 当前场景的 SchemaValidatedScenarioAgent 只证明契约和编排，不证明在线模型质量。
+- 可重复测试默认使用 SchemaValidatedScenarioAgent；真实 Agent 演示可切换 DeepSeek Harness Provider。单次 live 结果只能证明接线和一次样例，不代表模型稳定性。
 - TrustedProjectEvaluator 不是敌对代码沙箱；来源或生成代码不受信时必须拒绝运行。
 
 ```mermaid
