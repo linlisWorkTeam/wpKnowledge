@@ -25,6 +25,7 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'acceptance/ohmyworkpanel/scenario.json',
     'apps/runner/src/server.ts',
     'docs/ARCHITECTURE.md',
+    'docs/AGENT-CUSTOMIZATION.md',
     'docs/DEVELOPMENT.md',
     'docs/DOCUMENTATION-I18N.md',
     'docs/GETTING_STARTED.md',
@@ -65,6 +66,7 @@ test('tracked documentation is Chinese-first and key entries carry English summa
     join(componentRoot, 'README.md'),
     join(componentRoot, 'docs/GETTING_STARTED.md'),
     join(componentRoot, 'docs/ARCHITECTURE.md'),
+    join(componentRoot, 'docs/AGENT-CUSTOMIZATION.md'),
     join(componentRoot, 'docs/OPERATIONS.md'),
     join(componentRoot, 'docs/MIGRATION.md'),
     join(componentRoot, 'docs/DOCUMENTATION-I18N.md'),
@@ -108,6 +110,7 @@ test('active repository guidance and WorkPanel documents have valid relative lin
     'knowledge/3.workpanel/证据/2026-08-31-P0-A评审证据.md',
     'knowledge/3.workpanel/证据/2026-09-01-ohMyWorkPanel真实源码验收.md',
     'knowledge/3.workpanel/证据/2026-09-01-PR11开发复验记录.md',
+    'knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md',
   ];
   const linkPattern = /\[[^\]]+\]\(([^)]+)\)/g;
   for (const document of documents) {

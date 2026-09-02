@@ -2,21 +2,21 @@
   "schemaVersion": "1.0",
   "name": "ohmyworkpanel-mentions-two-iteration",
   "moduleId": "ohmyworkpanel-mentions",
-  "expectedCommit": "cfef082d7a9e5d434777374bd6b99ef8cd309cfc",
-  "sourcePaths": ["src/mentions.ts", "src/mentions.test.ts"],
+  "expectedCommit": "3b2e6073e01b42e2a595fca4de3acaad44715ddd",
+  "sourcePaths": ["src/chat/mentions.ts", "src/chat/mentions.test.ts"],
   "publicInterfacePaths": ["src/types.ts", "package.json", "pnpm-lock.yaml"],
-  "allowedGeneratedPaths": ["src/mentions.ts"],
+  "allowedGeneratedPaths": ["src/chat/mentions.ts"],
   "prepareCommands": [
     {"tool": "pnpm", "args": ["install", "--frozen-lockfile", "--prefer-offline"], "timeoutMs": 120000}
   ],
   "referenceCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/mentions.test.ts"], "timeoutMs": 120000}
+    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
   ],
   "firstIterationCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/mentions.test.ts"], "timeoutMs": 120000}
+    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
   ],
   "finalCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/mentions.test.ts"], "repetitions": 5, "timeoutMs": 120000},
+    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "repetitions": 5, "timeoutMs": 120000},
     {"tool": "pnpm", "args": ["test"], "timeoutMs": 120000},
     {"tool": "pnpm", "args": ["build"], "timeoutMs": 120000},
     {"tool": "cargo", "args": ["test", "--no-default-features", "--lib"], "cwd": "src-tauri", "timeoutMs": 300000}
@@ -27,7 +27,7 @@
     "codeV1": "mentions-v1.ts",
     "codeV2": "mentions-v2.ts",
     "correction": "correction.json",
-    "generatedPath": "src/mentions.ts",
+    "generatedPath": "src/chat/mentions.ts",
     "title": "ohMyWorkPanel mention parsing",
     "description": "Behavioral contract for resolving active group-member mentions without prefix ambiguity."
   }

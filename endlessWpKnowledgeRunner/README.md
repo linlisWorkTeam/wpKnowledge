@@ -5,7 +5,7 @@
 <details lang="en">
 <summary>English summary</summary>
 
-This directory is the complete Knowledge Flywheel component. It contains the TypeScript runtime, embedded LangGraph infrastructure, Console, specs, acceptance fixtures and tests. wpKnowledge owns governance and publication; `domain-knowledge` owns workflow execution. The current automated ohMyWorkPanel path uses deterministic Agent fixtures and must not be presented as live-model quality evidence.
+This directory is the complete Knowledge Flywheel component. It contains the TypeScript runtime, embedded LangGraph infrastructure, Console, specs, acceptance fixtures and tests. wpKnowledge owns governance and publication; `domain-knowledge` owns workflow execution. The repeatable acceptance path uses deterministic fixtures, while the optional live path uses the official DeepSeek Harness SDK with role-scoped Linux process isolation. Neither a fixture nor a single live run proves general model quality.
 
 </details>
 
@@ -18,7 +18,7 @@ This directory is the complete Knowledge Flywheel component. It contains the Typ
 - 只在证据完整且通过 Gate 时原子发布 `VERIFIED` 知识；
 - 通过 CLI、HTTP API、Web Console 和 DSH Adapter 暴露同一个应用核心。
 
-内嵌的 `domain-knowledge` LangGraph runtime 负责 Agent 节点、并行、循环和恢复；wpKnowledge 仍负责 Run、KnowledgeVersion、评测、发布和审计。Console 会展示七类 Agent 与每个节点的实时投影，受信操作者只能追加提示词，不能改节点职责、输入输出、拓扑或工具权限。当前自动路径以固定 ohMyWorkPanel 场景和 deterministic Agent fixture 验证整合，不把它冒充为 live 模型质量。
+内嵌的 `domain-knowledge` LangGraph runtime 负责 Agent 节点、并行、循环和恢复；wpKnowledge 仍负责 Run、KnowledgeVersion、评测、发布和审计。Console 会展示七类 Agent 角色与每个节点的实时投影，受信操作者只能追加提示词，不能改节点职责、输入输出、拓扑或工具权限。固定 ohMyWorkPanel 场景既有可重复的 deterministic fixture，也能切换到 DeepSeek Harness 官方 SDK。Linux live 模式会为每个角色建立文件白名单工作区并用 Bubblewrap 隔离参考源码；独立评测器仍只用于受信项目。图中的 `code` 是由当前 Provider 执行的代码生成角色，不是另行接入的 CodeAgent CLI。
 
 ## 从哪里开始
 
@@ -27,7 +27,9 @@ This directory is the complete Knowledge Flywheel component. It contains the Typ
 | 首次安装并看到 Console | [快速上手](docs/GETTING_STARTED.md) |
 | 查找所有工程文档 | [文档中心](docs/README.md) |
 | 理解核心架构 | [架构说明](docs/ARCHITECTURE.md) |
+| 查看真实 DeepSeek Harness 闭环 | [三次运行记录](../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md)与[方案 PPT](../knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.pptx) |
 | 修改实现 | [开发指南](docs/DEVELOPMENT.md) |
+| 定制某个 Agent 角色 | [Agent 角色定制指南](docs/AGENT-CUSTOMIZATION.md) |
 | 运行测试和准备 PR 证据 | [测试策略](docs/TESTING.md) |
 | 判断文件归属 | [仓库目录规则](docs/REPOSITORY-GUIDE.md) |
 | 操作 CLI、评测、发布与部署 | [运维手册](docs/OPERATIONS.md) |
@@ -81,4 +83,4 @@ npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
 
 [规范总入口](specs/README.md)、[用户用例](specs/05-workflows/user-use-cases.md)、[前台产品设计](specs/04-product/frontend-product-design.md)、[评测模型](specs/08-evaluation/evaluation-model.md)和[数据边界](specs/09-security/data-boundaries.md)共同定义行为。
 
-固定项目 EvalRunner 只面向受信源码和生成代码。它使用临时 `git archive` 工作区、工具白名单、环境净化、超时和输出限制，但不是 OS 沙箱；不得用它执行敌对代码，也不得把 deterministic fixture 的通过结果表述为 live-model 质量证明。
+固定项目 EvalRunner 只面向受信源码和生成代码。它使用临时 `git archive` 工作区、工具白名单、环境净化、超时和输出限制，但不是敌对代码沙箱；不得用它执行陌生代码，也不得把 deterministic fixture 或单次 live Run 的通过结果表述为普遍模型质量。Agent 源码可见性隔离与生成代码执行隔离是两件事，前者已落地，后者仍需专用 Sandbox Adapter。

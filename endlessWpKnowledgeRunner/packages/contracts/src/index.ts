@@ -100,10 +100,28 @@ export interface AgentRequest {
   outputSchema: Record<string, unknown>;
   idempotencyKey: string;
   inputRefs?: ArtifactRef[];
+  /** Trusted workspace selected by the workflow, never by model output. */
+  workspaceRoot?: string;
+  /** Non-secret correlation fields copied into provider audit records. */
+  metadata?: Record<string, string | number | boolean | null>;
 }
 
 export interface AgentProvider {
   run(request: AgentRequest, signal?: AbortSignal): Promise<Record<string, unknown>>;
+}
+
+export interface AgentWorkspaceView {
+  workspaceRoot: string;
+  readablePaths: string[];
+}
+
+export interface AgentWorkspaceProvider {
+  materialize(input: {
+    isolationKey: string;
+    role: string;
+    sourceRoot: string;
+    readablePaths: string[];
+  }): Promise<AgentWorkspaceView>;
 }
 
 export interface SandboxResult {
@@ -276,6 +294,8 @@ export interface WorkflowStageInput {
   prompt: string;
   context: Record<string, unknown>;
   workerId?: string;
+  workerIndex?: number;
+  workerCount: number;
   signal?: AbortSignal;
 }
 
@@ -291,6 +311,7 @@ export interface WorkflowStageExecutor {
 
 export interface WorkflowObserver {
   record(projection: WorkflowNodeProjection): void;
+  nextAttempt?(runId: string, nodeId: string, iteration: number): number;
 }
 
 export interface AgentPromptResolver {

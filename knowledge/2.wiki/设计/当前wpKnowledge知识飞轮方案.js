@@ -1,504 +1,561 @@
 #!/usr/bin/env node
 /*
- * Reproducible PptxGenJS source for 当前wpKnowledge知识飞轮方案.pptx.
- *
- * Example (without changing this repository's package.json or lockfile):
- *   npm install --prefix /tmp/wpknowledge-slides --no-package-lock --no-save pptxgenjs@3.12.0
- *   NODE_PATH=/tmp/wpknowledge-slides/node_modules node knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.js
+ * 可复现的 PptxGenJS 源文件。
+ * 生成：NODE_PATH=/tmp/wpknowledge-slides/node_modules node knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.js
  */
 
-import path from "node:path";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const here = path.dirname(fileURLToPath(import.meta.url));
 const require = createRequire(import.meta.url);
-const pptxgen = require("pptxgenjs");
-
+const pptxgen = require('pptxgenjs');
 const pptx = new pptxgen();
-pptx.layout = "LAYOUT_WIDE";
-pptx.author = "wpKnowledge project team";
-pptx.company = "linlisWorkTeam";
-pptx.subject = "wpKnowledge PR #20 代码评审与知识飞轮方案汇报";
-pptx.title = "当前wpKnowledge知识飞轮方案";
-pptx.lang = "zh-CN";
+
+pptx.layout = 'LAYOUT_WIDE';
+pptx.author = 'wpKnowledge project team';
+pptx.company = 'linlisWorkTeam';
+pptx.subject = 'wpKnowledge 知识飞轮真实 DSH SDK 演示、使用与 Agent 二次开发';
+pptx.title = '当前wpKnowledge知识飞轮方案';
+pptx.lang = 'zh-CN';
 pptx.theme = {
-  headFontFace: "Microsoft YaHei",
-  bodyFontFace: "Microsoft YaHei",
-  lang: "zh-CN",
+  headFontFace: 'Noto Sans CJK SC',
+  bodyFontFace: 'Noto Sans CJK SC',
+  lang: 'zh-CN',
 };
+
+const OUT = path.join(here, '当前wpKnowledge知识飞轮方案.pptx');
+const RUN_SHOT = path.resolve(here, '../../3.workpanel/证据/演示素材/01-真实SDK运行-VERIFIED-深色.png');
+const AGENT_SHOT = path.resolve(here, '../../3.workpanel/证据/演示素材/02-Agent有限定制-浅色.png');
+const FONT = 'Noto Sans CJK SC';
+const MONO = 'Noto Sans Mono CJK SC';
+const C = {
+  NAVY: '0A1828', NAVY2: '112A42', NAVY3: '183B59',
+  INK: '132238', MUTED: '60738A', PALE: 'AFC2D3', BG: 'F3F7FA', WHITE: 'FFFFFF',
+  CYAN: '24C8D8', CYAN_LIGHT: 'DDF8FA', BLUE: '397CE8', BLUE_LIGHT: 'E7F0FF',
+  GREEN: '23A36D', GREEN_LIGHT: 'DFF4E9', ORANGE: 'EA8A2F', ORANGE_LIGHT: 'FFF0DB',
+  RED: 'DB5A55', RED_LIGHT: 'FBE7E5', PURPLE: '8064DB', PURPLE_LIGHT: 'EEE9FC',
+  LINE: 'D5E0E8', GOLD: 'D9A928', GOLD_LIGHT: 'FFF7D8',
+};
+
 pptx.defineSlideMaster({
-  title: "BLANK_WIDE",
-  background: { color: "F4F7FA" },
+  title: 'BASE',
+  background: { color: C.BG },
   objects: [],
-  slideNumber: { x: 12.35, y: 7.10, w: 0.42, h: 0.18, color: "607084", fontFace: "Microsoft YaHei", fontSize: 8, align: "right", margin: 0 },
+  slideNumber: {
+    x: 12.40, y: 7.12, w: 0.35, h: 0.16,
+    color: C.MUTED, fontFace: FONT, fontSize: 8, align: 'right', margin: 0,
+  },
 });
 
-const OUT = path.join(__dirname, "当前wpKnowledge知识飞轮方案.pptx");
-const FONT = "Microsoft YaHei";
-const MONO = "Aptos Mono";
-const C = {
-  NAVY: "10253F", NAVY2: "173A5E", INK: "162231", MUTED: "607084",
-  BG: "F4F7FA", WHITE: "FFFFFF", CYAN: "16B7C9", CYAN_LIGHT: "DDF6F8",
-  BLUE: "3976E8", BLUE_LIGHT: "E8F0FF", GREEN: "229B6A", GREEN_LIGHT: "DFF3E9",
-  ORANGE: "E8892E", ORANGE_LIGHT: "FFF0DC", RED: "D95852", RED_LIGHT: "FBE7E5",
-  PURPLE: "7656D6", PURPLE_LIGHT: "EDE8FB", LINE: "D7E0E8", LIGHT_TEXT: "C5D3E0",
-};
-
-const statusColor = {
-  IMPLEMENTED: C.GREEN,
-  DEMO: C.ORANGE,
-  PLANNED: C.PURPLE,
-  "IMPLEMENTED + DEMO": C.BLUE,
-  "IMPLEMENTED + PLANNED": C.PURPLE,
-};
-
-function addText(slide, text, x, y, w, h, opts = {}) {
-  slide.addText(text, {
+function text(slide, value, x, y, w, h, opts = {}) {
+  slide.addText(value, {
     x, y, w, h,
     fontFace: opts.fontFace || FONT,
-    fontSize: opts.fontSize || 14,
+    fontSize: opts.fontSize || 13,
     color: opts.color || C.INK,
     bold: Boolean(opts.bold),
     italic: Boolean(opts.italic),
-    align: opts.align || "left",
-    valign: opts.valign || "mid",
-    margin: opts.margin === undefined ? 0.04 : opts.margin,
+    align: opts.align || 'left',
+    valign: opts.valign || 'mid',
+    margin: opts.margin === undefined ? 0.03 : opts.margin,
     breakLine: false,
-    isTextBox: true,
+    fit: 'shrink',
     ...opts,
   });
 }
 
-function addBox(slide, x, y, w, h, opts = {}) {
-  const type = opts.radius === false ? pptx.ShapeType.rect : pptx.ShapeType.roundRect;
-  slide.addShape(type, {
+function box(slide, x, y, w, h, opts = {}) {
+  const shape = opts.square ? pptx.ShapeType.rect : pptx.ShapeType.roundRect;
+  slide.addShape(shape, {
     x, y, w, h,
-    rectRadius: opts.radius === false ? undefined : 0.07,
     fill: { color: opts.fill || C.WHITE, transparency: opts.transparency || 0 },
-    line: { color: opts.line || C.LINE, width: opts.lineWidth || 1 },
+    line: { color: opts.line || C.LINE, width: opts.lineWidth || 1, transparency: opts.lineTransparency || 0 },
+    radius: opts.square ? 0 : 0.06,
   });
-  if (opts.text) {
-    addText(slide, opts.text, x + 0.08, y + 0.04, w - 0.16, h - 0.08, {
-      fontSize: opts.fontSize || 13,
-      color: opts.color || C.INK,
-      bold: opts.bold,
-      align: opts.align || "center",
-      valign: opts.valign || "mid",
-      margin: 0,
-    });
-  }
-}
-
-function addPill(slide, text, x, y, w, fill, opts = {}) {
-  addBox(slide, x, y, w, 0.29, {
-    text, fill, line: fill, color: opts.color || C.WHITE,
-    fontSize: opts.fontSize || 8.6, bold: true,
+  if (opts.label) text(slide, opts.label, x + 0.08, y + 0.04, w - 0.16, h - 0.08, {
+    fontSize: opts.fontSize || 11, color: opts.color || C.INK, bold: opts.bold,
+    align: opts.align || 'center', valign: opts.valign || 'mid', margin: 0,
   });
 }
 
-function addLine(slide, x, y, w, h, color = C.LINE, width = 1.4) {
-  slide.addShape(pptx.ShapeType.line, { x, y, w, h, line: { color, width } });
+function pill(slide, label, x, y, w, fill, opts = {}) {
+  box(slide, x, y, w, 0.30, { label, fill, line: fill, color: opts.color || C.WHITE, fontSize: opts.fontSize || 8, bold: true });
 }
 
-function addChevron(slide, x, y, color = C.CYAN, w = 0.27, h = 0.38) {
-  slide.addShape(pptx.ShapeType.chevron, {
+function line(slide, x, y, w, h, color = C.LINE, width = 1.4, arrow = false) {
+  slide.addShape(pptx.ShapeType.line, {
     x, y, w, h,
+    line: { color, width, ...(arrow ? { endArrowType: 'triangle' } : {}) },
+  });
+}
+
+function arrow(slide, x, y, w = 0.34, color = C.CYAN) {
+  slide.addShape(pptx.ShapeType.chevron, {
+    x, y, w, h: 0.34,
     fill: { color }, line: { color, transparency: 100 },
   });
 }
 
-function addNode(slide, x, y, w, h, title, subtitle, opts = {}) {
-  addBox(slide, x, y, w, h, {
-    fill: opts.fill || C.WHITE,
-    line: opts.accent || C.CYAN,
-    lineWidth: 1.3,
+function node(slide, x, y, w, h, title, subtitle, opts = {}) {
+  box(slide, x, y, w, h, { fill: opts.fill || C.WHITE, line: opts.accent || C.CYAN, lineWidth: 1.3 });
+  text(slide, title, x + 0.10, y + 0.07, w - 0.20, 0.27, {
+    fontSize: opts.titleSize || 12, color: opts.titleColor || C.INK, bold: true, align: 'center', margin: 0,
   });
-  addText(slide, title, x + 0.10, y + 0.07, w - 0.20, 0.29, {
-    fontSize: opts.titleSize || 13,
-    color: opts.titleColor || C.INK,
-    bold: true,
-    align: "center",
-    margin: 0,
+  if (subtitle) text(slide, subtitle, x + 0.10, y + 0.36, w - 0.20, h - 0.42, {
+    fontSize: opts.bodySize || 9, color: opts.bodyColor || C.MUTED, align: 'center', valign: 'top', margin: 0,
   });
-  if (subtitle) {
-    addText(slide, subtitle, x + 0.10, y + 0.38, w - 0.20, h - 0.44, {
-      fontSize: opts.bodySize || 9.5,
-      color: opts.bodyColor || C.MUTED,
-      align: "center",
-      valign: "top",
-      margin: 0,
-    });
-  }
 }
 
-function addRichBox(slide, x, y, w, h, title, items, opts = {}) {
-  addBox(slide, x, y, w, h, { fill: opts.fill || C.WHITE, line: opts.line || C.LINE });
-  // Intentional overlap: the thin accent bar sits on the card's left border.
+function card(slide, x, y, w, h, title, items, opts = {}) {
+  box(slide, x, y, w, h, { fill: opts.fill || C.WHITE, line: opts.line || C.LINE });
   slide.addShape(pptx.ShapeType.rect, {
     x, y, w: 0.07, h,
     fill: { color: opts.accent || C.CYAN }, line: { color: opts.accent || C.CYAN, transparency: 100 },
   });
-  addText(slide, title, x + 0.22, y + 0.12, w - 0.34, 0.28, {
-    fontSize: opts.titleSize || 15.5,
-    color: opts.titleColor || C.INK,
-    bold: true,
-    margin: 0,
+  text(slide, title, x + 0.23, y + 0.13, w - 0.37, 0.28, {
+    fontSize: opts.titleSize || 15, color: opts.titleColor || C.INK, bold: true, margin: 0,
   });
-  const itemH = Math.min(0.34, (h - 0.62) / Math.max(items.length, 1));
+  const itemH = Math.min(0.37, (h - 0.66) / Math.max(1, items.length));
   items.forEach((item, index) => {
-    const iy = y + 0.56 + index * itemH;
+    const yy = y + 0.56 + index * itemH;
     slide.addShape(pptx.ShapeType.ellipse, {
-      x: x + 0.24, y: iy + 0.09, w: 0.07, h: 0.07,
+      x: x + 0.24, y: yy + 0.10, w: 0.07, h: 0.07,
       fill: { color: opts.accent || C.CYAN }, line: { color: opts.accent || C.CYAN, transparency: 100 },
     });
-    addText(slide, item, x + 0.38, iy, w - 0.54, itemH, {
-      fontSize: opts.bodySize || 10.5,
-      color: opts.bodyColor || C.MUTED,
-      valign: "top",
-      margin: 0,
+    text(slide, item, x + 0.39, yy, w - 0.56, itemH, {
+      fontSize: opts.bodySize || 10, color: opts.bodyColor || C.MUTED, valign: 'top', margin: 0,
     });
   });
 }
 
-function addStatusLegend(slide, dark = false) {
-  const y = 6.66;
-  addText(slide, "状态口径", 8.18, y, 0.68, 0.21, { fontSize: 8, color: dark ? "B9C9D8" : C.MUTED, bold: true, margin: 0 });
-  addPill(slide, "IMPLEMENTED", 8.92, y - 0.02, 1.02, C.GREEN, { fontSize: 7.3 });
-  addPill(slide, "DEMO", 10.05, y - 0.02, 0.66, C.ORANGE, { fontSize: 7.3 });
-  addPill(slide, "PLANNED", 10.82, y - 0.02, 0.86, C.PURPLE, { fontSize: 7.3 });
-  addText(slide, "以实际代码为准", 11.80, y, 0.92, 0.21, { fontSize: 7.6, color: dark ? "B9C9D8" : C.MUTED, align: "right", margin: 0 });
-}
-
-function addFrame(title, status, source, opts = {}) {
-  const slide = pptx.addSlide("BLANK_WIDE");
-  slide.background = { color: opts.dark ? C.NAVY : C.BG };
-  const titleColor = opts.dark ? C.WHITE : C.NAVY;
-  const muted = opts.dark ? "B9C9D8" : C.MUTED;
-  if (opts.kicker) addText(slide, opts.kicker.toUpperCase(), 0.55, 0.29, 4.5, 0.20, { fontSize: 8.5, color: C.CYAN, bold: true, margin: 0 });
-  addText(slide, title, 0.55, 0.51, 10.65, 0.48, { fontSize: 22.5, color: titleColor, bold: true, margin: 0 });
-  addPill(slide, status, 11.38, 0.44, 1.38, statusColor[status] || C.MUTED, { fontSize: 7.7 });
-  addLine(slide, 0.55, 1.17, 12.23, 0, opts.dark ? "31516E" : C.LINE, 1);
-  addText(slide, source, 0.55, 7.11, 11.62, 0.17, { fontSize: 7.1, color: muted, valign: "bottom", margin: 0 });
+function frame(title, kicker, status, opts = {}) {
+  const slide = pptx.addSlide('BASE');
+  const dark = Boolean(opts.dark);
+  slide.background = { color: dark ? C.NAVY : C.BG };
+  text(slide, kicker.toUpperCase(), 0.56, 0.27, 4.2, 0.20, { fontSize: 8.5, color: C.CYAN, bold: true, margin: 0 });
+  text(slide, title, 0.56, 0.50, 10.65, 0.48, { fontSize: 22, color: dark ? C.WHITE : C.NAVY, bold: true, margin: 0 });
+  const statusColor = status === '已实现' ? C.GREEN : status === '真实证据' ? C.BLUE : status === '边界' ? C.ORANGE : C.PURPLE;
+  pill(slide, status, 11.55, 0.45, 1.15, statusColor, { fontSize: 8.2 });
+  line(slide, 0.56, 1.16, 12.14, 0, dark ? '31516E' : C.LINE, 1);
+  text(slide, opts.source || 'wpKnowledge · 2026-09-02', 0.56, 7.10, 11.40, 0.17, {
+    fontSize: 7.4, color: dark ? C.PALE : C.MUTED, margin: 0,
+  });
   return slide;
 }
 
-function addGridRow(slide, y, cells, xs, widths, opts = {}) {
-  cells.forEach((value, index) => {
-    addBox(slide, xs[index], y, widths[index], opts.h || 0.52, {
-      radius: false,
-      fill: opts.fill || C.WHITE,
-      line: opts.line || C.LINE,
+function gridRow(slide, y, cells, xs, ws, opts = {}) {
+  cells.forEach((cell, index) => {
+    box(slide, xs[index], y, ws[index], opts.h || 0.52, {
+      square: true, fill: opts.fill || C.WHITE, line: opts.line || C.LINE,
     });
-    addText(slide, value, xs[index] + 0.08, y + 0.04, widths[index] - 0.16, (opts.h || 0.52) - 0.08, {
-      fontSize: opts.fontSize || 9.8,
-      color: index === 0 && opts.firstColor ? opts.firstColor : (opts.color || C.INK),
-      bold: index === 0 && Boolean(opts.firstBold),
-      align: opts.alignments ? opts.alignments[index] : "left",
-      margin: 0,
+    text(slide, cell, xs[index] + 0.07, y + 0.04, ws[index] - 0.14, (opts.h || 0.52) - 0.08, {
+      fontSize: opts.fontSize || 9.5,
+      color: opts.color || C.INK,
+      bold: opts.header || (index === 0 && opts.firstBold),
+      align: opts.alignments?.[index] || 'left', margin: 0,
     });
   });
 }
 
-// 1. Title
+function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
+  const scale = Math.min(w / pixelW, h / pixelH);
+  const iw = pixelW * scale;
+  const ih = pixelH * scale;
+  slide.addImage({ path: imagePath, x: x + (w - iw) / 2, y: y + (h - ih) / 2, w: iw, h: ih });
+}
+
+// 1 · 封面
 {
-  const slide = pptx.addSlide("BLANK_WIDE");
+  const slide = pptx.addSlide('BASE');
   slide.background = { color: C.NAVY };
   slide.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.18, h: 7.5, fill: { color: C.CYAN }, line: { color: C.CYAN, transparency: 100 } });
-  addText(slide, "WPKNOWLEDGE · PR #20", 0.72, 0.78, 4.0, 0.22, { fontSize: 10, color: C.CYAN, bold: true, margin: 0 });
-  addText(slide, "当前wpKnowledge知识飞轮方案", 0.72, 1.28, 11.8, 0.67, { fontSize: 30, color: C.WHITE, bold: true, margin: 0 });
-  addText(slide, "代码评审结论 · 多 Agent demo 进度 · 语义分块方案 · 下一步", 0.75, 2.36, 9.2, 0.34, { fontSize: 14.5, color: C.LIGHT_TEXT, margin: 0 });
-  addBox(slide, 0.75, 3.32, 11.85, 1.62, { fill: C.NAVY2, line: "31516E" });
-  const titleCards = [
-    ["本次基线", "PR #20\n776dac5 → b6973a8（代码修复）"],
-    ["验证结果", "typecheck / specs\n50 / 50 tests"],
-    ["汇报日期", "2026-09-02\nAsia / Beijing"],
+  text(slide, 'WPKNOWLEDGE · KNOWLEDGE FLYWHEEL', 0.76, 0.75, 5.0, 0.22, { fontSize: 10, color: C.CYAN, bold: true, margin: 0 });
+  text(slide, '当前 wpKnowledge\n知识飞轮方案', 0.76, 1.23, 8.5, 1.22, { fontSize: 31, color: C.WHITE, bold: true, valign: 'top', margin: 0 });
+  text(slide, '真实 DeepSeek Harness SDK 闭环 · ohMyWorkPanel Demo · 使用与 Agent 二次开发', 0.79, 2.72, 10.8, 0.35, { fontSize: 14, color: C.PALE, margin: 0 });
+  box(slide, 0.78, 3.48, 11.82, 1.73, { fill: C.NAVY2, line: '31516E' });
+  const facts = [
+    ['真实闭环', 'VERIFIED / PASS\n1 次唯一发布'],
+    ['模型调用', '8 次\n7 成功 + 1 恢复'],
+    ['可审计性', '14 节点 · 46 事件\n12 / 12 工件完整'],
   ];
-  [1.05, 4.62, 8.18].forEach((x, i) => {
-    addText(slide, titleCards[i][0], x, 3.65, 2.8, 0.22, { fontSize: 9, color: C.CYAN, bold: true, margin: 0 });
-    addText(slide, titleCards[i][1], x, 4.02, 2.8, 0.56, { fontSize: 14, color: C.WHITE, bold: true, valign: "top", margin: 0 });
+  [1.08, 4.84, 8.63].forEach((x, i) => {
+    text(slide, facts[i][0], x, 3.78, 2.8, 0.23, { fontSize: 9.2, color: C.CYAN, bold: true, margin: 0 });
+    text(slide, facts[i][1], x, 4.13, 2.95, 0.68, { fontSize: 15, color: C.WHITE, bold: true, valign: 'top', margin: 0 });
   });
-  addText(slide, "范围：wpKnowledge 当前分支 codex/embedded-domain-knowledge；domain-knowledge 仅作只读对照。", 0.75, 6.67, 9.4, 0.20, { fontSize: 8.3, color: "9FB2C5", margin: 0 });
-  addPill(slide, "IMPLEMENTED", 10.34, 6.61, 1.05, C.GREEN, { fontSize: 7.3 });
-  addPill(slide, "DEMO", 11.50, 6.61, 0.66, C.ORANGE, { fontSize: 7.3 });
-  addPill(slide, "PLANNED", 12.27, 6.61, 0.82, C.PURPLE, { fontSize: 7.3 });
+  box(slide, 0.78, 5.72, 8.55, 0.72, { fill: C.NAVY3, line: '31516E' });
+  text(slide, '一句话：用真实源码生成可追溯知识，再用这份知识驱动隔离的代码重建与确定性评测。', 1.02, 5.89, 8.05, 0.33, { fontSize: 11.3, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  pill(slide, '2026-09-02', 10.42, 5.93, 1.15, C.BLUE, { fontSize: 8 });
+  pill(slide, 'PR #22', 11.72, 5.93, 0.84, C.PURPLE, { fontSize: 8 });
+  text(slide, '固定样例：ohMyWorkPanel @ 3b2e6073e01b42e2a595fca4de3acaad44715ddd', 0.78, 6.75, 9.8, 0.18, { fontFace: MONO, fontSize: 8.1, color: '91A9BC', margin: 0 });
 }
 
-// 2. Review conclusion
+// 2 · 用户价值
 {
-  const slide = addFrame("评审结论：边界方向正确，两处事实源问题已修复", "IMPLEMENTED",
-    "代码：packages/application/src/automated-project-workflow.ts；packages/domain/src/index.ts；commit b6973a8", { kicker: "CODE REVIEW" });
-  addRichBox(slide, 0.60, 1.47, 3.82, 2.00, "边界合理", [
-    "LangGraph 负责节点调度、重试、取消与 checkpoint",
-    "wpKnowledge 保留 Run、版本、证据、Gate 与 Publication",
-    "Infrastructure → Ports → Application / Domain 的依赖方向未反转",
-  ], { accent: C.GREEN });
-  addRichBox(slide, 4.75, 1.47, 3.82, 2.00, "修复 01 · Gate 顺序", [
-    "原实现先产生 GateDecision，再运行 Review",
-    "现在 Review 后绑定 Oracle / Check / Review 产物",
-    "Check 或 Review blocking 会触发 ITERATE / STOPPED",
-  ], { accent: C.RED });
-  addRichBox(slide, 8.90, 1.47, 3.82, 2.00, "修复 02 · 单一事实源", [
-    "GraphState 与 FlywheelRun 都从 iteration 0 起步",
-    "workflow_router 不再私自改写业务 Gate 决定",
-    "只有 Domain Gate 决定 PASS / ITERATE / STOPPED",
-  ], { accent: C.RED });
-  addBox(slide, 0.60, 3.83, 12.12, 1.80, { fill: C.NAVY, line: C.NAVY });
-  addText(slide, "最终权威链", 0.90, 4.08, 2.0, 0.24, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  const steps = [["CANDIDATE", C.BLUE, 1.45], ["EvaluationReport", C.PURPLE, 1.72], ["GateDecision", C.ORANGE, 1.58], ["wp Publication", C.GREEN, 1.65], ["VERIFIED", C.GREEN, 1.30]];
-  let x = 0.90;
-  steps.forEach((step, i) => {
-    addBox(slide, x, 4.50, step[2], 0.55, { text: step[0], fill: C.NAVY2, line: step[1], color: C.WHITE, fontSize: 10.8, bold: true });
-    x += step[2] + 0.32;
-    if (i < steps.length - 1) addChevron(slide, x - 0.25, 4.59, C.CYAN, 0.22, 0.34);
+  const slide = frame('用户怎样使用：启动一次治理，拿到能追责的知识版本', 'PRODUCT OUTCOME', '已实现', {
+    source: '入口：apps/runner/src/cli.ts、server.ts；业务事实：SQLite Registry + CAS',
   });
-  addText(slide, "只有最后一步\n可以写入 VERIFIED", 10.05, 4.19, 2.30, 0.73, { fontSize: 13.5, color: C.WHITE, bold: true, align: "center", margin: 0 });
-  addStatusLegend(slide);
+  const steps = [
+    ['1', '固定来源', '仓库路径 + commit\n来源不可漂移', C.BLUE],
+    ['2', '启动 Run', 'CLI / HTTP / Console\n选择固定 profile', C.CYAN],
+    ['3', '观察节点', '并行、失败、恢复\n实时投影到前台', C.PURPLE],
+    ['4', '检查证据', '知识、评测、Gate\nSHA-256 可核验', C.ORANGE],
+    ['5', '查询与反馈', '仅 PASS 后发布\nDSH 查询 + 反馈', C.GREEN],
+  ];
+  steps.forEach((s, i) => {
+    const x = 0.60 + i * 2.48;
+    slide.addShape(pptx.ShapeType.ellipse, { x: x + 0.72, y: 1.55, w: 0.56, h: 0.56, fill: { color: s[3] }, line: { color: s[3] } });
+    text(slide, s[0], x + 0.72, 1.60, 0.56, 0.38, { fontSize: 13, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+    node(slide, x, 2.27, 2.03, 1.25, s[1], s[2], { accent: s[3], fill: i === 4 ? C.GREEN_LIGHT : C.WHITE, titleSize: 13, bodySize: 9.4 });
+    if (i < steps.length - 1) arrow(slide, x + 2.10, 2.72, 0.25, s[3]);
+  });
+  card(slide, 0.62, 4.13, 5.82, 1.60, '用户得到的不是一段聊天记录', [
+    '可版本化的 KnowledgeVersion 与 pinned provenance',
+    '可复验的 EvaluationReport、GateDecision 和 Publication receipt',
+    '按 runId 导出的脱敏 Demo 报告',
+  ], { accent: C.GREEN, bodySize: 10.2 });
+  card(slide, 6.82, 4.13, 5.82, 1.60, '两个前台，各管一件事', [
+    'wpKnowledge Console：业务状态、证据、发布与 Agent 角色配置',
+    'DSH Web：Harness 会话调试；不拥有知识发布权',
+    '公网 DSH 仅用于临时联调，当前没有 TLS',
+  ], { accent: C.ORANGE, bodySize: 10.2 });
 }
 
-// 3. Architecture boundary
+// 3 · 架构边界
 {
-  const slide = addFrame("职责边界：执行状态与业务事实并行，但不互相冒充", "IMPLEMENTED",
-    "代码：infrastructure/domain-knowledge/src/{graph,state,runtime}.ts；apps/runner/src/composition.ts:72-129", { kicker: "ARCHITECTURE", dark: true });
-  addText(slide, "LANGGRAPH · 执行控制", 0.63, 1.42, 2.8, 0.23, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  addBox(slide, 0.60, 1.77, 5.78, 4.00, { fill: C.NAVY2, line: "31516E" });
-  [["GraphState", "currentNode · route · iteration", C.BLUE], ["Checkpoint", "thread_id · resume · attempts", C.PURPLE], ["Projection", "RUNNING / COMPLETED / FAILED", C.CYAN], ["AbortSignal", "协作式取消", C.ORANGE]].forEach((item, i) => {
-    addNode(slide, 0.92 + (i % 2) * 2.60, 2.17 + Math.floor(i / 2) * 1.40, 2.25, 0.92, item[0], item[1], { fill: C.NAVY, accent: item[2], titleColor: C.WHITE, bodyColor: "B9C9D8" });
+  const slide = frame('目标架构：wpKnowledge 管治理，domain-knowledge 管执行', 'ARCHITECTURE', '已实现', {
+    dark: true,
+    source: 'ARCHITECTURE.md；infrastructure/domain-knowledge；apps/runner/src/composition.ts',
   });
-  addText(slide, "不持有 KnowledgeVersion / GateDecision / Publication", 0.92, 5.20, 5.05, 0.29, { fontSize: 10.5, color: C.LIGHT_TEXT, bold: true, align: "center", margin: 0 });
-  addText(slide, "WPKNOWLEDGE REGISTRY · 业务事实", 6.94, 1.42, 3.5, 0.23, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  addBox(slide, 6.90, 1.77, 5.82, 4.00, { fill: "F7FAFC", line: "31516E" });
-  [["FlywheelRun", "状态 + 业务 iteration", C.BLUE], ["CAS / Evidence", "sha256 不可变引用", C.PURPLE], ["GateDecision", "策略 + reasonCodes", C.ORANGE], ["Publication", "原子写入 VERIFIED", C.GREEN]].forEach((item, i) => {
-    addNode(slide, 7.22 + (i % 2) * 2.60, 2.17 + Math.floor(i / 2) * 1.40, 2.25, 0.92, item[0], item[1], { accent: item[2] });
+  text(slide, '上层 · 知识治理事实源', 0.62, 1.42, 3.6, 0.23, { fontSize: 10, color: C.CYAN, bold: true, margin: 0 });
+  box(slide, 0.62, 1.79, 12.03, 1.48, { fill: C.NAVY2, line: '31516E' });
+  [['FlywheelRun', C.BLUE], ['KnowledgeVersion', C.CYAN], ['EvaluationReport', C.RED], ['GateDecision', C.ORANGE], ['Publication', C.GREEN], ['Event / Audit', C.PURPLE]].forEach((v, i) => {
+    node(slide, 0.88 + i * 1.92, 2.05, 1.56, 0.78, v[0], i === 4 ? '唯一 VERIFIED 入口' : 'wpKnowledge authority', { fill: C.NAVY, accent: v[1], titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 10.4, bodySize: 7.8 });
   });
-  addText(slide, "业务事件与 SQLite 投影由同一 Application Service 写入", 7.24, 5.20, 5.05, 0.29, { fontSize: 10.5, color: C.INK, bold: true, align: "center", margin: 0 });
-  addChevron(slide, 6.48, 3.38, C.CYAN, 0.30, 0.48);
-  addText(slide, "Ports / contracts", 5.90, 3.90, 1.45, 0.28, { fontSize: 8.5, color: "B9C9D8", bold: true, align: "center", margin: 0 });
-  addStatusLegend(slide, true);
+  text(slide, '基础设施层 · 工作流执行', 0.62, 3.58, 3.6, 0.23, { fontSize: 10, color: C.CYAN, bold: true, margin: 0 });
+  box(slide, 0.62, 3.95, 7.52, 1.67, { fill: C.NAVY2, line: '31516E' });
+  [['LangGraph', '拓扑 / 并行 / 循环'], ['GraphState', '节点执行状态'], ['Checkpoint', '恢复 / attempt'], ['Projection', '给前台观察']].forEach((v, i) => node(slide, 0.88 + i * 1.77, 4.28, 1.46, 0.91, v[0], v[1], { fill: C.NAVY, accent: [C.CYAN, C.BLUE, C.PURPLE, C.GREEN][i], titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 10.7, bodySize: 8.2 }));
+  box(slide, 8.48, 3.95, 4.17, 1.67, { fill: 'F5F9FC', line: C.CYAN });
+  text(slide, 'Agent Provider', 8.77, 4.21, 3.6, 0.28, { fontSize: 14.5, color: C.NAVY, bold: true, align: 'center', margin: 0 });
+  text(slide, 'DeepSeekHarnessSdkAgent\n→ OpenCode Go / deepseek-v4-flash', 8.78, 4.62, 3.58, 0.54, { fontSize: 11, color: C.MUTED, bold: true, align: 'center', valign: 'top', margin: 0 });
+  box(slide, 0.62, 6.02, 12.03, 0.55, { fill: C.ORANGE, line: C.ORANGE, label: '重要：code 是 LangGraph 的代码生成角色，不是独立安装的 CodeAgent 产品，也不是公司 CodeAgent CLI。', color: C.WHITE, fontSize: 11.2, bold: true });
 }
 
-// 4. Progress matrix
+// 4 · 预期编排
 {
-  const slide = addFrame("当前进度：编排骨架已落地，真实 Agent 与语义分块仍未接入", "IMPLEMENTED + DEMO",
-    "代码：contracts/src/index.ts:200-216；composition.ts:97-114；tests/acceptance/automated-langgraph-flow.test.ts", { kicker: "PROGRESS" });
-  const xs = [0.65, 5.02, 6.74, 8.10, 9.60];
-  const ws = [4.35, 1.68, 1.32, 1.46, 3.05];
-  addGridRow(slide, 1.44, ["能力", "IMPLEMENTED", "DEMO", "PLANNED", "判断"], xs, ws, { h: 0.43, fill: C.NAVY, line: C.NAVY, color: C.WHITE, fontSize: 9, firstBold: true, alignments: ["left", "center", "center", "center", "left"] });
+  const slide = frame('预期 Agent 编排：七类角色可观察，Gate 与评测不是 Agent', 'EXPECTED ORCHESTRATION', '已实现', {
+    dark: true,
+    source: 'infrastructure/domain-knowledge/src/graph.ts；agent-definitions.ts',
+  });
+  const dn = { fill: C.NAVY2, titleColor: C.WHITE, bodyColor: C.PALE };
+  node(slide, 0.55, 2.75, 1.40, 0.88, 'Orchestrator', '固定职责\n组装本轮计划', { ...dn, accent: C.CYAN });
+  arrow(slide, 2.03, 2.99, 0.25, C.CYAN);
+  node(slide, 2.36, 1.51, 1.48, 0.88, 'DocWorker × N', '读取分块来源\n提取证据', { ...dn, accent: C.BLUE, titleSize: 11.2 });
+  node(slide, 2.36, 4.25, 1.48, 0.88, 'TestGen', '读取真实源码\n提出测试意图', { ...dn, accent: C.PURPLE });
+  arrow(slide, 3.94, 1.77, 0.25, C.BLUE);
+  node(slide, 4.28, 1.51, 1.42, 0.88, 'DocGen', '写候选知识\n接收 Correction', { ...dn, accent: C.BLUE });
+  node(slide, 4.28, 4.25, 1.42, 0.88, 'Oracle 校验', '确定性组件\n先验真值', { fill: C.NAVY, accent: C.ORANGE, titleColor: C.WHITE, bodyColor: C.PALE });
+  arrow(slide, 5.80, 1.77, 0.25, C.GREEN);
+  node(slide, 6.13, 1.51, 1.48, 0.88, 'code 角色', '新会话重建实现\n只看知识 + 接口', { ...dn, accent: C.GREEN });
+  arrow(slide, 7.70, 1.77, 0.25, C.ORANGE);
+  node(slide, 8.04, 1.51, 1.38, 0.88, 'Check', '只读检查\n不能修改代码', { ...dn, accent: C.ORANGE });
+  line(slide, 8.74, 2.42, -0.40, 0.97, C.ORANGE, 1.7, true);
+  line(slide, 5.00, 5.13, 3.05, -1.38, C.PURPLE, 1.7, true);
+  node(slide, 7.28, 3.47, 1.78, 0.96, 'Evaluator', '物化 CAS 代码\n执行确定性命令', { fill: C.NAVY, accent: C.RED, titleColor: C.WHITE, bodyColor: C.PALE });
+  arrow(slide, 9.18, 3.76, 0.25, C.RED);
+  node(slide, 9.52, 3.47, 1.42, 0.96, 'Review', '依据 Eval + Check\n给归因 / Correction', { ...dn, accent: C.PURPLE });
+  arrow(slide, 11.05, 3.76, 0.25, C.PURPLE);
+  node(slide, 11.39, 3.47, 1.38, 0.96, 'wp Gate', '规则判定\nPASS / ITERATE', { fill: C.NAVY, accent: C.GREEN, titleColor: C.WHITE, bodyColor: C.PALE });
+  line(slide, 12.08, 4.48, 0, 1.13, C.ORANGE, 1.7);
+  line(slide, 12.08, 5.61, -10.76, 0, C.ORANGE, 1.7);
+  line(slide, 1.32, 5.61, 0, -1.85, C.ORANGE, 1.7, true);
+  text(slide, 'ITERATE / ROLLBACK：回到下一轮 Orchestrator；PASS：进入唯一 Publication。', 3.40, 5.76, 6.7, 0.29, { fontSize: 10, color: C.ORANGE, bold: true, align: 'center', margin: 0 });
+  box(slide, 0.62, 6.26, 12.03, 0.43, { fill: C.NAVY3, line: '31516E', label: '节点上的职责、拓扑、输入输出 Schema 与工具权限固定；操作者只能追加提示词。', color: C.WHITE, fontSize: 10.2, bold: true });
+}
+
+// 5 · 真实端到端
+{
+  const slide = frame('一次真实 E2E：格式失败没有抹掉，恢复后仍由 Gate 决定发布', 'LIVE END TO END', '真实证据', {
+    source: 'run 5503b6bc-0350-4b53-98cc-6fbf3a13aaa9；脱敏报告 04-SDK成功运行-脱敏报告.json',
+  });
+  const stages = [
+    ['来源', 'pinned commit', C.BLUE], ['编排', 'orchestrator', C.CYAN], ['并行', 'worker + test', C.PURPLE],
+    ['知识', 'doc-gen retry', C.ORANGE], ['重建', 'code role', C.GREEN], ['验证', 'check + eval', C.RED],
+    ['评审', 'review', C.PURPLE], ['发布', 'VERIFIED', C.GREEN],
+  ];
+  stages.forEach((s, i) => {
+    const x = 0.58 + i * 1.53;
+    node(slide, x, 1.63, 1.18, 0.86, s[0], s[1], { accent: s[2], fill: i === 7 ? C.GREEN_LIGHT : C.WHITE, titleSize: 11, bodySize: 8.2 });
+    if (i < stages.length - 1) arrow(slide, x + 1.23, 1.89, 0.22, s[2]);
+  });
+  box(slide, 4.94, 2.70, 2.06, 0.48, { fill: C.RED_LIGHT, line: C.RED, label: 'DocGen #1：非 JSON', color: C.RED, fontSize: 9.5, bold: true });
+  line(slide, 5.97, 2.50, 0, 0.19, C.RED, 1.5);
+  box(slide, 0.62, 3.59, 12.02, 1.48, { fill: C.NAVY, line: C.NAVY });
+  const metrics = [
+    ['最终状态', 'VERIFIED / PASS'], ['模型调用', '8（7 成功 + 1 失败）'], ['节点 / 事件', '14 / 46'],
+    ['知识质量', '96 / 100'], ['行为评测', '1 / 1 · stability 1'], ['证据', '12 / 12 SHA-256'],
+  ];
+  metrics.forEach((m, i) => {
+    const x = 0.93 + (i % 3) * 3.85;
+    const y = 3.84 + Math.floor(i / 3) * 0.57;
+    text(slide, m[0], x, y, 1.30, 0.22, { fontSize: 8.3, color: C.CYAN, bold: true, margin: 0 });
+    text(slide, m[1], x + 1.28, y - 0.02, 2.30, 0.27, { fontSize: 11.2, color: C.WHITE, bold: true, margin: 0 });
+  });
+  card(slide, 0.62, 5.40, 3.77, 1.06, 'Checkpoint 做了什么', ['同一 runId 恢复，已提交副作用不重复'], { accent: C.PURPLE, bodySize: 10.2, titleSize: 13 });
+  card(slide, 4.77, 5.40, 3.77, 1.06, 'Evaluator 做了什么', ['只认实际命令结果，不接受 Agent 自评分'], { accent: C.RED, bodySize: 10.2, titleSize: 13 });
+  card(slide, 8.92, 5.40, 3.72, 1.06, 'Gate 做了什么', ['绑定证据后原子发布，产生唯一 receipt'], { accent: C.GREEN, bodySize: 10.2, titleSize: 13 });
+}
+
+// 6 · Demo 进度
+{
+  const slide = frame('多 Agent Demo 进度：三次运行分别验证闭环、拒绝与恢复', 'DEMO PROGRESS', '真实证据', {
+    source: 'knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md',
+  });
+  const runs = [
+    ['A · Headless 兼容样例', 'VERIFIED / PASS', '质量 65 → 98；第二轮通过 295 / 295；唯一发布', C.BLUE],
+    ['B · SDK 隔离失败样例', 'FAIL CLOSED', '28 次 Agent 调用；45 节点；31 / 31 工件完整；越界测试文件被拒绝；0 发布', C.RED],
+    ['C · SDK 完整样例', 'VERIFIED / PASS', 'DocGen 非 JSON 后同 Run 恢复；1 / 1 评测；12 / 12 工件；唯一发布', C.GREEN],
+  ];
+  runs.forEach((r, i) => {
+    const y = 1.49 + i * 1.41;
+    box(slide, 0.65, y, 12.00, 1.08, { fill: i === 1 ? C.RED_LIGHT : i === 2 ? C.GREEN_LIGHT : C.BLUE_LIGHT, line: r[3] });
+    pill(slide, r[1], 10.74, y + 0.17, 1.52, r[3], { fontSize: 7.8 });
+    text(slide, r[0], 0.97, y + 0.17, 4.0, 0.26, { fontSize: 14, color: C.NAVY, bold: true, margin: 0 });
+    text(slide, r[2], 0.97, y + 0.55, 10.95, 0.31, { fontSize: 10.3, color: C.MUTED, bold: true, margin: 0 });
+  });
+  box(slide, 0.65, 5.92, 12.00, 0.57, { fill: C.NAVY, line: C.NAVY, label: '一次成功不是稳定性结论；失败样例也不是废数据，它证明了系统会拒绝越界并保留现场。', color: C.WHITE, fontSize: 11.1, bold: true });
+}
+
+// 7 · 控制台截图
+{
+  const slide = frame('前台已经能看到 LangGraph 节点，也能分辨失败与恢复', 'CONSOLE EVIDENCE', '真实证据', {
+    dark: true,
+    source: '真实只读 Console 截图；run 5503b6bc-0350-4b53-98cc-6fbf3a13aaa9',
+  });
+  box(slide, 0.62, 1.40, 5.05, 5.44, { fill: '07121E', line: '31516E' });
+  addImageContain(slide, RUN_SHOT, 0.76, 1.54, 4.77, 5.16, 1600, 1906);
+  card(slide, 6.02, 1.48, 6.61, 1.33, '前台读的是业务投影', [
+    '节点状态由 LangGraph 执行产生，但写进 wpKnowledge Registry 后再展示',
+    'Graph checkpoint 不直接暴露给产品 UI',
+  ], { fill: C.NAVY2, accent: C.CYAN, titleColor: C.WHITE, bodyColor: C.PALE, bodySize: 9.7 });
+  card(slide, 6.02, 3.08, 6.61, 1.33, '失败没有被“洗绿”', [
+    'DocGen attempt 1 明确标红；attempt 2 完成后继续',
+    '最终 PASS 来自 EvaluationReport + Domain Gate',
+  ], { fill: C.NAVY2, accent: C.RED, titleColor: C.WHITE, bodyColor: C.PALE, bodySize: 9.7 });
+  card(slide, 6.02, 4.68, 6.61, 1.33, '可导出的审计材料', [
+    'Run、节点、事件、checkpoint、评测、发布和 Agent 调用摘要',
+    '不包含密钥、Prompt 正文、模型正文或会话日志',
+  ], { fill: C.NAVY2, accent: C.GREEN, titleColor: C.WHITE, bodyColor: C.PALE, bodySize: 9.7 });
+}
+
+// 8 · Agent I/O
+{
+  const slide = frame('七类 Agent 角色的输入输出：职责固定，执行后端可统一', 'AGENT INPUT / OUTPUT', '已实现', {
+    source: 'infrastructure/domain-knowledge/src/agent-definitions.ts；packages/application/src/automated-project-workflow.ts',
+  });
+  const xs = [0.58, 2.25, 6.05, 10.15];
+  const ws = [1.67, 3.80, 4.10, 2.55];
+  gridRow(slide, 1.42, ['角色', '可见输入', '结构化输出', '不能做'], xs, ws, { h: 0.43, fill: C.NAVY, line: C.NAVY, color: C.WHITE, header: true, fontSize: 9.1, alignments: ['center', 'left', 'left', 'left'] });
   const rows = [
-    ["7 Agent 节点 + LangGraph 路由", "●", "—", "—", "节点、投影、fan-out/join 可运行"],
-    ["SQLite graph checkpoint + Registry/CAS", "●", "—", "—", "两类状态分层持久化"],
-    ["ohMyWorkPanel 两轮闭环", "—", "●", "—", "静态资产驱动，不是 live Agent"],
-    ["TrustedProjectEvaluator", "●", "●", "—", "真实命令执行；不是敌对沙箱"],
-    ["promptAddon-only 配置", "●", "—", "—", "字段边界安全；fixture 不消费 prompt"],
-    ["真实 Agent / CodeAgent provider", "—", "—", "●", "自动路径尚未接入"],
-    ["拓扑 + 语义切块与增量上下文", "—", "—", "●", "当前 worker 只是机械 fixture"],
-    ["进程级取消 / RUNNING 恢复", "—", "—", "●", "只证明协作式取消、部分恢复"],
+    ['Orchestrator', '策略、轮次、执行摘要', '本轮计划摘要', '改拓扑 / 发布'],
+    ['DocWorker', '被分配源码、公开接口', '片段 + provenance', '跨块猜测 / Gate'],
+    ['DocGen', '来源快照、片段、Correction', '知识正文 + 元数据', '发布 / 自评通过'],
+    ['TestGen', '参考源码、公开接口', '候选命令 / oracle 意图', '读取候选知识'],
+    ['code 角色', '候选知识、公开接口、允许路径', '生成文件列表', '读参考实现 / 测试'],
+    ['Check', '内联生成代码、判据', 'blocking + findings', '改代码 / 发布'],
+    ['Review', '知识、Eval、Check', 'PASS 建议或 Correction', '直接改状态'],
   ];
-  rows.forEach((row, i) => {
-    const y = 1.93 + i * 0.56;
-    const fill = i % 2 === 0 ? C.WHITE : "EDF2F6";
-    addGridRow(slide, y, row, xs, ws, { h: 0.50, fill, line: C.LINE, fontSize: 9.2, firstBold: true, alignments: ["left", "center", "center", "center", "left"] });
-    if (row[1] === "●") addText(slide, "●", xs[1], y + 0.05, ws[1], 0.38, { fontSize: 12, color: C.GREEN, bold: true, align: "center", margin: 0 });
-    if (row[2] === "●") addText(slide, "●", xs[2], y + 0.05, ws[2], 0.38, { fontSize: 12, color: C.ORANGE, bold: true, align: "center", margin: 0 });
-    if (row[3] === "●") addText(slide, "●", xs[3], y + 0.05, ws[3], 0.38, { fontSize: 12, color: C.PURPLE, bold: true, align: "center", margin: 0 });
+  rows.forEach((r, i) => gridRow(slide, 1.91 + i * 0.65, r, xs, ws, {
+    h: 0.58, fill: i % 2 === 0 ? C.WHITE : 'EAF1F6', line: C.LINE, fontSize: 9.1,
+    firstBold: true, alignments: ['center', 'left', 'left', 'left'],
+  }));
+  box(slide, 0.58, 6.60, 12.12, 0.33, { fill: C.ORANGE_LIGHT, line: C.ORANGE, label: '所有角色本次都由 DeepSeekHarnessSdkAgent 执行；“角色不同”不等于“安装了七个不同 Agent 产品”。', color: C.INK, fontSize: 9.5, bold: true });
+}
+
+// 9 · 文档阶段与分块
+{
+  const slide = frame('文档生成如何分块：当前单 worker 已实跑，语义 fan-out 仍要补', 'DOCUMENT GENERATION', '边界', {
+    source: 'graph.ts 的 Send fan-out；automated-project-workflow.ts 的 assignedSourcePaths；当前 Demo workers=1',
   });
-  addStatusLegend(slide);
-}
-
-// 5. Expected orchestration
-{
-  const slide = addFrame("预期编排：七个 Agent 节点全部保留，评测与发布 Gate 不是 Agent", "IMPLEMENTED + PLANNED",
-    "代码：infrastructure/domain-knowledge/src/graph.ts:13-27,106-188；对照 domain-knowledge/docs/report/01-Agent输入输出总览.md", { kicker: "ORCHESTRATION", dark: true });
-  const darkNode = { fill: C.NAVY2, titleColor: C.WHITE, bodyColor: "B9C9D8" };
-  addNode(slide, 0.55, 2.88, 1.40, 0.80, "Orchestrator", "拆任务 / 组装上下文", { ...darkNode, accent: C.CYAN });
-  addChevron(slide, 2.03, 3.07, C.CYAN, 0.24, 0.36);
-  addNode(slide, 2.35, 1.63, 1.40, 0.80, "DocWorker × N", "分块证据片段", { ...darkNode, accent: C.BLUE });
-  addNode(slide, 2.35, 4.17, 1.40, 0.80, "TestGen", "oracle / 测试意图", { ...darkNode, accent: C.PURPLE });
-  addNode(slide, 4.20, 1.63, 1.35, 0.80, "DocGen", "候选知识", { ...darkNode, accent: C.BLUE });
-  addNode(slide, 4.20, 4.17, 1.35, 0.80, "Oracle 校验", "非 Agent", { fill: C.NAVY, accent: C.ORANGE, titleColor: C.WHITE, bodyColor: "B9C9D8" });
-  addNode(slide, 6.05, 1.63, 1.25, 0.80, "Code", "fresh 实现", { ...darkNode, accent: C.GREEN });
-  addNode(slide, 7.78, 1.63, 1.25, 0.80, "Check", "只读检查", { ...darkNode, accent: C.ORANGE });
-  addNode(slide, 7.04, 3.51, 1.65, 0.80, "EvalRunner", "独立确定性评测\n非 Agent", { fill: C.NAVY, accent: C.RED, titleColor: C.WHITE, bodyColor: "B9C9D8" });
-  addNode(slide, 9.48, 3.51, 1.35, 0.80, "Review", "归因 / Correction", { ...darkNode, accent: C.PURPLE });
-  addNode(slide, 11.28, 3.51, 1.42, 0.80, "Publication Gate", "确定性策略\n非 Agent", { fill: C.NAVY, accent: C.GREEN, titleColor: C.WHITE, bodyColor: "B9C9D8" });
-  [[3.82, 1.84, C.BLUE], [5.66, 1.84, C.GREEN], [7.41, 1.84, C.ORANGE], [3.82, 4.38, C.PURPLE], [8.88, 3.72, C.PURPLE], [10.94, 3.72, C.GREEN]].forEach(v => addChevron(slide, v[0], v[1], v[2], 0.23, 0.34));
-  addLine(slide, 8.38, 2.48, -0.36, 0.96, C.ORANGE, 1.8);
-  addLine(slide, 4.88, 5.02, 2.59, -0.63, C.PURPLE, 1.8);
-  addLine(slide, 12.02, 4.36, 0, 1.25, C.ORANGE, 1.8);
-  addLine(slide, 12.02, 5.61, -10.77, 0, C.ORANGE, 1.8);
-  addLine(slide, 1.25, 5.61, 0, -1.84, C.ORANGE, 1.8);
-  addText(slide, "ITERATE / ROLLBACK：回到新一轮 Orchestrator", 4.25, 5.73, 4.3, 0.24, { fontSize: 9.3, color: C.ORANGE, bold: true, align: "center", margin: 0 });
-  addStatusLegend(slide, true);
-}
-
-// 6. Agent I/O overview
-{
-  const slide = addFrame("七个 Agent 输入输出：职责没有简化，交接只通过受约束产物", "IMPLEMENTED + PLANNED",
-    "对照：contracts/src/index.ts:200-216；infrastructure/domain-knowledge/src/agent-definitions.ts；domain-knowledge 报告 Agent 总表", { kicker: "AGENT CONTRACTS" });
-  const xs = [0.58, 2.00, 6.05, 10.30], ws = [1.42, 4.05, 4.25, 2.43];
-  addGridRow(slide, 1.43, ["Agent", "主要输入", "主要输出", "边界"], xs, ws, { h: 0.44, fill: C.NAVY, line: C.NAVY, color: C.WHITE, fontSize: 9.3, firstBold: true, alignments: ["center", "left", "left", "left"] });
-  const rows = [
-    ["Orchestrator", "RunPolicy、snapshot、历史 Correction", "任务 DAG、worker 划分、上下文计划", "不生成最终知识"],
-    ["DocWorker", "语义块、依赖摘要、公开接口", "证据片段、provenance、未决问题", "不跨块猜测"],
-    ["DocGen", "全部 worker 片段、写作规范、历史版本", "候选知识 + 事实引用", "不发布"],
-    ["TestGen", "知识契约、公开接口、风险项", "oracle 意图、候选命令/用例", "不读候选实现"],
-    ["Code", "候选知识、接口约束、allowed paths", "fresh generated files", "不读参考实现"],
-    ["Check", "实现 diff、规则、静态证据", "blocking + findings + 位置", "只读、不定发布"],
-    ["Review", "Eval、Check、候选知识、历史", "归因、Correction、unresolved risks", "只读、不选状态"],
+  text(slide, '当前真实路径', 0.63, 1.41, 2.0, 0.24, { fontSize: 10.3, color: C.BLUE, bold: true, margin: 0 });
+  node(slide, 0.63, 1.89, 1.55, 0.87, 'SourceSnapshot', '固定 commit\nmanifest + provenance', { accent: C.BLUE });
+  arrow(slide, 2.30, 2.15, 0.25, C.BLUE);
+  node(slide, 2.64, 1.89, 1.60, 0.87, 'DocWorker × 1', '按 sourcePaths 索引\n分配来源文件', { accent: C.CYAN });
+  arrow(slide, 4.35, 2.15, 0.25, C.CYAN);
+  node(slide, 4.69, 1.89, 1.60, 0.87, 'DocGen', '汇总片段\n生成 5,165B 正文', { accent: C.GREEN });
+  arrow(slide, 6.41, 2.15, 0.25, C.GREEN);
+  node(slide, 6.75, 1.89, 1.60, 0.87, 'Quality Gate', '96 / 100\n结构与可验证性', { accent: C.ORANGE, fill: C.GREEN_LIGHT });
+  card(slide, 8.78, 1.46, 3.86, 1.69, '当前能证明', [
+    'LangGraph 的 fan-out / join 路径存在',
+    'worker 产物以 ArtifactRef 汇入 DocGen',
+    '质量不足会跳过代码生成并进入下一轮',
+  ], { accent: C.GREEN, bodySize: 9.4 });
+  text(slide, '大仓库目标', 0.63, 3.52, 2.0, 0.24, { fontSize: 10.3, color: C.PURPLE, bold: true, margin: 0 });
+  const future = [
+    ['建图', 'symbol / import / call / test'], ['收缩', 'SCC 保留循环语义'], ['分层', '按拓扑序生成稳定块'],
+    ['证据包', '事实 + 引用 + unresolved'], ['增量聚合', '只重做受影响子图'],
   ];
-  rows.forEach((row, i) => addGridRow(slide, 1.92 + i * 0.64, row, xs, ws, { h: 0.58, fill: i % 2 === 0 ? C.WHITE : "EDF2F6", line: C.LINE, fontSize: 9.1, firstColor: C.NAVY, firstBold: true, alignments: ["center", "left", "left", "left"] }));
-  addStatusLegend(slide);
-}
-
-// 7. Current documentation stage
-{
-  const slide = addFrame("文档生成阶段：并行结构已跑通，但当前内容仍是 deterministic fixture", "DEMO",
-    "代码：graph.ts:137-153；automated-project-workflow.ts:143-182；tests/integration/langgraph-infrastructure.test.ts", { kicker: "DOCUMENTATION · CURRENT" });
-  addPill(slide, "当前可运行", 0.62, 1.45, 1.12, C.ORANGE, { fontSize: 8 });
-  addNode(slide, 0.62, 2.23, 1.45, 0.84, "Orchestrator", "workerCount", { accent: C.CYAN });
-  addChevron(slide, 2.17, 2.44, C.CYAN);
-  [0, 1, 2].forEach(i => addNode(slide, 2.58, 1.52 + i * 1.12, 1.62, 0.74, `DocWorker ${i + 1}`, "workerId + 固定 fragment", { fill: C.BLUE_LIGHT, accent: C.BLUE, titleSize: 11.5, bodySize: 8.4 }));
-  addLine(slide, 4.30, 1.89, 0.90, 0.71, C.BLUE, 1.4);
-  addLine(slide, 4.30, 3.01, 0.90, -0.41, C.BLUE, 1.4);
-  addLine(slide, 4.30, 4.13, 0.90, -1.53, C.BLUE, 1.4);
-  addNode(slide, 5.24, 2.17, 1.72, 0.88, "DocGen", "读取预置 knowledge-v1/v2", { fill: C.BLUE_LIGHT, accent: C.BLUE, bodySize: 8.7 });
-  addChevron(slide, 7.06, 2.42, C.CYAN);
-  addNode(slide, 7.45, 2.17, 1.72, 0.88, "Candidate", "CAS + provenance", { fill: C.GREEN_LIGHT, accent: C.GREEN });
-  addRichBox(slide, 9.55, 1.45, 3.15, 2.03, "这个 demo 能证明", ["Send fan-out / join 路径可执行", "多个 worker ArtifactRef 到达 DocGen context", "节点投影、checkpoint、候选写入可观察"], { accent: C.GREEN, bodySize: 9.5 });
-  addRichBox(slide, 9.55, 3.72, 3.15, 2.03, "它不能证明", ["没有函数 / 类 / SCC 级语义切块", "DocGen 没按片段内容聚合写作", "没有增量上下文、冲突消解和覆盖率验证"], { accent: C.RED, bodySize: 9.5 });
-  addBox(slide, 0.62, 5.20, 8.55, 0.55, { text: "结论：当前是“拓扑形状正确”的 fixture，不是“拓扑与语义切块已经实现”。", fill: C.ORANGE_LIGHT, line: C.ORANGE, color: C.INK, fontSize: 11.5, bold: true });
-  addStatusLegend(slide);
-}
-
-// 8. Target semantic/topological chunking
-{
-  const slide = addFrame("语义 / 拓扑切块：以可解释代码单元为边界，不按 token 生硬截断", "PLANNED",
-    "研究：DocAgent, arXiv:2504.08725 (2025-04-11)；domain-knowledge/docs/report/01-Agent输入输出总览.md 文档阶段", { kicker: "DOCUMENTATION · TARGET", dark: true });
-  addText(slide, "1 · 建图与稳定边界", 0.65, 1.42, 4.0, 0.24, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  [[0.72, 2.04, "public API", C.BLUE], [2.45, 1.67, "service", C.PURPLE], [2.45, 2.71, "repository", C.GREEN], [4.18, 2.19, "adapter", C.ORANGE]].forEach(v => addNode(slide, v[0], v[1], 1.20, 0.60, v[2], "", { fill: C.NAVY2, accent: v[3], titleColor: C.WHITE, titleSize: 10.5 }));
-  addLine(slide, 1.92, 2.34, 0.50, -0.32, C.CYAN, 1.4); addLine(slide, 1.92, 2.34, 0.50, 0.68, C.CYAN, 1.4);
-  addLine(slide, 3.67, 2.02, 0.48, 0.44, C.CYAN, 1.4); addLine(slide, 3.67, 3.02, 0.48, -0.56, C.CYAN, 1.4);
-  addText(slide, "AST / symbol / import-call graph → SCC 收缩 → 拓扑层\n函数、类、模块、测试簇是候选块；超预算时只在内部语义边界再切。", 0.72, 3.59, 4.72, 0.70, { fontSize: 10.2, color: C.LIGHT_TEXT, valign: "top", margin: 0 });
-  addText(slide, "2 · DocWorker 产出证据包", 5.80, 1.42, 3.6, 0.24, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  addRichBox(slide, 5.78, 1.82, 3.02, 2.58, "ChunkEvidence", ["chunkId / symbols / source ranges", "imports / callers / callees / tests", "事实、约束、示例、provenance", "依赖摘要与 unresolved issues"], { fill: C.NAVY2, accent: C.BLUE, titleColor: C.WHITE, bodyColor: C.LIGHT_TEXT, bodySize: 9.2 });
-  addText(slide, "3 · DocGen 增量聚合", 9.18, 1.42, 3.4, 0.24, { fontSize: 10.5, color: C.CYAN, bold: true, margin: 0 });
-  [["按拓扑序消费", "先依赖，后调用方", C.BLUE], ["增量上下文", "摘要可复用，正文不重复", C.PURPLE], ["验证—重写闭环", "覆盖 / 引用 / 冲突检查", C.GREEN]].forEach((v, i) => addNode(slide, 9.18, 1.82 + i * 0.91, 3.42, 0.67, v[0], v[1], { fill: C.NAVY2, accent: v[2], titleColor: C.WHITE, bodyColor: C.LIGHT_TEXT, titleSize: 11.5, bodySize: 8.8 }));
-  addBox(slide, 0.67, 4.77, 11.93, 1.00, { fill: C.NAVY2, line: "31516E" });
-  addText(slide, "避免语义截断的判据", 0.93, 4.95, 2.18, 0.23, { fontSize: 9.7, color: C.CYAN, bold: true, margin: 0 });
-  addText(slide, "块内可独立解释；跨块依赖显式引用；声明与测试共同归组；循环依赖作为 SCC 整体；\n超 token 时保留接口 + 摘要 + provenance，正文递延，禁止从任意字符位置截断。", 3.00, 4.91, 9.22, 0.55, { fontSize: 10.8, color: C.WHITE, bold: true, valign: "top", margin: 0 });
-  addText(slide, "DocAgent 验证了 topological code processing + incremental context building；本项目借用原则，Schema 与 Gate 仍需在 wpKnowledge 内实现。", 0.68, 6.16, 11.9, 0.24, { fontSize: 9.1, color: "B9C9D8", italic: true, margin: 0 });
-  addStatusLegend(slide, true);
-}
-
-// 9. Code generation and evaluation
-{
-  const slide = addFrame("代码生成与独立评测：路径隔离已存在，live CodeAgent 尚未接线", "IMPLEMENTED + DEMO",
-    "代码：automated-project-workflow.ts:229-309；contracts/src/index.ts:127-197；composition.ts:100-109", { kicker: "CODE + EVALUATION" });
-  addText(slide, "候选路径 · 生成后再检查", 0.63, 1.43, 3.3, 0.23, { fontSize: 10, color: C.BLUE, bold: true, margin: 0 });
-  addNode(slide, 0.63, 2.04, 1.40, 0.78, "DocGen", "候选知识", { fill: C.BLUE_LIGHT, accent: C.BLUE });
-  addChevron(slide, 2.13, 2.25, C.BLUE); addNode(slide, 2.55, 2.04, 1.40, 0.78, "Code", "静态 code-v1/v2", { fill: C.GREEN_LIGHT, accent: C.GREEN });
-  addChevron(slide, 4.05, 2.25, C.GREEN); addNode(slide, 4.46, 2.04, 1.40, 0.78, "Check", "blocking / findings", { fill: C.ORANGE_LIGHT, accent: C.ORANGE });
-  addText(slide, "Oracle 路径 · 与候选实现隔离", 0.63, 3.48, 3.3, 0.23, { fontSize: 10, color: C.PURPLE, bold: true, margin: 0 });
-  addNode(slide, 0.63, 4.09, 1.40, 0.78, "TestGen", "固定命令 fixture", { fill: C.PURPLE_LIGHT, accent: C.PURPLE });
-  addChevron(slide, 2.13, 4.30, C.PURPLE); addNode(slide, 2.55, 4.09, 1.82, 0.78, "Reference Oracle", "先验证测试基线", { fill: C.PURPLE_LIGHT, accent: C.PURPLE });
-  addLine(slide, 5.88, 2.43, 0.74, 0.78, C.ORANGE, 1.8); addLine(slide, 4.40, 4.47, 2.22, -1.26, C.PURPLE, 1.8);
-  addNode(slide, 6.68, 2.72, 2.10, 1.02, "TrustedProjectEvaluator", "归档 workspace 内执行命令\n采集 stdout / stderr / tests", { fill: C.NAVY, accent: C.RED, titleColor: C.WHITE, bodyColor: "D2DDE7", titleSize: 11.2, bodySize: 8.4 });
-  addChevron(slide, 8.91, 3.05, C.RED); addNode(slide, 9.38, 2.72, 1.63, 1.02, "Evaluation", "不可变 evidenceRef", { fill: C.RED_LIGHT, accent: C.RED });
-  addChevron(slide, 11.12, 3.05, C.RED); addNode(slide, 11.56, 2.72, 1.15, 1.02, "Review", "归因", { fill: C.PURPLE_LIGHT, accent: C.PURPLE });
-  addRichBox(slide, 6.68, 4.29, 2.90, 1.49, "已实现", ["allowed path 校验", "reference oracle 先行", "真实 Node 命令 + CAS 证据"], { accent: C.GREEN, bodySize: 9.2 });
-  addRichBox(slide, 9.81, 4.29, 2.90, 1.49, "当前边界", ["Code / TestGen 仍读 fixture", "不是 CodeAgent provider", "受信执行器不是敌对沙箱"], { accent: C.ORANGE, bodySize: 9.2 });
-  addStatusLegend(slide);
-}
-
-// 10. Review and gate
-{
-  const slide = addFrame("Review / Correction / 迭代：Review 给证据，Gate 才给状态", "IMPLEMENTED",
-    "代码：automated-project-workflow.ts:312-374；application/src/index.ts:128-194；domain/src/index.ts:159-196；commit b6973a8", { kicker: "REVIEW LOOP", dark: true });
-  const dn = { fill: C.NAVY2, titleColor: C.WHITE, bodyColor: C.LIGHT_TEXT };
-  addNode(slide, 0.63, 2.25, 1.58, 0.92, "Evaluation", "tests / stability\ninfrastructureFailure", { ...dn, accent: C.RED });
-  addChevron(slide, 2.32, 2.52, C.RED); addNode(slide, 2.72, 2.25, 1.58, 0.92, "Review", "blocking / recommendation\nCorrection", { ...dn, accent: C.PURPLE, bodySize: 8.5 });
-  addChevron(slide, 4.42, 2.52, C.PURPLE); addNode(slide, 4.82, 2.06, 2.04, 1.30, "wp Domain Gate", "绑定 body / code / oracle / check / review\n策略产生唯一 GateDecision", { fill: "224867", accent: C.GREEN, titleColor: C.WHITE, bodyColor: "D4E0EA", bodySize: 8.6 });
-  [["PASS", "Publication → VERIFIED", C.GREEN], ["ITERATE", "FlywheelRun +1 → 新候选", C.ORANGE], ["STOPPED", "LOW_CONFIDENCE", C.RED]].forEach((v, i) => {
-    const y = 1.46 + i * 1.16; addChevron(slide, 7.06, y + 0.22, v[2]); addNode(slide, 7.43, y, 2.02, 0.78, v[0], v[1], { ...dn, accent: v[2] });
+  future.forEach((f, i) => {
+    const x = 0.63 + i * 2.43;
+    node(slide, x, 4.04, 1.98, 0.92, f[0], f[1], { accent: C.PURPLE, fill: C.PURPLE_LIGHT, titleSize: 11.5, bodySize: 8.7 });
+    if (i < future.length - 1) arrow(slide, x + 2.05, 4.33, 0.24, C.PURPLE);
   });
-  addRichBox(slide, 9.92, 1.46, 2.75, 2.90, "修复后的约束", ["Review 产物先存在，才记录正常 GateDecision", "Check / Review blocking 进入 reasonCodes", "Graph 只执行 GateDecision，不另算 maxIterations", "基础设施失败可跳过 Review，但仍由 Domain Gate STOPPED"], { fill: C.NAVY2, accent: C.CYAN, titleColor: C.WHITE, bodyColor: C.LIGHT_TEXT, bodySize: 8.8 });
-  addBox(slide, 0.65, 4.74, 8.78, 0.86, { fill: C.NAVY2, line: "31516E" });
-  addText(slide, "Correction 只描述“知识路径 → 失败证据 → 可判定修订标准”；\n它不能直接改状态，也不能绕过 fresh Code / Eval / Gate。", 0.91, 4.93, 8.25, 0.43, { fontSize: 11.2, color: C.WHITE, bold: true, align: "center", margin: 0 });
-  addStatusLegend(slide, true);
+  box(slide, 0.63, 5.39, 12.01, 0.94, { fill: C.NAVY, line: C.NAVY });
+  text(slide, '禁止按字符或 token 任意截断。块必须能独立解释，跨块依赖必须显式引用；超预算时保留接口、摘要和 provenance，正文延迟生成。', 0.93, 5.65, 11.42, 0.40, { fontSize: 11.1, color: C.WHITE, bold: true, align: 'center', margin: 0 });
 }
 
-// 11. End-to-end dual lane
+// 10 · 代码生成与评测
 {
-  const slide = addFrame("端到端流程：LangGraph 推进执行，wpKnowledge 记录可发布事实", "IMPLEMENTED + DEMO",
-    "代码：graph.ts；runtime.ts；automated-project-workflow.ts；application/src/index.ts；SQLiteFlywheelRepository", { kicker: "END TO END" });
-  addText(slide, "LANGGRAPH", 0.60, 1.42, 1.70, 0.25, { fontSize: 10.5, color: C.BLUE, bold: true, margin: 0 });
-  addText(slide, "WPKNOWLEDGE", 0.60, 4.13, 1.70, 0.25, { fontSize: 10.5, color: C.GREEN, bold: true, margin: 0 });
-  addLine(slide, 0.58, 3.76, 12.14, 0, C.LINE, 1.1);
-  const xs = [0.62, 2.25, 4.02, 5.79, 7.33, 8.86, 10.55], ws = [1.28, 1.42, 1.42, 1.20, 1.20, 1.20, 1.52];
-  const top = [["Orchestrate", C.CYAN], ["DocWorker\n+ DocGen", C.BLUE], ["Code + Check", C.GREEN], ["Eval", C.RED], ["Review", C.PURPLE], ["Router", C.ORANGE], ["Publication", C.GREEN]];
-  const bottom = [["CREATED\n→ GENERATING", C.BLUE], ["CANDIDATE\n+ CAS refs", C.BLUE], ["GenerationKey\nCOMMITTED", C.PURPLE], ["EvaluationReport\n+ evidence", C.RED], ["GateDecision", C.ORANGE], ["PUBLISHING", C.GREEN], ["VERIFIED", C.GREEN]];
-  top.forEach((v, i) => { addBox(slide, xs[i], 2.09, ws[i], 0.72, { text: v[0], fill: C.WHITE, line: v[1], fontSize: 9.8, bold: true }); if (i < top.length - 1) addChevron(slide, xs[i] + ws[i] + 0.08, 2.29, v[1], 0.20, 0.32); });
-  bottom.forEach((v, i) => { addBox(slide, xs[i], 4.70, ws[i], 0.72, { text: v[0], fill: C.WHITE, line: v[1], fontSize: 8.9, bold: true }); if (i < bottom.length - 1) addChevron(slide, xs[i] + ws[i] + 0.08, 4.90, v[1], 0.20, 0.32); });
-  [1.26, 2.96, 4.73, 6.39, 7.93, 9.46, 11.31].forEach(x => addLine(slide, x, 2.86, 0, 1.79, "A9BAC8", 1));
-  addBox(slide, 9.87, 5.82, 2.85, 0.52, { text: "唯一可产生 VERIFIED 的入口", fill: C.GREEN, line: C.GREEN, color: C.WHITE, fontSize: 10.5, bold: true });
-  addLine(slide, 11.31, 5.43, 0, 0.38, C.GREEN, 2);
-  addText(slide, "ITERATE：GateDecision → FlywheelRun.ITERATING → Graph iteration + 1 → 新一轮；\nGraph checkpoint 不能替代业务事件，业务事件也不能恢复节点局部执行。", 0.65, 5.83, 8.55, 0.47, { fontSize: 9.7, color: C.MUTED, bold: true, valign: "top", margin: 0 });
-  addStatusLegend(slide);
-}
-
-// 12. Demo evidence and limits
-{
-  const slide = addFrame("ohMyWorkPanel deterministic fixture：可证明路径，不可证明智能能力", "DEMO",
-    "代码：acceptance/ohmyworkpanel/*；tests/acceptance/automated-langgraph-flow.test.ts；automated-project-workflow.ts:137-182", { kicker: "DEMO EVIDENCE" });
-  addBox(slide, 0.64, 1.47, 5.78, 0.46, { text: "可以据此下结论", fill: C.GREEN, line: C.GREEN, color: C.WHITE, fontSize: 11.5, bold: true });
-  addBox(slide, 6.88, 1.47, 5.78, 0.46, { text: "不能据此下结论", fill: C.RED, line: C.RED, color: C.WHITE, fontSize: 11.5, bold: true });
-  const yes = ["七个 Agent 节点均经过 LangGraph", "DocWorker fan-out 后，多个引用到达 DocGen context", "第一轮失败 → ITERATE → 第二轮 PASS", "Oracle / Check / Review 引用进入最终 EvaluationReport", "只有 wpKnowledge Publication 将版本置为 VERIFIED"];
-  const no = ["Agent 会基于代码自主生成高质量内容", "DocWorker 已按 AST / 拓扑 / 语义完成分块", "promptAddon 已影响当前 fixture 的实际输出", "worker 真并行吞吐、乱序聚合与部分失败恢复已可靠", "TrustedProjectEvaluator 等同于不可信代码沙箱"];
-  yes.forEach((v, i) => { addBox(slide, 0.64, 2.11 + i * 0.76, 5.78, 0.60, { fill: C.GREEN_LIGHT, line: "B8DEC9" }); addText(slide, "✓", 0.83, 2.23 + i * 0.76, 0.25, 0.25, { fontSize: 12, color: C.GREEN, bold: true, align: "center", margin: 0 }); addText(slide, v, 1.16, 2.18 + i * 0.76, 5.03, 0.36, { fontSize: 10, color: C.INK, bold: i === 2 || i === 4, margin: 0 }); });
-  no.forEach((v, i) => { addBox(slide, 6.88, 2.11 + i * 0.76, 5.78, 0.60, { fill: C.RED_LIGHT, line: "EAC1BE" }); addText(slide, "×", 7.07, 2.23 + i * 0.76, 0.25, 0.25, { fontSize: 12, color: C.RED, bold: true, align: "center", margin: 0 }); addText(slide, v, 7.40, 2.18 + i * 0.76, 5.03, 0.36, { fontSize: 10, color: C.INK, bold: i === 1 || i === 4, margin: 0 }); });
-  addStatusLegend(slide);
-}
-
-// 13. Runtime notes
-{
-  const slide = addFrame("本地运行记录：成功项与环境问题分开描述", "IMPLEMENTED + DEMO",
-    "核对：package.json / .github/workflows/ci.yml / package-lock.json；domain-knowledge/src/graph/build-graph.ts；本机实测", { kicker: "RUNTIME NOTES", dark: true });
-  const xs = [0.62, 3.07, 8.29], ws = [2.45, 5.22, 4.40];
-  addGridRow(slide, 1.45, ["事项", "实际观察", "处理 / 当前口径"], xs, ws, { h: 0.43, fill: "224867", line: "31516E", color: C.WHITE, fontSize: 9.4, firstBold: true });
-  const rows = [
-    ["Node 版本", "本机 Node 22.22；仓库 engines 与 CI 为 Node 24", "本地可跑；正式结果以 Node 24 CI 为准"],
-    ["node:sqlite", "Node 22 测试输出 experimental warning", "属于运行时提示，不是测试失败"],
-    ["lockfile registry", "首次写入腾讯镜像，GitHub CI npm ci 出现 ENOTFOUND", "776dac5 已改为 registry.npmjs.org"],
-    ["CodeAgent timeout", "domain-knowledge doc-gen 实测约 2–3 分钟，原节点 120s", "上调到 600s；wpKnowledge graph 同为 600s"],
-    ["真实 Agent 接入", "wp 自动路径实例化 OhMyWorkPanel fixture executor", "AgentProvider / CodeAgent provider 尚未接入"],
-    ["本次验证", "typecheck、validate:specs、npm test", "全部通过；50 / 50 tests"],
-  ];
-  rows.forEach((row, i) => addGridRow(slide, 1.94 + i * 0.70, row, xs, ws, { h: 0.63, fill: i % 2 === 0 ? C.NAVY2 : "1B4265", line: "31516E", color: "D6E1EA", firstColor: C.WHITE, firstBold: true, fontSize: 9.2 }));
-  addStatusLegend(slide, true);
-}
-
-// 14. Next steps
-{
-  const slide = addFrame("下一步：先把语义证据链做实，再扩大 Agent 与运行时能力", "PLANNED",
-    "评审结论：PR #20 代码修复 @ b6973a8；domain-knowledge 对照；DocAgent arXiv:2504.08725", { kicker: "NEXT STEPS" });
-  const rows = [
-    ["P0", "语义 / 拓扑分块", "构建 symbol + import/call/test 图；SCC 与拓扑层；定义 ChunkEvidence Schema；DocGen 真正消费所有 worker 产物。", C.RED],
-    ["P0", "接入真实 Agent provider", "让 promptAddon 进入真实请求；固定 base prompt / tools / schema；输出做运行时校验，禁止 Agent 直接决定发布。", C.RED],
-    ["P1", "并行、恢复、取消", "补真实 overlap、乱序聚合、worker 部分失败；清理 RUNNING GenerationKey；对子进程做超时与强制终止。", C.ORANGE],
-    ["P1", "评测隔离", "从 TrustedProjectEvaluator 演进到不可信代码沙箱；收紧网络、文件、CPU / 内存 / 输出预算。", C.ORANGE],
-    ["P2", "增量与质量闭环", "按变更影响子图复用上下文；增加覆盖、引用、冲突、一致性 Gate；用真实仓库样本建立回归集。", C.PURPLE],
-  ];
-  rows.forEach((row, i) => {
-    const y = 1.45 + i * 0.95;
-    addPill(slide, row[0], 0.63, y + 0.14, 0.58, row[3], { fontSize: 8 });
-    addBox(slide, 1.35, y, 11.35, 0.78, { fill: C.WHITE, line: C.LINE });
-    // Intentional overlap: the accent bar is the card's leading rule.
-    slide.addShape(pptx.ShapeType.rect, { x: 1.35, y, w: 0.07, h: 0.78, fill: { color: row[3] }, line: { color: row[3], transparency: 100 } });
-    addText(slide, row[1], 1.63, y + 0.10, 2.45, 0.26, { fontSize: 11.8, color: C.NAVY, bold: true, margin: 0 });
-    addText(slide, row[2], 4.12, y + 0.09, 8.28, 0.50, { fontSize: 9.8, color: C.MUTED, valign: "top", margin: 0 });
+  const slide = frame('代码生成与评测：两条隔离链路只在确定性 Evaluator 汇合', 'CODE + EVALUATION', '已实现', {
+    dark: true,
+    source: 'AgentWorkspaceProvider；isolation-launcher.mjs；TrustedProjectEvaluator；allowedGeneratedPaths 动态 Schema',
   });
-  addBox(slide, 0.63, 6.27, 12.07, 0.44, { text: "验收原则：每项能力必须用真实输入、不可变证据和失败用例证明；计划项不得借 fixture 提前标记为 implemented。", fill: C.NAVY, line: C.NAVY, color: C.WHITE, fontSize: 10.3, bold: true });
-  addStatusLegend(slide);
+  text(slide, '候选链 · 不读参考实现', 0.62, 1.40, 3.1, 0.24, { fontSize: 10.2, color: C.GREEN, bold: true, margin: 0 });
+  node(slide, 0.63, 1.90, 1.62, 0.84, '候选知识', 'CAS bodyRef', { fill: C.NAVY2, accent: C.BLUE, titleColor: C.WHITE, bodyColor: C.PALE });
+  arrow(slide, 2.36, 2.15, 0.25, C.GREEN);
+  node(slide, 2.71, 1.90, 1.82, 0.84, 'code 角色会话', '只见知识 + 公开接口\nBubblewrap', { fill: C.NAVY2, accent: C.GREEN, titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 11.2, bodySize: 8.2 });
+  arrow(slide, 4.64, 2.15, 0.25, C.GREEN);
+  node(slide, 4.99, 1.90, 1.76, 0.84, 'Generated files', '动态路径 enum\nCAS Artifact', { fill: C.NAVY2, accent: C.GREEN, titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 10.7 });
+  text(slide, 'Oracle 链 · 不读候选知识', 0.62, 3.40, 3.1, 0.24, { fontSize: 10.2, color: C.PURPLE, bold: true, margin: 0 });
+  node(slide, 0.63, 3.90, 1.62, 0.84, '参考源码', 'pinned commit', { fill: C.NAVY2, accent: C.BLUE, titleColor: C.WHITE, bodyColor: C.PALE });
+  arrow(slide, 2.36, 4.15, 0.25, C.PURPLE);
+  node(slide, 2.71, 3.90, 1.82, 0.84, 'TestGen', '源码 + 公开接口\n不能读候选知识', { fill: C.NAVY2, accent: C.PURPLE, titleColor: C.WHITE, bodyColor: C.PALE });
+  arrow(slide, 4.64, 4.15, 0.25, C.PURPLE);
+  node(slide, 4.99, 3.90, 1.76, 0.84, 'Oracle validation', '先跑参考实现\n确认测试真值', { fill: C.NAVY2, accent: C.ORANGE, titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 10.4 });
+  line(slide, 6.78, 2.32, 1.15, 1.00, C.GREEN, 1.8, true);
+  line(slide, 6.78, 4.32, 1.15, -1.00, C.PURPLE, 1.8, true);
+  node(slide, 7.98, 2.78, 2.05, 1.10, 'TrustedProjectEvaluator', '独立副本中物化代码\n执行受信命令，采集证据', { fill: C.NAVY3, accent: C.RED, titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 11.2, bodySize: 8.6 });
+  arrow(slide, 10.15, 3.15, 0.25, C.RED);
+  node(slide, 10.50, 2.78, 2.13, 1.10, 'EvaluationReport', 'tests 1 / 1 · stability 1\ncritical failures 0', { fill: C.NAVY2, accent: C.RED, titleColor: C.WHITE, bodyColor: C.PALE, titleSize: 11.2 });
+  box(slide, 0.63, 5.42, 12.00, 0.75, { fill: C.ORANGE, line: C.ORANGE });
+  text(slide, 'Bubblewrap 证明模型会话看不到参考源码；它不证明生成代码可安全执行。当前 Evaluator 只允许受信项目，敌对代码沙箱仍未完成。', 0.94, 5.60, 11.40, 0.38, { fontSize: 10.7, color: C.WHITE, bold: true, align: 'center', margin: 0 });
 }
 
-pptx.writeFile({ fileName: OUT });
+// 11 · Review 与知识迭代
+{
+  const slide = frame('Review 与知识迭代：Agent 提建议，确定性 Gate 才能改状态', 'REVIEW LOOP', '已实现', {
+    source: 'automated-project-workflow.ts；packages/domain/src/index.ts；SQLiteFlywheelRepository 发布事务',
+  });
+  node(slide, 0.63, 2.19, 1.70, 0.94, 'EvaluationReport', '测试事实\n不可变 evidenceRef', { accent: C.RED, fill: C.RED_LIGHT });
+  arrow(slide, 2.45, 2.48, 0.26, C.RED);
+  node(slide, 2.82, 2.19, 1.62, 0.94, 'Check', '静态阻塞项\n只读', { accent: C.ORANGE, fill: C.ORANGE_LIGHT });
+  arrow(slide, 4.56, 2.48, 0.26, C.ORANGE);
+  node(slide, 4.93, 2.03, 2.02, 1.26, 'Review 角色', '综合知识、Eval、Check\n给 PASS 建议或 Correction\n不直接决定发布', { accent: C.PURPLE, fill: C.PURPLE_LIGHT, bodySize: 8.8 });
+  arrow(slide, 7.07, 2.48, 0.26, C.PURPLE);
+  node(slide, 7.44, 2.03, 2.08, 1.26, 'wpKnowledge Gate', '规则绑定 inputRefs\n产生唯一 GateDecision', { accent: C.GREEN, fill: C.GREEN_LIGHT, bodySize: 9 });
+  const outcomes = [
+    ['PASS', '原子 Publication\n版本 → VERIFIED', C.GREEN],
+    ['ITERATE', 'Correction → DocGen\n重写知识再重建', C.ORANGE],
+    ['STOPPED', '预算耗尽或基础设施失败\n保留证据', C.RED],
+  ];
+  outcomes.forEach((o, i) => node(slide, 10.05, 1.34 + i * 1.24, 2.56, 0.83, o[0], o[1], { accent: o[2], fill: i === 0 ? C.GREEN_LIGHT : i === 1 ? C.ORANGE_LIGHT : C.RED_LIGHT, titleSize: 11.3, bodySize: 8.5 }));
+  line(slide, 9.56, 2.66, 0.42, -0.78, C.GREEN, 1.3, true);
+  line(slide, 9.56, 2.66, 0.42, 0.00, C.ORANGE, 1.3, true);
+  line(slide, 9.56, 2.66, 0.42, 1.18, C.RED, 1.3, true);
+  box(slide, 0.63, 4.40, 8.89, 1.54, { fill: C.NAVY, line: C.NAVY });
+  text(slide, 'Correction 的最小合同', 0.95, 4.69, 2.15, 0.25, { fontSize: 11, color: C.CYAN, bold: true, margin: 0 });
+  text(slide, 'correctionId', 3.26, 4.66, 1.42, 0.30, { fontFace: MONO, fontSize: 10.4, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  text(slide, 'knowledgePath', 4.80, 4.66, 1.50, 0.30, { fontFace: MONO, fontSize: 10.4, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  text(slide, 'criterion', 6.43, 4.66, 1.15, 0.30, { fontFace: MONO, fontSize: 10.4, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  text(slide, 'risk', 7.79, 4.66, 0.88, 0.30, { fontFace: MONO, fontSize: 10.4, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  text(slide, '指出知识哪里错、怎样验、风险是什么；不把直接修改代码当成知识治理。', 0.95, 5.17, 7.99, 0.35, { fontSize: 10.2, color: C.PALE, bold: true, align: 'center', margin: 0 });
+}
+
+// 12 · 本地问题
+{
+  const slide = frame('本地运行遇到的问题：真实路径暴露了七个工程缺口', 'RUNTIME ISSUES', '真实证据', {
+    dark: true,
+    source: '三次 ohMyWorkPanel live Run、Agent 审计与恢复记录；修复均有对应测试',
+  });
+  const rows = [
+    ['01', 'pnpm 路径', '隔离环境只看见链接，找不到真实脚本', '解析真实工具路径，再带入受信评测环境'],
+    ['02', '并行状态', '失败分支被晚完成的兄弟节点写回 RUNNING', 'runtime 对并行终态做失败归一化'],
+    ['03', 'DSH session', '复用 session 偶发得到空结果', '每次 Provider 尝试使用独立 session'],
+    ['04', 'JSON Schema', '模型返回诊断文本、占位字段或非法 JSON', '闭合 Schema + 最多 2 次格式重试；其他错误不重试'],
+    ['05', '路径越界', 'code 角色额外生成 mentions.test.ts', 'allowedGeneratedPaths 进入动态 enum，并保留应用层二次校验'],
+    ['06', '证据位置', 'Check/Review 误以为工作区缺少生成代码', '明确 CAS 内联上下文，EvaluationReport 是执行事实源'],
+    ['07', '安全边界', '角色隔离容易被误写成敌对代码沙箱', '能力分开展示；不可信执行仍 fail closed'],
+  ];
+  const xs = [0.61, 1.25, 3.25, 7.52];
+  const ws = [0.64, 2.00, 4.27, 5.10];
+  gridRow(slide, 1.38, ['#', '问题', '真实观察', '收口方式'], xs, ws, { h: 0.42, fill: C.NAVY3, line: '31516E', color: C.WHITE, header: true, fontSize: 9.2, alignments: ['center', 'left', 'left', 'left'] });
+  rows.forEach((r, i) => gridRow(slide, 1.86 + i * 0.66, r, xs, ws, {
+    h: 0.59, fill: i % 2 === 0 ? C.NAVY2 : '163651', line: '31516E', color: i === 4 ? 'FFD3D0' : 'D4E0EA',
+    fontSize: 8.8, firstBold: true, alignments: ['center', 'left', 'left', 'left'],
+  }));
+  box(slide, 0.61, 6.61, 12.01, 0.32, { fill: C.RED, line: C.RED, label: '工程记录保留失败：否则无法证明恢复、白名单和确定性 Gate 为什么必要。', color: C.WHITE, fontSize: 9.4, bold: true });
+}
+
+// 13 · 用户操作
+{
+  const slide = frame('从用户视角操作：五个动作完成一次可复查治理', 'USER GUIDE', '已实现', {
+    source: 'docs/GETTING_STARTED.md；deploy/deepseek-harness/README.md；CLI workflow-run / workflow-report',
+  });
+  const commands = [
+    ['准备来源', '将 ohMyWorkPanel 检出到固定 commit；配置来源 allowlist'],
+    ['选择 Provider', 'fixture 用于回归；deepseek-harness 用官方 SDK + Bubblewrap'],
+    ['启动治理', 'npm run knowledge -- workflow-run --repository <path> --workers 1 --max-iterations 3'],
+    ['查看过程', 'Console 看节点、attempt、事件、评测与 Gate；DSH Web 只调试 Harness'],
+    ['导出证据', "npm run knowledge -- workflow-report --run '<run-id>' --output './demo-report.json'"],
+  ];
+  commands.forEach((c, i) => {
+    const y = 1.41 + i * 1.02;
+    slide.addShape(pptx.ShapeType.ellipse, { x: 0.68, y: y + 0.10, w: 0.52, h: 0.52, fill: { color: [C.BLUE, C.CYAN, C.PURPLE, C.ORANGE, C.GREEN][i] }, line: { color: [C.BLUE, C.CYAN, C.PURPLE, C.ORANGE, C.GREEN][i] } });
+    text(slide, String(i + 1), 0.68, y + 0.15, 0.52, 0.35, { fontSize: 12, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+    box(slide, 1.38, y, 11.17, 0.74, { fill: i % 2 === 0 ? C.WHITE : 'EAF1F6', line: C.LINE });
+    text(slide, c[0], 1.66, y + 0.10, 1.60, 0.27, { fontSize: 12, color: C.NAVY, bold: true, margin: 0 });
+    text(slide, c[1], 3.37, y + 0.09, 8.85, 0.48, { fontFace: i === 2 || i === 4 ? MONO : FONT, fontSize: i === 2 || i === 4 ? 8.5 : 9.8, color: C.MUTED, bold: i === 2 || i === 4, margin: 0 });
+  });
+  box(slide, 0.68, 6.55, 11.87, 0.35, { fill: C.ORANGE_LIGHT, line: C.ORANGE, label: '凭据只进运行时环境；不要写进仓库、PPT、Issue、示例 .env 或命令历史。', color: C.INK, fontSize: 9.8, bold: true });
+}
+
+// 14 · Agent 二次开发
+{
+  const slide = frame('Agent 二次开发：允许调语气和策略，不允许换掉节点合同', 'AGENT CUSTOMIZATION', '边界', {
+    source: 'Agents 页面；AgentCatalogService；agent-definitions.ts；仅 customizableFields=[promptAddon]',
+  });
+  box(slide, 0.62, 1.41, 4.04, 5.35, { fill: C.WHITE, line: C.LINE });
+  addImageContain(slide, AGENT_SHOT, 0.77, 1.56, 3.74, 5.05, 1600, 2319);
+  card(slide, 4.98, 1.43, 3.55, 2.14, '可以改', [
+    '每个固定角色的 promptAddon（0–4000 字）',
+    '后续执行生效，revision 与审计可追踪',
+    '例如强调中文术语、引用格式、风险检查重点',
+  ], { accent: C.GREEN, bodySize: 9.7 });
+  card(slide, 8.83, 1.43, 3.80, 2.14, '不能从前台改', [
+    'agentId、节点职责、拓扑和路由',
+    '输入输出 JSON Schema、工具与文件权限',
+    'Gate、Evaluator 和 Publication authority',
+  ], { accent: C.RED, bodySize: 9.7 });
+  box(slide, 4.98, 3.92, 7.65, 1.44, { fill: C.NAVY, line: C.NAVY });
+  text(slide, '安全的定制流程', 5.28, 4.17, 1.75, 0.25, { fontSize: 11, color: C.CYAN, bold: true, margin: 0 });
+  text(slide, '查看固定合同 → 写一段可验证的追加提示 → 在新 Run 试跑 → 对比 Eval / Gate → 保留或清空回滚', 6.93, 4.13, 5.37, 0.47, { fontSize: 10.2, color: C.WHITE, bold: true, align: 'center', margin: 0 });
+  box(slide, 4.98, 5.67, 7.65, 0.71, { fill: C.ORANGE_LIGHT, line: C.ORANGE });
+  text(slide, '如果要改节点职责、I/O 或权限，这不再是“提示词定制”，而是核心合同变更：必须先改 Spec，再改实现、测试和 PR。', 5.28, 5.84, 7.07, 0.38, { fontSize: 10, color: C.INK, bold: true, align: 'center', margin: 0 });
+}
+
+// 15 · 路线图与证据
+{
+  const slide = frame('下一步：先扩大证据面，再谈生产化与通用项目', 'ROADMAP + EVIDENCE', '下一步', {
+    dark: true,
+    source: '追踪矩阵：KF-SYS-025 已实现；KF-SYS-003 / NFR-009 仍部分完成；NFR-007 未完成',
+  });
+  const roadmap = [
+    ['P0', '重复 live Run', '同 commit 多次执行，统计成功率、耗时、Token 与失败类型', C.RED],
+    ['P0', 'SDK 评测覆盖', '把 1 / 1 扩成前端全测、构建和 Rust 测试；保留 Headless 295 / 295 对照', C.RED],
+    ['P1', '语义分块', 'symbol / dependency graph、SCC、动态 worker、增量合并与覆盖 Gate', C.ORANGE],
+    ['P1', '敌对代码沙箱', 'CPU / 内存 / 网络 / 系统调用 / 输出预算；未完成前只跑受信项目', C.ORANGE],
+    ['P2', '通用项目向导', '把固定 profile 演进为显式策略、来源、语言插件和评测配置', C.PURPLE],
+  ];
+  roadmap.forEach((r, i) => {
+    const y = 1.40 + i * 0.94;
+    pill(slide, r[0], 0.62, y + 0.19, 0.62, r[3], { fontSize: 8 });
+    box(slide, 1.42, y, 11.18, 0.75, { fill: C.NAVY2, line: '31516E' });
+    text(slide, r[1], 1.72, y + 0.10, 2.12, 0.25, { fontSize: 11.5, color: C.WHITE, bold: true, margin: 0 });
+    text(slide, r[2], 3.92, y + 0.08, 8.33, 0.46, { fontSize: 9.5, color: C.PALE, margin: 0 });
+  });
+  box(slide, 0.62, 6.28, 12.00, 0.50, { fill: C.NAVY3, line: '31516E' });
+  text(slide, '证据入口：三次运行记录 · 两份脱敏 JSON · 深/浅色 Console 截图 · 可编辑 PPT 源文件', 0.91, 6.40, 11.42, 0.27, { fontSize: 10.1, color: C.CYAN, bold: true, align: 'center', margin: 0 });
+}
+
+await pptx.writeFile({ fileName: OUT });

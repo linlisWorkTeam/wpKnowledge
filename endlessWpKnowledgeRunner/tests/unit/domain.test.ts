@@ -23,6 +23,16 @@ test('run transitions are monotonic and reject illegal jumps', () => {
   assert.throws(() => transitionRun(evaluating, 'PUBLISHING', '2026-08-31T00:00:06.000Z'), /illegal run transition/);
 });
 
+test('a generation-quality rejection may iterate before behavioral evaluation', () => {
+  const created = createRun('mentions', 'local-v1', '2026-08-31T00:00:00.000Z');
+  const planned = transitionRun(created, 'PLANNED', '2026-08-31T00:00:01.000Z');
+  const generating = transitionRun(planned, 'GENERATING', '2026-08-31T00:00:02.000Z');
+  const iterating = transitionRun(generating, 'ITERATING', '2026-08-31T00:00:03.000Z');
+
+  assert.equal(iterating.iteration, 1);
+  assert.equal(iterating.state, 'ITERATING');
+});
+
 test('deterministic gate passes only complete and stable evidence', () => {
   let run = createRun('module-a', 'policy-a', '2026-08-31T00:00:00.000Z');
   run = transitionRun(run, 'PLANNED', '2026-08-31T00:00:01.000Z');

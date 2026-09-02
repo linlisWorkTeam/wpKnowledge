@@ -24,6 +24,9 @@ CI 在 Node.js 24 的 Linux 环境重复执行相同门禁。PR 中应记录实�
 | Acceptance | `npm run test:acceptance` | 从用户/系统边界观察的端到端闭环 |
 | LangGraph integration | `tests/integration/langgraph-infrastructure.test.ts` | 真实 StateGraph 并行、循环、提示词追加和节点投影 |
 | Automated flywheel | `tests/acceptance/automated-langgraph-flow.test.ts` | LangGraph 与 wpKnowledge 事实、真实项目评测和原子发布协同 |
+| DSH SDK Adapter | `tests/integration/deepseek-harness-agent.test.ts` | stdin JSON-RPC、Schema 重试、超时、取消、审计脱敏与 Bubblewrap 来源隔离 |
+| Agent workspace security | `tests/security/agent-workspace.test.ts` | 角色文件白名单、路径穿越与来源符号链接拒绝 |
+| Demo report | `tests/integration/demo-report.test.ts` | Run 证据聚合、CAS 完整性和 Prompt/凭据脱敏 |
 | Real-source acceptance | `npm run acceptance:ohmyworkpanel -- ...` | 固定受信源码的失败、Correction、再生成、独立执行和发布 |
 
 `npm test` 运行仓库当前全部 Node 测试，并固定测试并发以避免共享运行目录互相干扰。

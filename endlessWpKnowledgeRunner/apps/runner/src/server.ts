@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { createComposition, loadOhMyWorkPanelScenario } from './composition.ts';
 import { ConsoleReadModel } from './console-read-model.ts';
+import { buildDemoReport } from './demo-report.ts';
 
 export interface ServerBinding {
   host: string;
@@ -105,11 +106,23 @@ export function createKnowledgeServer(input: {
         return;
       }
       if (request.method === 'GET' && url.pathname === '/api/v1/capabilities') {
+        const sdkIsolation = composition.agentProviderMode === 'deepseek-harness'
+          && (process.env.WP_DSH_PROCESS_ISOLATION?.trim() || 'bubblewrap') === 'bubblewrap';
         send(response, 200, {
           writeEnabled: Boolean(writeToken),
           automatedWorkflow: true,
           langGraphInfrastructure: true,
+          agentProvider: composition.agentProviderMode,
           agentPromptCustomization: 'promptAddon-only',
+          agentPromptTransport: composition.agentProviderMode === 'deepseek-harness'
+            ? 'sdk-stdio-json-rpc'
+            : composition.agentProviderMode === 'deepseek-harness-headless'
+              ? 'argv-legacy'
+              : 'in-process-fixture',
+          agentWorkspaceView: composition.agentProviderMode === 'fixture'
+            ? 'not-applicable'
+            : 'role-allowlist',
+          agentSourceIsolation: sdkIsolation ? 'bubblewrap' : 'not-proven',
           trustedProjectEvaluation: true,
           hostileCodeIsolation: false,
           authentication: writeToken ? 'bearer' : 'disabled',
@@ -155,6 +168,14 @@ export function createKnowledgeServer(input: {
         }
         if (child === 'workflow-status') {
           send(response, 200, await (await composition.automatedWorkflow()).status(runId));
+          return;
+        }
+        if (child === 'demo-report') {
+          response.setHeader('content-disposition', 'attachment; filename="wpknowledge-run-demo.json"');
+          send(response, 200, await buildDemoReport({
+            runId, runtimeDir: composition.runtimeDir, repository: composition.repository,
+            service: composition.service, artifacts: composition.artifacts,
+          }));
           return;
         }
         if (child) {

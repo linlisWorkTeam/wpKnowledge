@@ -1,4 +1,4 @@
-import type { Member } from "./types";
+import type { Member } from "../types";
 
 export function findMentionedMemberIds(content: string, members: Member[]): string[] {
   const ordered = [...members]

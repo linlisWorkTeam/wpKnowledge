@@ -437,6 +437,7 @@ sequenceDiagram
 | API | 用途 | 产品化判断 |
 |---|---|---|
 | `GET /api/v1/status` | 顶部基础指标 | 可复用，但需要分项健康信息 |
+| `GET /api/v1/capabilities` | Provider、Prompt 传输、Agent 源码隔离和敌对代码执行隔离的当前事实 | 已实现；前台不得把两种隔离合并展示 |
 | `GET /api/v1/knowledge` | 知识列表 | 可复用，需要分页与排序 |
 | `GET /api/v1/knowledge/:versionId` | 知识详情 | 可复用，需要血缘和反向链接 |
 | `GET /api/v1/query` | 搜索 | 可复用，需要分页和高亮摘要 |
@@ -469,6 +470,7 @@ sequenceDiagram
 | `GET /api/v1/agents` | 已实现全部固定 Agent 定义和追加提示词；Provider 健康仍待接入。 |
 | `PUT /api/v1/agents/:agentId/prompt` | 已实现；只更新受限 `promptAddon`，需要写 token，拒绝职责、Schema、权限或拓扑字段。 |
 | `GET /api/v1/runs/:runId/workflow-nodes` | 已实现 LangGraph 节点执行投影，不暴露 checkpoint 私有数据。 |
+| `GET /api/v1/runs/:runId/demo-report` | 已实现脱敏 Demo JSON 下载；覆盖 Registry 事实、Agent 调用摘要和 CAS 完整性，不返回 Prompt/Session/凭据。 |
 
 所有列表接口必须有稳定排序、游标分页和上限；所有 Command 必须包含幂等键并返回关联 `runId/eventId`。
 
@@ -539,7 +541,7 @@ sequenceDiagram
 ### Phase 4：配套材料与生产强化
 
 - 同步 GitHub Pages、快速入门、架构、运维、测试和仓库目录文档。
-- 接入真实 AgentRunner 和 Provider 健康状态；Scenario 只留在验收 profile。
+- 为真实 Agent Provider 增加重复运行统计和健康状态；Scenario 只留在验收 profile。
 - 在安全隔离能力完成后开放对应语言项目执行。
 - 增加崩溃注入、审计导出、权限细分、可访问性和大规模数据性能验证。
 
@@ -562,5 +564,5 @@ sequenceDiagram
 | Correction / Diff | Partial：固定场景有 Correction 和范围校验，尚无通用查询/UI |
 | Governance | Partial：已从终态 Run 形成只读队列，治理决议 Command API 尚未实现 |
 | Evidence | Implemented MVP：聚合 EvaluationReport、GateDecision、工具链、测试和证据引用摘要 |
-| 真实在线 Agent | Planned |
+| 真实在线 Agent | Implemented（受限样例）：官方 DSH SDK 已跑通固定 ohMyWorkPanel；通用项目向导和稳定性统计仍待实现 |
 | 敌对代码安全执行 | Planned；安全能力完成前必须 fail closed |

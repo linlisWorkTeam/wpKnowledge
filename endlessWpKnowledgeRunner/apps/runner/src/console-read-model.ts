@@ -90,8 +90,29 @@ export class ConsoleReadModel {
       checkpoints: this.listCheckpoints(runId),
       workflowNodes: this.listWorkflowNodes(runId),
       events: this.listSequencedEvents(runId),
+      publications: this.listPublications(runId),
       latestDecision: evaluations.at(-1)?.decision ?? null,
     };
+  }
+
+  private listPublications(runId: string): Record<string, unknown>[] {
+    return this.database.prepare(`
+      SELECT publication.publication_key, publication.module_id, publication.version_id,
+        publication.policy_id, publication.decision_id, publication.published_at
+      FROM publications AS publication
+      INNER JOIN gate_decisions AS decision ON decision.decision_id = publication.decision_id
+      WHERE decision.run_id = ? ORDER BY publication.published_at, publication.publication_key
+    `).all(runId).map((row) => {
+      const value = row as Record<string, unknown>;
+      return {
+        publicationKey: String(value.publication_key),
+        moduleId: String(value.module_id),
+        versionId: String(value.version_id),
+        policyId: String(value.policy_id),
+        decisionId: String(value.decision_id),
+        publishedAt: String(value.published_at),
+      };
+    });
   }
 
   private listEvaluations(runId: string): RunEvaluationRecord[] {

@@ -98,3 +98,108 @@ test('evaluation STOPPED route bypasses review and remains authoritative', async
   assert.equal(calls.includes('review'), false);
   assert.equal(calls.filter((nodeId) => nodeId === 'workflow_router').length, 1);
 });
+
+test('failed workflow resumes from the latest failed LangGraph checkpoint', async () => {
+  const calls: string[] = [];
+  const projections: WorkflowNodeProjection[] = [];
+  let failCodeOnce = true;
+  const infrastructure = await createDomainKnowledgeInfrastructure({
+    checkpoint: { kind: 'memory' },
+    prompts: { getPromptAddon: () => '' },
+    observer: { record: (projection) => projections.push(structuredClone(projection)) },
+    executor: {
+      async execute(input) {
+        calls.push(input.nodeId);
+        if (input.nodeId === 'code' && failCodeOnce) {
+          failCodeOnce = false;
+          throw new Error('transient agent failure');
+        }
+        if (input.nodeId === 'workflow_router') return { detail: 'ready', route: 'PASS' };
+        return { detail: `${input.nodeId} complete` };
+      },
+    },
+  });
+  const handle = await infrastructure.engine.start({
+    runId: 'resumable-graph', maxIterations: 2, workerCount: 0,
+  });
+  const failed = await infrastructure.engine.wait(handle.runId);
+
+  assert.equal(failed.executionStatus, 'FAILED');
+  assert.equal(failed.currentNode, 'code');
+  assert.equal(calls.filter((node) => node === 'code').length, 1);
+
+  const resumed = await infrastructure.engine.resume(handle.runId);
+  assert.equal(resumed.executionStatus, 'RUNNING');
+  const completed = await infrastructure.engine.wait(handle.runId);
+
+  assert.equal(completed.executionStatus, 'COMPLETED');
+  assert.equal(completed.route, 'PASS');
+  assert.equal(calls.filter((node) => node === 'code').length, 2);
+  assert.ok(projections.some((projection) => projection.nodeId === 'code' && projection.status === 'FAILED'));
+  assert.ok(projections.some((projection) => projection.nodeId === 'code' && projection.status === 'COMPLETED'));
+});
+
+test('parallel sibling completion cannot hide a recoverable node failure', async () => {
+  let failOracleOnce = true;
+  const calls: string[] = [];
+  const infrastructure = await createDomainKnowledgeInfrastructure({
+    checkpoint: { kind: 'memory' },
+    prompts: { getPromptAddon: () => '' },
+    observer: { record: () => undefined },
+    executor: {
+      async execute(input) {
+        calls.push(input.nodeId);
+        if (input.nodeId === 'oracle_validation' && failOracleOnce) {
+          failOracleOnce = false;
+          throw new Error('transient oracle toolchain failure');
+        }
+        if (input.nodeId === 'code') await new Promise((resolve) => setTimeout(resolve, 30));
+        if (input.nodeId === 'workflow_router') return { detail: 'ready', route: 'PASS' };
+        return { detail: `${input.nodeId} complete` };
+      },
+    },
+  });
+  const handle = await infrastructure.engine.start({
+    runId: 'parallel-resumable-graph', maxIterations: 2, workerCount: 0,
+  });
+  const failed = await infrastructure.engine.wait(handle.runId);
+
+  assert.equal(failed.executionStatus, 'FAILED');
+  assert.equal(failed.route, 'FAILED');
+  assert.match(failed.error ?? '', /oracle toolchain/);
+
+  await infrastructure.engine.resume(handle.runId);
+  const completed = await infrastructure.engine.wait(handle.runId);
+  assert.equal(completed.executionStatus, 'COMPLETED');
+  assert.equal(completed.route, 'PASS');
+  assert.equal(calls.filter((node) => node === 'oracle_validation').length, 2);
+});
+
+test('candidate quality iteration skips code generation for the rejected iteration', async () => {
+  const calls: Array<{ nodeId: string; iteration: number }> = [];
+  const infrastructure = await createDomainKnowledgeInfrastructure({
+    checkpoint: { kind: 'memory' },
+    prompts: { getPromptAddon: () => '' },
+    observer: { record: () => undefined },
+    executor: {
+      async execute(input) {
+        calls.push({ nodeId: input.nodeId, iteration: input.iteration });
+        if (input.nodeId === 'candidate_knowledge' && input.iteration === 0) {
+          return { detail: 'quality rejected', route: 'ITERATE' };
+        }
+        if (input.nodeId === 'workflow_router') {
+          return { detail: 'route', route: input.iteration === 0 ? 'ITERATE' : 'PASS' };
+        }
+        return { detail: `${input.nodeId} complete` };
+      },
+    },
+  });
+  const handle = await infrastructure.engine.start({
+    runId: 'quality-iteration-graph', maxIterations: 2, workerCount: 0,
+  });
+  const completed = await infrastructure.engine.wait(handle.runId);
+
+  assert.equal(completed.executionStatus, 'COMPLETED');
+  assert.equal(calls.some((call) => call.nodeId === 'code' && call.iteration === 0), false);
+  assert.equal(calls.some((call) => call.nodeId === 'code' && call.iteration === 1), true);
+});

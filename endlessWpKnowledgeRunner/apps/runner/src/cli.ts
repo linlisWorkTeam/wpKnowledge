@@ -69,6 +69,7 @@ function help(): void {
   process.stdout.write(`  workflow-run --repository PATH [--workers 1 --max-iterations 3]\n`);
   process.stdout.write(`  workflow-resume --run ID\n`);
   process.stdout.write(`  workflow-status --run ID\n`);
+  process.stdout.write(`  workflow-report --run ID [--output PATH]\n`);
   process.stdout.write(`  workflow-cancel --run ID\n`);
   process.stdout.write(`  agents\n`);
   process.stdout.write(`  set-agent-prompt --agent ID --prompt TEXT\n`);
@@ -234,6 +235,26 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     }
     if (args.command === 'workflow-status') {
       jsonOutput(await (await composition.automatedWorkflow()).status(required(args, 'run')));
+      return;
+    }
+    if (args.command === 'workflow-report') {
+      const { buildDemoReport } = await import('./demo-report.ts');
+      const report = await buildDemoReport({
+        runId: required(args, 'run'), runtimeDir: composition.runtimeDir,
+        repository: composition.repository, service: composition.service,
+        artifacts: composition.artifacts,
+      });
+      const outputPath = option(args, 'output');
+      if (!outputPath) {
+        jsonOutput(report);
+        return;
+      }
+      const { mkdirSync, writeFileSync } = await import('node:fs');
+      const { dirname } = await import('node:path');
+      const target = isAbsolute(outputPath) ? outputPath : join(composition.repositoryRoot, outputPath);
+      mkdirSync(dirname(target), { recursive: true });
+      writeFileSync(target, `${JSON.stringify(report, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+      jsonOutput({ ok: true, runId: required(args, 'run'), output: target });
       return;
     }
     if (args.command === 'workflow-cancel') {
