@@ -220,6 +220,29 @@ process.stdout.write(JSON.stringify({ answer: 'validated' }));
   }
 });
 
+test('DSH SDK provider audits and closes when harness.run throws synchronously', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-sync-failure-'));
+  const audits: DeepSeekHarnessAuditRecord[] = [];
+  let closed = false;
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      allowedWorkspaceRoots: [workspace], timeoutMs: 50,
+      harnessFactory: () => ({
+        run: (() => { throw new Error('DSH_RUN_SYNC_FAILED'); }) as never,
+        close: async () => { closed = true; },
+      }),
+      onAudit: (record) => { audits.push(record); },
+    });
+    await assert.rejects(provider.run(request(workspace)), /DSH_RUN_SYNC_FAILED/);
+    assert.equal(closed, true);
+    assert.deepEqual(audits.map((audit) => [audit.status, audit.errorCode]), [
+      ['FAILED', 'DSH_RUN_SYNC_FAILED'],
+    ]);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test('DeepSeek Harness headless provider escalates to SIGKILL when SIGTERM does not close the child', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-timeout-'));
   const signals: NodeJS.Signals[] = [];

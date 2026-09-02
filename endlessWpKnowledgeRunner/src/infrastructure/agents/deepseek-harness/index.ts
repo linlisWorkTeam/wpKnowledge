@@ -73,6 +73,12 @@ export interface DeepSeekHarnessSdkAgentOptions {
   allowedWorkspaceRoots: string[];
   clock?: () => Date;
   onAudit?: (record: DeepSeekHarnessAuditRecord) => void | Promise<void>;
+  harnessFactory?: (options: DeepSeekHarnessOptions) => DeepSeekHarnessRuntime;
+}
+
+export interface DeepSeekHarnessRuntime {
+  run: DeepSeekHarness['run'];
+  close: DeepSeekHarness['close'];
 }
 
 function installedDshBin(): string {
@@ -302,7 +308,7 @@ export class DeepSeekHarnessSdkAgent implements AgentProvider {
         WP_DSH_SANDBOX_PATCHES: JSON.stringify(patches),
       } : {}),
     };
-    const harness = new DeepSeekHarness({
+    const harness = (this.options.harnessFactory ?? ((options) => new DeepSeekHarness(options)))({
       dshBin: processIsolation === 'bubblewrap' ? launcher : runtimeBin,
       profile: this.options.profile ?? 'sdk',
       patches,
@@ -339,14 +345,14 @@ export class DeepSeekHarnessSdkAgent implements AgentProvider {
     // belongs to the workflow checkpoint/CAS layer; reusing a completed DSH
     // session can settle immediately without producing a new assistant turn.
     const sessionId = `wp-${randomUUID().replaceAll('-', '')}`;
-    const run = harness.run(prompt, {
-      sessionId,
-      onNotification: () => { notificationCount += 1; },
-    });
-    // If cancellation wins Promise.race, the runtime shutdown will reject the
-    // in-flight run. Observe it here so Node never reports an unhandled error.
-    void run.catch(() => undefined);
     try {
+      const run = harness.run(prompt, {
+        sessionId,
+        onNotification: () => { notificationCount += 1; },
+      });
+      // If cancellation wins Promise.race, the runtime shutdown will reject the
+      // in-flight run. Observe it here so Node never reports an unhandled error.
+      void run.catch(() => undefined);
       const result = await Promise.race([run, deadline]);
       if (timeout) clearTimeout(timeout);
       if (abort) signal?.removeEventListener('abort', abort);
