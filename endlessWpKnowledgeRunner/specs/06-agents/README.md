@@ -13,6 +13,6 @@
 
 ## 固定节点与有限定制
 
-`infrastructure/domain-knowledge/src/agent-definitions.ts` 是运行时 Agent 清单，固定七个角色的标识、职责、输入、输出、基础提示词和工具权限。Console 必须完整展示这些信息，但受信操作者只能维护 `promptAddon`：运行时把它追加到基础提示词，不能覆盖基础提示词。前台或 API 不得修改节点职责、Schema、边、并行关系、工具权限或 Agent 标识；这些变化必须走 Spec、Schema、代码和测试评审。
+`src/infrastructure/workflow/langgraph/agent-definitions.ts` 是运行时 Agent 清单，固定七个角色的标识、职责、输入、输出、基础提示词和工具权限。Console 必须完整展示这些信息，但受信操作者只能维护 `promptAddon`：运行时把它追加到基础提示词，不能覆盖基础提示词。前台或 API 不得修改节点职责、Schema、边、并行关系、工具权限或 Agent 标识；这些变化必须走 Spec、Schema、代码和测试评审。
 
 每次提示词变更都要记录 revision、操作者和审计事件。节点执行状态经 `WorkflowObserver` 转成 `WorkflowNodeProjection`，按 `runId` 在前台显示；Agent 自己无权直接写这份投影。

@@ -20,7 +20,7 @@ V1 为本地单控制进程。LangGraph 在进程内编排节点、fan-out、迭
 
 ## 开发视图
 
-实现单元：`packages/domain`、`packages/application`、`packages/contracts`、`packages/adapters/*`、`infrastructure/domain-knowledge`、`apps/runner`、`web`、`tests/{contract,integration,acceptance}`。TypeScript 是平台基线；基础设施与插件可调用 SDK 或外部工具链，但只能通过通用契约进入上层。
+实现单元：`src/domain`、`src/application/{ports,services}`、`src/infrastructure/*`、`src/interfaces/*`、`web`、`tests/{contract,integration,acceptance}`。源码按领域驱动设计分层，依赖只能指向内层。TypeScript 是平台基线；基础设施与插件可调用开发工具包或外部工具链，但只能通过通用契约进入上层。
 
 ## 物理视图
 
@@ -28,4 +28,4 @@ V1 部署在个人电脑：runner + wpKnowledge SQLite Registry + LangGraph SQLi
 
 ## 约束验证
 
-架构测试扫描 `packages/domain` 和 `packages/application`，禁止 LangGraph SDK 穿透，并检查只有 `infrastructure/domain-knowledge` 持有 StateGraph；该模块不得持有 KnowledgeVersion、Publication、HTTP 或 Console 实现。语言插件契约测试使用非 C++ 假插件证明核心无语言假设。
+架构测试扫描 `src/domain` 和 `src/application/services`，禁止 LangGraph SDK 穿透，并检查只有 `src/infrastructure/workflow/langgraph` 持有 StateGraph；该模块不得持有 KnowledgeVersion、Publication、HTTP 或 Console 实现。语言插件契约测试使用非 C++ 假插件证明核心无语言假设。

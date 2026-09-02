@@ -4,10 +4,10 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { runRealSourceFlow } from '../../packages/application/src/project-flow.ts';
-import { TrustedProjectEvaluator } from '../../packages/adapters/project-eval/src/index.ts';
-import { SchemaValidatedScenarioAgent } from '../../packages/adapters/scenario-agent/src/index.ts';
-import { createComposition } from '../../apps/runner/src/composition.ts';
+import { runRealSourceFlow } from '../../src/application/services/project-flow.ts';
+import { TrustedProjectEvaluator } from '../../src/infrastructure/evaluation/project/index.ts';
+import { SchemaValidatedScenarioAgent } from '../../src/infrastructure/agents/scenario/index.ts';
+import { createComposition } from '../../src/interfaces/runner/composition.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 function git(repositoryRoot: string, args: string[]): string {

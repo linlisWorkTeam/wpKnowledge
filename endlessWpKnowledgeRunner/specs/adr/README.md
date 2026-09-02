@@ -8,3 +8,4 @@
 - [ADR-004：确定性评测和发布权分离](ADR-004-deterministic-gate.md)
 - [ADR-005：标准协议与 Adapter](ADR-005-standard-protocols.md)
 - [ADR-006：内嵌 domain-knowledge 基础设施](ADR-006-embedded-domain-knowledge-infrastructure.md)
+- [ADR-007：按领域驱动设计收敛源码目录](ADR-007-ddd-layered-source-layout.md)

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { migrateLegacyOkf } from '../../packages/adapters/legacy-okf/src/index.ts';
+import { migrateLegacyOkf } from '../../src/infrastructure/migration/legacy-okf/index.ts';
 import { createTestComposition, GOOD_BODY } from '../helpers/fixture.ts';
 
 test('legacy verified cards migrate as candidates requiring behavioral verification', async () => {

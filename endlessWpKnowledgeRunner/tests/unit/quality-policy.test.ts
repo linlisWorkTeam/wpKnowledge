@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { DeterministicQualityPolicy } from '../../packages/application/src/quality-policy.ts';
+import { DeterministicQualityPolicy } from '../../src/application/services/quality-policy.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 test('quality policy accepts structured and pinned knowledge', () => {

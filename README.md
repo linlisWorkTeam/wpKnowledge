@@ -45,7 +45,7 @@ flowchart LR
     F -->|ROLLBACK / STOPPED| I[Stop with evidence]
 ```
 
-这里的核心约束是：Agent 可以提出知识、生成代码、分析失败并修订候选，但不能把自己的判断直接升级为发布权限。`endlessWpKnowledgeRunner/infrastructure/domain-knowledge` 以内嵌 LangGraph 负责节点、并行、循环和恢复；状态变更、评测证据和发布仍由 wpKnowledge 的共享 Application Service、Registry 与确定性 Gate 管理。
+这里的核心约束是：Agent 可以提出知识、生成代码、分析失败并修订候选，但不能把自己的判断直接升级为发布权限。`endlessWpKnowledgeRunner/src/infrastructure/workflow/langgraph` 以内嵌 LangGraph 负责节点、并行、循环和恢复；状态变更、评测证据和发布仍由 wpKnowledge 的共享 Application Service、Registry 与确定性 Gate 管理。
 
 ## 五分钟开始
 

@@ -18,6 +18,7 @@
 | AC-SEC-001 | Given CodeAgent 会话，When 读取源码、门禁测试、旧实现、路径穿越或符号链接，Then 全部拒绝并产生 AccessDenied。 |
 | AC-SEC-002 | Given 矩阵内外访问组合，When 执行权限参数化测试，Then 所有列明动作符合矩阵，未定义组合默认拒绝。 |
 | AC-SEC-003 | Given 含源码、密钥和超长输出的任务，When 导出日志，Then 仅保留脱敏摘要/ArtifactRef 且输出受限。 |
+| AC-SEC-004 | Given 新检出的仓库没有写入令牌，When 用户打开控制台设置，Then 页面说明如何把 `.env.example` 复制为被忽略的 `.env.local`、配置 `WP_KNOWLEDGE_WRITE_TOKEN` 并重启服务；When 未配置时，所有写接口仍默认拒绝。 |
 | AC-EVAL-001 | Given LLM 猜测的错误 expected，When oracle 验证，Then 用例不能进入 Gate Test Set。 |
 | AC-EVAL-002 | Given critical 失败、高相似度或五次中一次波动，When Gate，Then 均不能 PASS；报告保留全部重复结果。 |
 | AC-EVAL-003 | Given 同一报告，When 审计，Then 能重建输入、测试集、策略、插件、工具链、prompt/model 配置摘要。 |
@@ -44,6 +45,7 @@
 | AC-DOC-001 | Given DocGenAgent 首次生成或按 Correction 修订中文知识，When Orchestrator 发送生成请求并执行 Quality Gate，Then 两轮 Prompt 都包含自然写作约束，模板化填充、无来源宣传词和超长段落会降低 `humanReadability` 并形成 weak point；任何润色都不得改变事实、来源、验收条件或安全边界。 |
 | AC-DOC-002 | Given 一个跨层大规模特性，When 准备合入，Then Console、GitHub Pages、工程文档、Spec、追踪矩阵和自动化验收均已更新或在 PR 中明确说明不适用。 |
 | AC-DOC-003 | Given 仓库中已跟踪的 Markdown 和关键入口文档，When 执行文档契约测试，Then 每份文档都有中文说明，关键入口包含相邻的结构化 English summary，代码标识符和协议值仍可与源码直接互查。 |
+| AC-DOC-004 | Given 官网和控制台，When 检查静态文案、状态标签和运行时投影，Then 除固定标题 `WORKPANEL · KNOWLEDGE FLYWHEEL` 以及代码、命令、项目名和协议标识符外，用户看到的栏目、状态与说明均为自然中文。 |
 
 ## P0-A Review 清单
 

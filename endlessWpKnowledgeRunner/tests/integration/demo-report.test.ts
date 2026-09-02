@@ -3,8 +3,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createComposition } from '../../apps/runner/src/composition.ts';
-import { buildDemoReport } from '../../apps/runner/src/demo-report.ts';
+import { createComposition } from '../../src/interfaces/runner/composition.ts';
+import { buildDemoReport } from '../../src/interfaces/runner/demo-report.ts';
 
 test('demo report exports authoritative run facts and allowlisted Agent audit fields only', async () => {
   const runtimeDir = mkdtempSync(join(tmpdir(), 'wp-demo-report-'));

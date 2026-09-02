@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   artifactIdFor, createArtifactRef, createRun, decideGate, transitionRun,
-} from '../../packages/domain/src/index.ts';
+} from '../../src/domain/index.ts';
 
 test('artifact ID is bound to content digest', () => {
   const ref = createArtifactRef(Buffer.from('hello'), 'text/plain');

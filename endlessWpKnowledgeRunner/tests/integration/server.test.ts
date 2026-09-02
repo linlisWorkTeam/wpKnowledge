@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createKnowledgeServer, resolveServerBinding } from '../../apps/runner/src/server.ts';
+import { createKnowledgeServer, resolveServerBinding } from '../../src/interfaces/runner/server.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 test('server binding defaults to config and supports explicit deployment overrides', () => {
@@ -61,7 +61,7 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     assert.equal(allStatusPayload.hits[0].status, 'CANDIDATE');
     const page = await fetch(`${base}/`);
     assert.equal(page.status, 200);
-    assert.match(await page.text(), /Knowledge Flywheel Console/);
+    assert.match(await page.text(), /知识飞轮控制台/);
 
     const capabilities = await (await fetch(`${base}/api/v1/capabilities`)).json();
     assert.equal(capabilities.writeEnabled, true);

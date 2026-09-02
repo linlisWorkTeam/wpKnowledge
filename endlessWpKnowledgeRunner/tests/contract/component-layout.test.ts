@@ -23,7 +23,7 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
   }
   for (const required of [
     'acceptance/ohmyworkpanel/scenario.json',
-    'apps/runner/src/server.ts',
+    'src/interfaces/runner/server.ts',
     'docs/ARCHITECTURE.md',
     'docs/AGENT-CUSTOMIZATION.md',
     'docs/DEVELOPMENT.md',
@@ -32,9 +32,12 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'docs/README.md',
     'docs/REPOSITORY-GUIDE.md',
     'docs/TESTING.md',
-    'infrastructure/domain-knowledge/README.md',
-    'infrastructure/domain-knowledge/src/index.ts',
-    'packages/domain/src/index.ts',
+    'src/infrastructure/workflow/langgraph/README.md',
+    'src/infrastructure/workflow/langgraph/index.ts',
+    'src/domain/index.ts',
+    'src/application/ports/index.ts',
+    'src/application/services/index.ts',
+    'src/infrastructure/persistence/sqlite-cas/index.ts',
     'specs/README.md',
     'site/index.html',
     'tests/integration/server.test.ts',
@@ -42,6 +45,14 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'runner.config.json',
   ]) {
     assert.equal(existsSync(join(componentRoot, required)), true, `missing component path: ${required}`);
+  }
+  const trackedFiles = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
+  for (const retired of ['apps', 'packages', 'infrastructure']) {
+    assert.equal(
+      trackedFiles.some((path) => path.startsWith(`${componentRoot}/${retired}/`)),
+      false,
+      `tracked file remains under retired component path: ${retired}`,
+    );
   }
 });
 
@@ -71,8 +82,8 @@ test('tracked documentation is Chinese-first and key entries carry English summa
     join(componentRoot, 'docs/MIGRATION.md'),
     join(componentRoot, 'docs/DOCUMENTATION-I18N.md'),
     join(componentRoot, 'specs/README.md'),
-    join(componentRoot, 'infrastructure/domain-knowledge/README.md'),
-    join(componentRoot, 'packages/adapters/dsh/README.md'),
+    join(componentRoot, 'src/infrastructure/workflow/langgraph/README.md'),
+    join(componentRoot, 'src/interfaces/dsh/README.md'),
   ]) {
     const markdown = readFileSync(document, 'utf8');
     assert.match(markdown, /<details lang="en">\s*<summary>English summary<\/summary>/);

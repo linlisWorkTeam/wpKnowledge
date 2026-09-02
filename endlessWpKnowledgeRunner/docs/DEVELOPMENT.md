@@ -28,11 +28,11 @@ CLI / HTTP / DSH / Web projection
                     (LangGraph / checkpoints)
 ```
 
-- `packages/domain`：领域实体、状态和纯规则；不能导入 Adapter、数据库或工作流 SDK。
-- `packages/application`：用例编排和 Port；不能直接依赖具体 SQLite、HTTP、模型或编译器。
-- `packages/adapters`：实现 Registry、CAS、Agent、DSH、项目评测等外部边界。
-- `infrastructure/domain-knowledge`：相对独立的 LangGraph 图、运行时和固定 Agent 定义；不能拥有 KnowledgeVersion、评测或发布事务。
-- `apps/runner/src`：组合根、CLI、HTTP Server 和 Console read model。
+- `src/domain`：领域实体、状态和纯规则；不能导入 Adapter、数据库或工作流 SDK。
+- `src/application/services`：用例编排和 Port；不能直接依赖具体 SQLite、HTTP、模型或编译器。
+- `src/infrastructure`：实现知识登记簿、内容寻址存储、智能体、外部适配和项目评测等技术边界。
+- `src/infrastructure/workflow/langgraph`：相对独立的 LangGraph 图、运行时和固定 Agent 定义；不能拥有 KnowledgeVersion、评测或发布事务。
+- `src/interfaces/runner`：组合根、CLI、HTTP Server 和 Console read model。
 - `web`：浏览器界面；不能复制状态机或发布判断。
 
 架构契约由自动化测试保护，详细语义见[架构说明](ARCHITECTURE.md)。
@@ -51,7 +51,7 @@ CLI / HTTP / DSH / Web projection
 
 - 优先调用现有 Application Service；入口层只做解析、鉴权和结果映射。
 - 版本化 API 使用 `/api/v1`；`/health` 只用于进程探针。
-- 写 API 必须在未配置 token 时 fail closed。
+- 写接口必须在未配置令牌时默认拒绝。项目根目录的 `.env.example` 是可提交样例；本地开发复制为 `.env.local` 后由 `npm run knowledge:serve` 自动读取。
 - 不在 Console 中用一串原始 transition 请求模拟 Orchestrator。
 
 ### 增加 Agent 或 Evaluator
@@ -65,7 +65,7 @@ CLI / HTTP / DSH / Web projection
 ### 修改前台
 
 - 先对齐[前台产品设计](../specs/04-product/frontend-product-design.md)和[用户用例](../specs/05-workflows/user-use-cases.md)。
-- Console read model 位于 `apps/runner/src/console-read-model.ts`，写操作必须经过共享应用服务。
+- Console read model 位于 `src/interfaces/runner/console-read-model.ts`，写操作必须经过共享应用服务。
 - 未实现的自动化能力应呈现真实状态，不制作会绕过权限边界的假按钮。
 
 ### 大规模特性
@@ -83,7 +83,7 @@ CLI / HTTP / DSH / Web projection
 | `WP_KNOWLEDGE_PORT` | 覆盖 HTTP 端口 |
 | `WP_KNOWLEDGE_WRITE_TOKEN` | 启用受保护写 API |
 
-为每个实验使用独立 `WP_FLYWHEEL_HOME`，可以避免开发数据互相污染。配置默认值见 [`../runner.config.json`](../runner.config.json)。
+为每个实验使用独立 `WP_FLYWHEEL_HOME`，可以避免开发数据互相污染。配置默认值见 [`../runner.config.json`](../runner.config.json)。需要启用本地写入时，从仓库根目录执行 `copy .env.example .env.local`，将 `WP_KNOWLEDGE_WRITE_TOKEN` 的占位值换成随机长令牌，再重启 `npm run knowledge:serve`。`.env.local` 已被 Git 忽略，不得提交。
 
 ## 完成定义
 

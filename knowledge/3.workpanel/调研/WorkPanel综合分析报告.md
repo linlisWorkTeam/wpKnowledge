@@ -48,7 +48,7 @@ wpKnowledge 的 Knowledge Flywheel 已从“只有 P0-A 规格和多套旧实现
 旧 runner 不再是第二套飞轮。它现在是兼容层：
 
 - 继续服务历史 init、ingest、query、get、status、scan、feedback 调用；
-- 委派给 `endlessWpKnowledgeRunner/apps/runner/src/cli.ts`；
+- 委派给 `endlessWpKnowledgeRunner/src/interfaces/runner/cli.ts`；
 - 使用同一个 WP_FLYWHEEL_HOME、SQLite Registry 和 CAS；
 - 不再支持旧 score、synthetic eval 或 timer harvest；
 - 不允许用 --root 选择另一套状态目录。

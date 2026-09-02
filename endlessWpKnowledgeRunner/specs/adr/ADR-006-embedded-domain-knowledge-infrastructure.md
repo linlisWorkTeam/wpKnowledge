@@ -13,7 +13,7 @@
 ## 决策
 
 1. `wpKnowledge` 是上层产品和知识治理权威，继续拥有 `FlywheelRun`、`KnowledgeVersion`、`EvaluationReport`、`GateDecision`、`Publication`、业务事件、反馈和 DSH API。
-2. `domain-knowledge` 迁入 `endlessWpKnowledgeRunner/infrastructure/domain-knowledge/`，作为相对独立的 infrastructure 模块。该模块拥有 LangGraph 拓扑、并行、循环、执行路由、AgentRunner、workspace 和 graph checkpoint，但不得直接把知识标记为 `VERIFIED`。
+2. `domain-knowledge` 迁入 `endlessWpKnowledgeRunner/src/infrastructure/workflow/langgraph/`，作为相对独立的 infrastructure 模块。该模块拥有 LangGraph 拓扑、并行、循环、执行路由、AgentRunner、workspace 和 graph checkpoint，但不得直接把知识标记为 `VERIFIED`。
 3. `runId` 同时作为 FlywheelRun ID 和 LangGraph `thread_id`。FlywheelRun 是对外状态事实源；GraphState 只是可恢复的执行状态。
 4. LangGraph 节点状态通过受控观察端口投影到 wpKnowledge Registry。Console 读取该投影，不直接查询 LangGraph checkpoint 数据库。
 5. LangGraph 的工作流路由和知识发布门禁分开。工作流路由决定继续、迭代、回滚请求、停止或失败；只有 wpKnowledge 发布门禁和发布事务可以产生 `VERIFIED`。
@@ -33,12 +33,12 @@ wpKnowledge application + governance domain
 WorkflowEngine port
             |
             v
-infrastructure/domain-knowledge (LangGraph)
+src/infrastructure/workflow/langgraph (LangGraph)
             |
        AgentRunner / workspace / checkpointer
 ```
 
-基础设施可以依赖上层定义的端口类型；领域和应用不得导入 LangGraph SDK 类型。`infrastructure/domain-knowledge` 对外只导出稳定的创建函数和执行视图。
+基础设施可以依赖上层定义的端口类型；领域和应用不得导入 LangGraph SDK 类型。`src/infrastructure/workflow/langgraph` 对外只导出稳定的创建函数和执行视图。
 
 ## 状态与持久化
 

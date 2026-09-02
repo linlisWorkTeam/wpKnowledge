@@ -7,10 +7,10 @@ import test from 'node:test';
 import {
   AutomatedProjectWorkflowService, OhMyWorkPanelWorkflowExecutor,
   type AutomatedProjectScenario,
-} from '../../packages/application/src/index.ts';
-import { TrustedProjectEvaluator } from '../../packages/adapters/project-eval/src/index.ts';
-import { createDomainKnowledgeInfrastructure } from '../../infrastructure/domain-knowledge/src/index.ts';
-import { createComposition } from '../../apps/runner/src/composition.ts';
+} from '../../src/application/services/index.ts';
+import { TrustedProjectEvaluator } from '../../src/infrastructure/evaluation/project/index.ts';
+import { createDomainKnowledgeInfrastructure } from '../../src/infrastructure/workflow/langgraph/index.ts';
+import { createComposition } from '../../src/interfaces/runner/composition.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 function git(root: string, args: string[]): string {

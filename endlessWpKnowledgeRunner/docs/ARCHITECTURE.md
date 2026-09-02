@@ -28,9 +28,23 @@ DSH / CLI / HTTP / Web Console
                   LangGraph infrastructure
 ```
 
-`packages/domain` 不引入工作流 SDK、数据库、模型 Provider、编译器或特定语言类型。`packages/application` 只依赖领域层和 Port。`infrastructure/domain-knowledge` 用 LangGraph 实现工作流 Port，并保持独立模块形态。这样，图运行时可以继续演进，知识治理规则仍留在上层。架构契约测试会检查这些边界。
+源码目录按同一依赖方向分层：
 
-`fw.mjs` 是 CLI 边缘的兼容门面。组件内统一维护产品 Spec、浏览器资源、HTTP Adapter、Console 只读投影、共享核心包、测试和验收 fixture。`apps/runner/src/server.ts` 是唯一 HTTP 实现。所有写路径都委派给共享 Application Service，不能另建 Registry、生命周期、评分、工作流或发布权威。
+```text
+src/
+├── domain/                 # 领域模型与确定性规则
+├── application/
+│   ├── ports/              # 入站和出站端口
+│   └── services/           # 用例编排
+├── infrastructure/         # 持久化、评测、智能体与工作流实现
+└── interfaces/             # 命令行、服务接口与外部适配入口
+```
+
+交互层和基础设施层可以依赖应用层，应用层可以依赖领域层，反向依赖一律禁止。目录收敛及旧源码根的处置见 [ADR-007](../specs/adr/ADR-007-ddd-layered-source-layout.md)。
+
+`src/domain` 不引入工作流 SDK、数据库、模型 Provider、编译器或特定语言类型。`src/application/services` 只依赖领域层和 Port。`src/infrastructure/workflow/langgraph` 用 LangGraph 实现工作流 Port，并保持独立模块形态。这样，图运行时可以继续演进，知识治理规则仍留在上层。架构契约测试会检查这些边界。
+
+`fw.mjs` 是 CLI 边缘的兼容门面。组件内统一维护产品 Spec、浏览器资源、HTTP Adapter、Console 只读投影、共享核心包、测试和验收 fixture。`src/interfaces/runner/server.ts` 是唯一 HTTP 实现。所有写路径都委派给共享 Application Service，不能另建 Registry、生命周期、评分、工作流或发布权威。
 
 ## 两类状态
 
@@ -45,7 +59,7 @@ DSH / CLI / HTTP / Web Console
 
 ## Agent 定制边界
 
-七个图角色是 Orchestrator、DocGen、DocWorker、TestGen、Code、Check 和 Review。它们的标识、职责、输入输出契约、拓扑和工具权限固定在 `infrastructure/domain-knowledge/src/agent-definitions.ts`。
+七个图角色是 Orchestrator、DocGen、DocWorker、TestGen、Code、Check 和 Review。它们的标识、职责、输入输出契约、拓扑和工具权限固定在 `src/infrastructure/workflow/langgraph/agent-definitions.ts`。
 
 操作员可以在 Console 查看所有角色，但只能维护 `promptAddon`。运行时把追加提示词拼在有版本的基础提示词后面，不替换基础提示词，也不改变节点契约。`AgentCatalogService` 会记录提示词修订和审计信息。
 

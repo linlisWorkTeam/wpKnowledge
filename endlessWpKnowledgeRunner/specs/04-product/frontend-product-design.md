@@ -1,8 +1,8 @@
-# Knowledge Flywheel 前台产品设计
+# 知识飞轮前台产品设计
 
 **状态：Accepted；固定 ohMyWorkPanel 自动路径已实现，通用项目向导仍在规划｜版本：0.3.1｜日期：2026-09-02**
 
-本文定义 `endlessWpKnowledgeRunner` 从只读知识 Dashboard 演进为 Knowledge Flywheel 产品控制台的用户体验、信息架构、交互边界、接口需求和验收标准。本组件的领域状态、Gate、安全和发布语义以同一组件内的[规范总入口](../README.md)为准；前台不得创造第二套状态或发布权威。
+本文定义 `endlessWpKnowledgeRunner` 从只读知识看板演进为知识飞轮控制台时的用户体验、信息架构、交互边界、接口需求和验收标准。本组件的领域状态、门禁、安全和发布语义以同一组件内的[规范总入口](../README.md)为准；前台不得创造第二套状态或发布权威。
 
 关联规范：
 
@@ -80,17 +80,21 @@
 ```text
 endlessWpKnowledgeRunner/
 ├── acceptance/            # 固定源码验收 fixture
-├── apps/runner/src/       # CLI、HTTP、composition 与 Console read model
+├── src/
+│   ├── domain/              # 领域模型与确定性业务规则
+│   ├── application/
+│   │   ├── ports/           # 应用端口契约
+│   │   └── services/        # 用例编排
+│   ├── infrastructure/      # 持久化、评测器、智能体与工作流实现
+│   └── interfaces/          # 命令行、服务接口与外部适配入口
 ├── docs/                  # 架构、运维、迁移
-├── infrastructure/        # 相对独立的 domain-knowledge LangGraph runtime
-├── packages/              # 领域、端口、应用与适配器
 ├── specs/                 # 产品、需求、工作流、Schema 与验收规范
 ├── site/                  # 双主题 GitHub Pages 项目官网
 ├── tests/                 # unit、contract、integration、acceptance
 └── web/                   # HTML、CSS 与浏览器交互
 ```
 
-Console HTTP adapter 与只读投影分别位于 `apps/runner/src/server.ts` 和 `apps/runner/src/console-read-model.ts`。Console 不得为了页面查询扩张 `packages/application`、`packages/contracts` 或写侧 SQLite Repository；状态变更仍只能委托共享应用服务。
+控制台服务适配器与只读投影分别位于 `src/interfaces/runner/server.ts` 和 `src/interfaces/runner/console-read-model.ts`。控制台不得为了页面查询扩张 `src/application/services`、`src/application/ports` 或写侧持久化仓库；状态变更仍只能委托共享应用服务。
 
 ```text
 Knowledge Flywheel
@@ -408,9 +412,10 @@ sequenceDiagram
 
 ## 9. 权限与安全体验
 
-- 未配置 `WP_KNOWLEDGE_WRITE_TOKEN` 时，界面明确进入“只读模式”，隐藏写按钮并解释原因。
-- token 错误显示 `401`，不得伪装成网络故障。
-- token 不得写入 URL、日志或长期浏览器存储；本地 V1 仅保存在当前页面内存中。
+- 未配置 `WP_KNOWLEDGE_WRITE_TOKEN` 时，界面明确进入“只读模式”，隐藏写按钮，并在“设置”中给出完整配置方法。
+- 仓库根目录提供 `.env.example`。用户将其复制为默认忽略的 `.env.local`，设置随机长令牌后重启 `npm run knowledge:serve`；启动脚本自动读取该文件。
+- 令牌错误显示 `401`，不得伪装成网络故障。
+- 令牌不得写入网址、日志或长期浏览器存储；本地第一版只保存在当前页面内存中。
 - UI 不直接暴露通用 `transition` 操作；产品动作调用高层 Command API。
 - 所有治理动作展示 actor、runId、目标资源和预期副作用，并产生审计事件。
 - 安全拒绝必须显示 reason code 和受控摘要，不泄露被拒绝的源码或密钥。
@@ -494,7 +499,8 @@ sequenceDiagram
 | KF-UI-014 | P0 | Agents 页面必须显示全部 Agent 的固定职责、输入输出、基础提示词和追加提示词；每次 Run 中的 Agent 节点状态在 Run 工作台显示。 | AC-UI-014 |
 | KF-UI-015 | P0 | 治理模式只能修改 Agent 的追加提示词；服务端必须拒绝任何拓扑、职责、Schema、Provider 实现或权限替换。 | AC-UI-015 |
 | KF-UI-016 | P0 | Run 工作台必须显示 LangGraph 节点投影，并明确区分执行状态与 FlywheelRun 业务状态。 | AC-UI-016 |
-| KF-UI-017 | P1 | 项目官网和 Console 的默认语言必须是中文；官网关键产品摘要应提供带 `lang="en"` 语义的英文版本，代码标识符、API 和状态值不得翻译。 | AC-UI-017 |
+| KF-UI-017 | P1 | 项目官网和控制台的用户可见文案必须使用自然、统一的中文；除固定标题 `WORKPANEL · KNOWLEDGE FLYWHEEL` 外，不得出现中英文拼接的栏目名、状态名或说明句。代码、命令、项目名、环境变量和协议标识符按原值展示。 | AC-UI-017 |
+| KF-UI-018 | P0 | 写入关闭时，设置页必须提供 `.env.local` 的创建位置、变量示例和重启方式；配置前所有写操作仍默认拒绝，治理令牌只保存在页面内存中。 | AC-UI-018 |
 
 ### 12.1 验收场景
 
@@ -516,7 +522,8 @@ sequenceDiagram
 | AC-UI-014 | Given 已启动或未启动工作流，When 打开 Agents 页面和 Run 工作台，Then 七类 Agent 均可查阅，固定契约与可编辑提示词分离，节点状态按 runId 展示。 |
 | AC-UI-015 | Given 有效写 token，When 保存 promptAddon，Then 后续执行使用该值并产生审计；When 请求包含 role、inputs、outputs、tools 或 edges，Then 服务端拒绝。 |
 | AC-UI-016 | Given LangGraph 正在运行，When 打开 Run 工作台，Then 页面从 wpKnowledge 节点投影显示 pending/running/completed/failed，不把 graph route 当成知识发布状态。 |
-| AC-UI-017 | Given 中文或英文读者打开项目官网，When 阅读首屏，Then 页面默认显示完整中文叙述，并能展开关键英文摘要；页面语言、英文区域和状态/API 标识具有正确语义。 |
+| AC-UI-017 | Given 用户打开项目官网或控制台，When 阅读栏目、状态、说明和错误提示，Then 除固定标题与原样技术标识符外，页面不出现英文栏目或中英文拼接句，中文表达自然且术语一致。 |
+| AC-UI-018 | Given 服务端未配置写入令牌，When 用户点击治理模式或打开设置页，Then 页面引导其从 `.env.example` 创建 `.env.local`、设置 `WP_KNOWLEDGE_WRITE_TOKEN` 并重启服务；令牌不会被写入网址或本地存储。 |
 
 ## 13. 实施阶段
 

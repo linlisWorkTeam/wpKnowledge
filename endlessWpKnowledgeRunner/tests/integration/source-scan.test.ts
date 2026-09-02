@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { SourceScanner } from '../../packages/adapters/source-scan/src/index.ts';
+import { SourceScanner } from '../../src/infrastructure/source-scan/index.ts';
 import { createTestComposition, GOOD_BODY } from '../helpers/fixture.ts';
 
 test('source scan is read-only, bounded, and deduplicates committed bodies', async () => {

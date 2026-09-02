@@ -7,11 +7,11 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "knowledge": "node endlessWpKnowledgeRunner/apps/runner/src/cli.ts",
-    "knowledge:serve": "node endlessWpKnowledgeRunner/apps/runner/src/server.ts",
+    "knowledge": "node endlessWpKnowledgeRunner/src/interfaces/runner/cli.ts",
+    "knowledge:serve": "node --env-file-if-exists=.env.local endlessWpKnowledgeRunner/src/interfaces/runner/server.ts",
     "site:serve": "node endlessWpKnowledgeRunner/site/dev-server.mjs",
     "site:check": "node --test endlessWpKnowledgeRunner/tests/contract/site.test.ts",
-    "acceptance:ohmyworkpanel": "node endlessWpKnowledgeRunner/apps/runner/src/project-acceptance.ts",
+    "acceptance:ohmyworkpanel": "node endlessWpKnowledgeRunner/src/interfaces/runner/project-acceptance.ts",
     "test": "node --test --test-concurrency=1",
     "test:architecture": "node --test endlessWpKnowledgeRunner/tests/contract/architecture.test.ts",
     "test:domain": "node --test endlessWpKnowledgeRunner/tests/unit",

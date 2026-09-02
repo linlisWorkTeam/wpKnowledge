@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import test from 'node:test';
 import {
   DeepSeekHarnessHeadlessAgent, DeepSeekHarnessSdkAgent, type DeepSeekHarnessAuditRecord,
-} from '../../packages/adapters/deepseek-harness-agent/src/index.ts';
+} from '../../src/infrastructure/agents/deepseek-harness/index.ts';
 
 const OUTPUT_SCHEMA = {
   type: 'object', required: ['answer'], additionalProperties: false,

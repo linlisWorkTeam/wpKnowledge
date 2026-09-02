@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import {
   createDshToolDefinitions, KnowledgeApiClient,
-} from '../../packages/adapters/dsh/src/index.ts';
+} from '../../src/interfaces/dsh/index.ts';
 
 test('DSH adapter uses versioned HTTP requests and fails closed for writes', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
@@ -22,7 +22,7 @@ test('DSH adapter uses versioned HTTP requests and fails closed for writes', asy
 });
 
 test('DSH adapter contains no shell or Python bridge', () => {
-  const source = readFileSync('endlessWpKnowledgeRunner/packages/adapters/dsh/src/index.ts', 'utf8').toLowerCase();
+  const source = readFileSync('endlessWpKnowledgeRunner/src/interfaces/dsh/index.ts', 'utf8').toLowerCase();
   assert.equal(source.includes('shell.run'), false);
   assert.equal(source.includes('python fw.py'), false);
   assert.equal(source.includes('child_process'), false);

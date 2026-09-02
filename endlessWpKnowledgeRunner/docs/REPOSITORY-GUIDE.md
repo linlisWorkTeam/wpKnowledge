@@ -19,9 +19,10 @@ wpKnowledge/
 
 当前 TypeScript Flywheel 的唯一组件根。以下内容必须共同留在这里：
 
-- `apps/`：可执行入口和 composition root；
-- `packages/`：领域、应用、契约和 Adapter；
-- `infrastructure/`：可独立演进的工作流基础设施；当前只包含内嵌的 `domain-knowledge` LangGraph runtime；
+- `src/domain/`：领域模型、状态机和确定性业务规则；
+- `src/application/`：应用端口与用例服务；
+- `src/infrastructure/`：持久化、评测、智能体、迁移和工作流等技术实现；
+- `src/interfaces/`：命令行、服务接口和外部适配入口；
 - `web/`：产品控制台；
 - `site/`：GitHub Pages 项目官网和本地静态预览工具；
 - `specs/`：规范性事实源、ADR 和 Schema；
@@ -47,11 +48,11 @@ ohMyWorkPanel 相关研究、PR 评审和证据统一放在 `knowledge/3.workpan
 
 | 如果新增的是…… | 放到…… |
 | --- | --- |
-| 领域实体、Gate 或状态规则 | `endlessWpKnowledgeRunner/packages/domain/` |
-| 用例编排或 Port | `endlessWpKnowledgeRunner/packages/application/` 或 `packages/contracts/` |
-| SQLite、CAS、DSH、Agent、Evaluator 实现 | `endlessWpKnowledgeRunner/packages/adapters/` |
-| LangGraph 图、运行时、AgentRunner 与 graph checkpoint | `endlessWpKnowledgeRunner/infrastructure/domain-knowledge/` |
-| CLI、HTTP、Console read model | `endlessWpKnowledgeRunner/apps/runner/src/` |
+| 领域实体、Gate 或状态规则 | `endlessWpKnowledgeRunner/src/domain/` |
+| 用例编排或 Port | `endlessWpKnowledgeRunner/src/application/services/` 或 `src/application/ports/` |
+| SQLite、CAS、DSH、Agent、Evaluator 实现 | `endlessWpKnowledgeRunner/src/infrastructure/` |
+| LangGraph 图、运行时、AgentRunner 与 graph checkpoint | `endlessWpKnowledgeRunner/src/infrastructure/workflow/langgraph/` |
+| CLI、HTTP、Console read model | `endlessWpKnowledgeRunner/src/interfaces/runner/` |
 | 浏览器资产 | `endlessWpKnowledgeRunner/web/` |
 | 项目介绍、公开快速入门和 GitHub Pages 资产 | `endlessWpKnowledgeRunner/site/` |
 | 需求、用例、工作流、ADR、Schema | `endlessWpKnowledgeRunner/specs/` |
@@ -67,7 +68,7 @@ ohMyWorkPanel 相关研究、PR 评审和证据统一放在 `knowledge/3.workpan
 2. 用户入口不复制完整参考手册。根 README 负责导航，细节进入组件文档或 Spec。
 3. 移动文件必须同时更新 import、npm script、tsconfig、Spec、测试和 Markdown 相对链接。
 4. 运行数据、外部检出、生成产物和临时报告不进入受版本控制的产品目录。
-5. `component-layout` 契约测试负责阻止已收敛目录再次散落到根级。
+5. `component-layout` 契约测试负责阻止已收敛目录再次散落到根级，或重新引入组件内旧的 `apps/`、`packages/` 和顶层 `infrastructure/` 源码根。
 6. 文档解释性文字以中文为主；关键入口使用相邻 English summary，不建立无人校验的全文镜像。具体格式见[文档语言与 I18n 约定](DOCUMENTATION-I18N.md)。
 
 ## 命名

@@ -1,7 +1,7 @@
 import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createComposition } from '../../apps/runner/src/composition.ts';
+import { createComposition } from '../../src/interfaces/runner/composition.ts';
 
 export const GOOD_BODY = `
 ## 概述

@@ -11,21 +11,28 @@ function files(root: string): string[] {
 }
 
 test('domain core has no SDK, database, language, or adapter dependency', () => {
-  const source = files('endlessWpKnowledgeRunner/packages/domain/src').map((path) => readFileSync(path, 'utf8')).join('\n');
-  for (const forbidden of ['langgraph', 'temporal', 'deepseek', 'dsh', 'sqlite', 'clang', 'gcc', 'packages/adapters']) {
+  const source = files('endlessWpKnowledgeRunner/src/domain').map((path) => readFileSync(path, 'utf8')).join('\n');
+  for (const forbidden of ['langgraph', 'temporal', 'deepseek', 'dsh', 'sqlite', 'clang', 'gcc', 'src/infrastructure']) {
     assert.equal(source.toLowerCase().includes(forbidden), false, `domain contains forbidden dependency: ${forbidden}`);
   }
+  assert.doesNotMatch(source, /from\s+['"][^'"]*(?:application|infrastructure|interfaces)[^'"]*['"]/);
 });
 
 test('application depends on ports and domain, never concrete adapters', () => {
-  const source = files('endlessWpKnowledgeRunner/packages/application/src').map((path) => readFileSync(path, 'utf8')).join('\n');
-  assert.equal(source.includes('packages/adapters'), false);
-  assert.equal(source.includes('../../adapters/'), false);
+  const source = files('endlessWpKnowledgeRunner/src/application/services').map((path) => readFileSync(path, 'utf8')).join('\n');
+  assert.doesNotMatch(source, /from\s+['"][^'"]*(?:infrastructure|interfaces)[^'"]*['"]/);
+});
+
+test('infrastructure never depends on interface entrypoints', () => {
+  const source = files('endlessWpKnowledgeRunner/src/infrastructure').map((path) => readFileSync(path, 'utf8')).join('\n');
+  assert.doesNotMatch(source, /from\s+['"][^'"]*interfaces[^'"]*['"]/);
 });
 
 test('LangGraph remains isolated in domain-knowledge infrastructure', () => {
-  const application = files('endlessWpKnowledgeRunner/packages/application/src').map((path) => readFileSync(path, 'utf8')).join('\n');
-  const infrastructure = files('endlessWpKnowledgeRunner/infrastructure/domain-knowledge/src').map((path) => readFileSync(path, 'utf8')).join('\n');
+  const application = files('endlessWpKnowledgeRunner/src/application/services').map((path) => readFileSync(path, 'utf8')).join('\n');
+  const infrastructure = files('endlessWpKnowledgeRunner/src/infrastructure/workflow/langgraph')
+    .filter((path) => path.endsWith('.ts'))
+    .map((path) => readFileSync(path, 'utf8')).join('\n');
   assert.equal(application.toLowerCase().includes('@langchain/langgraph'), false);
   assert.match(infrastructure, /@langchain\/langgraph/);
   assert.doesNotMatch(infrastructure, /KnowledgeVersion|PublicationReceipt|EvaluationReport/);

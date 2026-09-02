@@ -139,7 +139,7 @@ Agent 元数据来自 `GET /api/v1/agents`。浏览器默认只读，操作员 t
 
 ## DSH
 
-把 `packages/adapters/dsh/src/index.ts` 作为普通 Cordis plugin 挂载，并配置：
+把 `src/interfaces/dsh/index.ts` 作为普通 Cordis plugin 挂载，并配置：
 
 ```text
 WP_KNOWLEDGE_URL=http://127.0.0.1:4174

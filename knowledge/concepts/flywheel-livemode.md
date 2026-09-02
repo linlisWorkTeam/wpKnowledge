@@ -4,7 +4,7 @@ title: flywheel-livemode（旧实现，已退出主路径）
 category: flywheel
 tags: [livemode, harvester, legacy]
 sources:
-  - path: packages/application/src/index.ts
+  - path: src/application/services/index.ts
     pinned: true
 schema_version: okf.v1
 kind: concept

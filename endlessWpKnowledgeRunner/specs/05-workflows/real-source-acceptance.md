@@ -22,7 +22,7 @@
 6. EvalRunner 依次执行 `pnpm test`、`pnpm build` 与 `cargo test --no-default-features --lib`。全部命令退出码为零、无超时且证据完整时，Gate 才能 PASS。
 7. Run 必须先进入 REVIEWING，再由确定性 Gate 进入 PUBLISHING；原子发布只验证第二版，重复发布返回同一 receipt。
 
-自动化整合验收使用 `infrastructure/domain-knowledge` 的真实 StateGraph 执行同一多轮语义，并要求七个 Agent 均留下节点投影。LangGraph 的 `pass` 路由只调度 publication 阶段，最终 `VERIFIED` 和 receipt 仍由 wpKnowledge Publication Gate 与 Registry 事务产生。2026-09-02 的 live 样例见 [`knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md`](../../../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md)。
+自动化整合验收使用 `src/infrastructure/workflow/langgraph` 的真实 StateGraph 执行同一多轮语义，并要求七个 Agent 均留下节点投影。LangGraph 的 `pass` 路由只调度 publication 阶段，最终 `VERIFIED` 和 receipt 仍由 wpKnowledge Publication Gate 与 Registry 事务产生。2026-09-02 的 live 样例见 [`knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md`](../../../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md)。
 
 ## 信任边界
 

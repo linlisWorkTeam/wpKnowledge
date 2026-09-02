@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import test from 'node:test';
-import { translateLegacyArgs } from '../../apps/runner/src/compat.ts';
+import { translateLegacyArgs } from '../../src/interfaces/runner/compat.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 test('legacy arguments map to the single TypeScript core', () => {

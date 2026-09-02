@@ -13,3 +13,6 @@ knowledge/**/*.write-*
 *.sqlite-shm
 *.sqlite-wal
 node_modules/
+
+# Local operator configuration and secrets
+.env.local

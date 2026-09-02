@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, symlinkSync, 
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { LocalAgentWorkspace } from '../../packages/adapters/agent-workspace/src/index.ts';
+import { LocalAgentWorkspace } from '../../src/infrastructure/agents/workspace/index.ts';
 
 test('role workspace copies only the explicit readable-path allowlist', async () => {
   const root = mkdtempSync(join(tmpdir(), 'wp-agent-view-'));
@@ -27,18 +27,39 @@ test('role workspace copies only the explicit readable-path allowlist', async ()
   }
 });
 
-test('role workspace rejects traversal and source symlinks', async () => {
+test('role workspace rejects traversal', async () => {
   const root = mkdtempSync(join(tmpdir(), 'wp-agent-view-deny-'));
   const source = join(root, 'source');
   const outside = join(root, 'outside.txt');
   mkdirSync(source);
   writeFileSync(outside, 'not allowed');
-  symlinkSync(outside, join(source, 'linked.txt'));
   try {
     const provider = new LocalAgentWorkspace({ workspaceRoot: join(root, 'views'), allowedSourceRoots: [source] });
     await assert.rejects(provider.materialize({
       isolationKey: 'traversal', role: 'code', sourceRoot: source, readablePaths: ['../outside.txt'],
     }), /AGENT_WORKSPACE_PATH_DENIED/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('role workspace rejects source symlinks when the host permits creating them', async (context) => {
+  const root = mkdtempSync(join(tmpdir(), 'wp-agent-view-symlink-'));
+  const source = join(root, 'source');
+  const outside = join(root, 'outside.txt');
+  mkdirSync(source);
+  writeFileSync(outside, 'not allowed');
+  try {
+    try {
+      symlinkSync(outside, join(source, 'linked.txt'));
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'EPERM') {
+        context.skip('当前 Windows 主机未授予创建符号链接的权限');
+        return;
+      }
+      throw error;
+    }
+    const provider = new LocalAgentWorkspace({ workspaceRoot: join(root, 'views'), allowedSourceRoots: [source] });
     await assert.rejects(provider.materialize({
       isolationKey: 'symlink', role: 'code', sourceRoot: source, readablePaths: ['linked.txt'],
     }), /AGENT_WORKSPACE_SYMLINK_DENIED/);

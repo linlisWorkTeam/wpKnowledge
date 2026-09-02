@@ -17,10 +17,10 @@ Console 里看到的 Orchestrator、DocGen、DocWorker、TestGen、`code`、Chec
 
 对应代码：
 
-- 固定角色定义：[`infrastructure/domain-knowledge/src/agent-definitions.ts`](../infrastructure/domain-knowledge/src/agent-definitions.ts)
-- 节点到角色的映射：[`infrastructure/domain-knowledge/src/graph.ts`](../infrastructure/domain-knowledge/src/graph.ts)
-- DSH Provider 装配：[`apps/runner/src/composition.ts`](../apps/runner/src/composition.ts)
-- 角色工作区和证据装配：[`packages/application/src/automated-project-workflow.ts`](../packages/application/src/automated-project-workflow.ts)
+- 固定角色定义：[`src/infrastructure/workflow/langgraph/agent-definitions.ts`](../src/infrastructure/workflow/langgraph/agent-definitions.ts)
+- 节点到角色的映射：[`src/infrastructure/workflow/langgraph/graph.ts`](../src/infrastructure/workflow/langgraph/graph.ts)
+- DSH Provider 装配：[`src/interfaces/runner/composition.ts`](../src/interfaces/runner/composition.ts)
+- 角色工作区和证据装配：[`src/application/services/automated-project-workflow.ts`](../src/application/services/automated-project-workflow.ts)
 
 ## 允许改什么
 
@@ -189,9 +189,9 @@ npm run knowledge -- set-agent-prompt --agent doc-gen --prompt ''
 
 1. 在 `specs/01-requirements/` 增加或修改稳定需求 ID；
 2. 同步 `specs/05-workflows/`、`specs/06-agents/`、安全边界和验收条件；
-3. 修改 `packages/contracts` 的端口或数据结构；
-4. 在相对独立的 `infrastructure/domain-knowledge` 中修改图执行逻辑；
-5. 在 `packages/application` 组装新上下文与副作用；
+3. 修改 `src/application/ports` 的端口或数据结构；
+4. 在相对独立的 `src/infrastructure/workflow/langgraph` 中修改图执行逻辑；
+5. 在 `src/application/services` 组装新上下文与副作用；
 6. 为 Provider 或工作区能力补 Adapter；
 7. 增加 contract、integration、security 和 acceptance 测试；
 8. 同步 Console、静态官网、快速入门、架构文档和方案 PPT；

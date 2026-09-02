@@ -19,7 +19,7 @@
 ## 来源索引
 
 - `knowledge/5.ohMySocialPanel/调研/05-可行性分析.md` <- ai-emotional-value-entertainment-market
-- `packages/application/src/index.ts` <- flywheel-livemode (legacy concept superseded by checkpointed workflow)
+- `src/application/services/index.ts` <- flywheel-livemode (legacy concept superseded by checkpointed workflow)
 - `knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md` <- okf-knowledge-format
 - `knowledge/3.workpanel/作者随笔/下一代OMP，或者说ohMyAGI/08-概念：soul在ohMyAGI中的位置.md` <- omp-soul
 - `knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md` <- workpanel-connecter

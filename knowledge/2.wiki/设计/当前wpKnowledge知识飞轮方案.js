@@ -194,7 +194,7 @@ function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
 // 2 · 用户价值
 {
   const slide = frame('用户怎样使用：启动一次治理，拿到能追责的知识版本', 'PRODUCT OUTCOME', '已实现', {
-    source: '入口：apps/runner/src/cli.ts、server.ts；业务事实：SQLite Registry + CAS',
+    source: '入口：src/interfaces/runner/cli.ts、server.ts；业务事实：SQLite Registry + CAS',
   });
   const steps = [
     ['1', '固定来源', '仓库路径 + commit\n来源不可漂移', C.BLUE],
@@ -226,7 +226,7 @@ function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
 {
   const slide = frame('目标架构：wpKnowledge 管治理，domain-knowledge 管执行', 'ARCHITECTURE', '已实现', {
     dark: true,
-    source: 'ARCHITECTURE.md；infrastructure/domain-knowledge；apps/runner/src/composition.ts',
+    source: 'ARCHITECTURE.md；src/infrastructure/workflow/langgraph；src/interfaces/runner/composition.ts',
   });
   text(slide, '上层 · 知识治理事实源', 0.62, 1.42, 3.6, 0.23, { fontSize: 10, color: C.CYAN, bold: true, margin: 0 });
   box(slide, 0.62, 1.79, 12.03, 1.48, { fill: C.NAVY2, line: '31516E' });
@@ -246,7 +246,7 @@ function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
 {
   const slide = frame('预期 Agent 编排：七类角色可观察，Gate 与评测不是 Agent', 'EXPECTED ORCHESTRATION', '已实现', {
     dark: true,
-    source: 'infrastructure/domain-knowledge/src/graph.ts；agent-definitions.ts',
+    source: 'src/infrastructure/workflow/langgraph/graph.ts；agent-definitions.ts',
   });
   const dn = { fill: C.NAVY2, titleColor: C.WHITE, bodyColor: C.PALE };
   node(slide, 0.55, 2.75, 1.40, 0.88, 'Orchestrator', '固定职责\n组装本轮计划', { ...dn, accent: C.CYAN });
@@ -352,7 +352,7 @@ function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
 // 8 · Agent I/O
 {
   const slide = frame('七类 Agent 角色的输入输出：职责固定，执行后端可统一', 'AGENT INPUT / OUTPUT', '已实现', {
-    source: 'infrastructure/domain-knowledge/src/agent-definitions.ts；packages/application/src/automated-project-workflow.ts',
+    source: 'src/infrastructure/workflow/langgraph/agent-definitions.ts；src/application/services/automated-project-workflow.ts',
   });
   const xs = [0.58, 2.25, 6.05, 10.15];
   const ws = [1.67, 3.80, 4.10, 2.55];
@@ -435,7 +435,7 @@ function addImageContain(slide, imagePath, x, y, w, h, pixelW, pixelH) {
 // 11 · Review 与知识迭代
 {
   const slide = frame('Review 与知识迭代：Agent 提建议，确定性 Gate 才能改状态', 'REVIEW LOOP', '已实现', {
-    source: 'automated-project-workflow.ts；packages/domain/src/index.ts；SQLiteFlywheelRepository 发布事务',
+    source: 'automated-project-workflow.ts；src/domain/index.ts；SQLiteFlywheelRepository 发布事务',
   });
   node(slide, 0.63, 2.19, 1.70, 0.94, 'EvaluationReport', '测试事实\n不可变 evidenceRef', { accent: C.RED, fill: C.RED_LIGHT });
   arrow(slide, 2.45, 2.48, 0.26, C.RED);

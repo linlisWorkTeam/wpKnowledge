@@ -39,20 +39,22 @@ This directory is the complete Knowledge Flywheel component. It contains the Typ
 
 ```text
 endlessWpKnowledgeRunner/
-├── acceptance/ohmyworkpanel/ # 固定 commit 的真实源码验收 fixture
-├── apps/runner/src/          # CLI、HTTP Server、Console read model、composition
+├── acceptance/ohmyworkpanel/ # 固定提交的真实源码验收夹具
+├── src/
+│   ├── domain/               # 领域模型与确定性规则
+│   ├── application/          # 端口契约与应用服务
+│   ├── infrastructure/       # 持久化、评测、智能体与工作流实现
+│   └── interfaces/           # 命令行、服务接口与外部适配入口
 ├── docs/                     # 上手、架构、开发、测试、运维与迁移
-├── infrastructure/           # 相对独立的 domain-knowledge LangGraph runtime
-├── packages/                 # domain、contracts、application、adapters
 ├── specs/                    # 唯一规范性事实源
-├── site/                     # GitHub Pages 项目官网
-├── tests/                    # unit、contract、integration、acceptance
-├── web/                      # Console 静态前端
+├── site/                     # 项目官网
+├── tests/                    # 单元、契约、集成与验收测试
+├── web/                      # 控制台静态前端
 ├── fw.mjs                    # 旧调用方兼容入口
 └── runner.config.json        # 默认本地配置
 ```
 
-`packages/domain` 不依赖数据库、工作流 SDK、模型提供方、编译器或具体语言类型；`packages/application` 只依赖领域和 Port。Adapter、CLI、HTTP 和 Web 都不能拥有第二套状态机、Registry、评分或发布权威。
+`src/domain` 不依赖数据库、工作流开发工具包、模型提供方、编译器或具体语言类型；`src/application/services` 只依赖领域和端口。基础设施适配器与交互入口都不能拥有第二套状态机、知识登记簿、评分或发布权威。目录决策见 [ADR-007](specs/adr/ADR-007-ddd-layered-source-layout.md)。
 
 ## 最短运行路径
 

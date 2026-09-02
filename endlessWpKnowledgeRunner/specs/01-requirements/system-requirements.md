@@ -31,6 +31,8 @@
 | KF-SYS-025 | P0 | 自动工作流必须可通过 AgentProvider 调用真实 DeepSeek Harness；模型输出只有通过闭合 JSON Schema 后才能写入 CAS，调用审计不得保存密钥或 Prompt 正文。 | AC-E2E-003 |
 | KF-SYS-026 | P0 | 候选知识未通过 Quality Gate 时，系统必须跳过 CodeAgent，把 score、signals 和 weak points 自动反馈给下一轮 DocGen；不得把内容质量失败误报为基础设施终态。 | AC-FLOW-005 |
 | KF-SYS-027 | P0 | 每次治理 Run 必须可导出脱敏 Demo 报告，覆盖业务状态、全部节点尝试、KnowledgeVersion、评测、Gate、发布、事件、Checkpoint、Agent 调用摘要和 Artifact 完整性；不得导出 Prompt 正文、模型正文、Session 日志或凭据。 | AC-OBS-003 |
+| KF-SYS-028 | P1 | 官网和控制台的用户可见文案必须使用自然、统一的中文；除固定标题 `WORKPANEL · KNOWLEDGE FLYWHEEL` 外，不得使用中英文拼接的栏目名、状态名或说明句。源码标识符、项目名、命令和环境变量作为技术值原样保留。 | AC-DOC-004 |
+| KF-SYS-029 | P0 | 本地服务必须提供可提交的写入令牌配置样例、默认忽略的本地配置文件和页面内配置说明；未配置时继续默认拒绝写入，但必须告诉用户如何启用并重启服务。 | AC-SEC-004 |
 
 ## P0-B Spike（P0-A 后独立开展）
 

@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createDomainKnowledgeInfrastructure } from '../../infrastructure/domain-knowledge/src/index.ts';
+import { createDomainKnowledgeInfrastructure } from '../../src/infrastructure/workflow/langgraph/index.ts';
 import type {
   AgentId, WorkflowNodeProjection, WorkflowStageInput,
-} from '../../packages/contracts/src/index.ts';
+} from '../../src/application/ports/index.ts';
 
 test('embedded LangGraph runs every fixed Agent and exposes node projections', async () => {
   const calls: WorkflowStageInput[] = [];

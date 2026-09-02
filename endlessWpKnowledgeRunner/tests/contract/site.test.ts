@@ -98,7 +98,7 @@ test('project site exposes human and Agent onboarding without weakening trust ga
   assert.match(html, /id="agent-setup-prompt"/);
   assert.match(html, /npm run validate:specs/);
   assert.match(html, /不得跳过测试、降低阈值或伪造通过结果/);
-  assert.match(html, /不得把 CANDIDATE 手工改成 VERIFIED/);
+  assert.match(html, /不得手工把候选状态改成已验证/);
   assert.match(script, /data-onboarding-panel/);
   assert.match(script, /navigator\.clipboard/);
   for (const command of [
@@ -111,22 +111,27 @@ test('project site exposes human and Agent onboarding without weakening trust ga
   }
   for (const boundary of [
     '不得跳过测试、降低阈值或伪造通过结果',
-    '不得把 CANDIDATE 手工改成 VERIFIED',
+    '不得手工把候选状态改成已验证',
   ]) {
     assert.ok(html.includes(boundary), `site misses Agent boundary: ${boundary}`);
     assert.ok(gettingStarted.includes(boundary), `guide misses Agent boundary: ${boundary}`);
   }
 });
 
-test('documentation surfaces are Chinese-first with semantic English summaries', () => {
+test('public surfaces use consistent Chinese copy and keep only the approved English heading', () => {
   const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
+  const consoleScript = readFileSync('endlessWpKnowledgeRunner/web/app.js', 'utf8');
+  const socialCard = readFileSync('endlessWpKnowledgeRunner/site/social-card.svg', 'utf8');
   assert.match(html, /<html lang="zh-CN">/);
   assert.match(consoleHtml, /<html lang="zh-CN">/);
   assert.match(html, /<meta property="og:locale" content="zh_CN">/);
-  assert.match(html, /<meta property="og:locale:alternate" content="en_US">/);
-  assert.match(html, /<details class="i18n-summary" lang="en">/);
-  assert.match(html, /<summary>English summary<\/summary>/);
-  assert.match(css, /\.i18n-summary/);
+  assert.match(consoleHtml, />WORKPANEL · KNOWLEDGE FLYWHEEL</);
+  assert.doesNotMatch(html, /English summary|WHY WPKNOWLEDGE|THE FLYWHEEL|USE CASES|LIVE EVIDENCE|GET STARTED|BUILD KNOWLEDGE THAT HOLDS/);
+  assert.doesNotMatch(consoleScript, /LANGGRAPH EXECUTION PROJECTION|LATEST GATE|EVENT SEQUENCE|IMMUTABLE EVIDENCE|HUMAN IN THE LOOP|PRODUCTIZATION/);
+  assert.doesNotMatch(css, /content:\s*["']EVIDENCE["']/);
+  assert.doesNotMatch(socialCard, /Evidence-driven|Spec-driven|Evidence-first|Deterministic Gate|>VERIFIED</);
+  assert.match(html, /规范驱动/);
+  assert.match(consoleScript, /服务端尚未配置写入令牌。请到“设置”查看配置方法。/);
 });
 
 test('site and Console expose the embedded workflow boundary and prompt-only Agent customization', () => {
@@ -134,11 +139,10 @@ test('site and Console expose the embedded workflow boundary and prompt-only Age
   const consoleScript = readFileSync('endlessWpKnowledgeRunner/web/app.js', 'utf8');
   const frontendSpec = readFileSync('endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md', 'utf8');
 
-  assert.match(html, /domain-knowledge/);
-  assert.match(html, /LangGraph/);
-  assert.match(html, /Agent 只能追加提示词/);
+  assert.match(html, /基础设施层/);
+  assert.match(html, /智能体只能追加提示词/);
   assert.match(html, /id="evidence-demo"/);
-  assert.match(html, /官方 SDK 闭环/);
+  assert.match(html, /官方开发工具包闭环/);
   assert.match(html, /AGENT-CUSTOMIZATION\.md/);
   assert.match(consoleHtml, /data-page="agents"/);
   assert.match(consoleScript, /\/api\/v1\/agents/);
@@ -169,7 +173,6 @@ test('project site and Console implement separate light and dark themes', () => 
   assert.match(consoleScript, /wp-knowledge-theme/);
   assert.match(consoleScript, /function applyTheme\(theme, persist = false\)/);
   assert.match(consoleScript, /applyTheme\(document\.documentElement\.dataset\.theme === 'light' \? 'dark' : 'light', true\)/);
-  assert.doesNotMatch(script, /WP_KNOWLEDGE_WRITE_TOKEN/);
   assert.doesNotMatch(consoleScript, /localStorage\.setItem\([^\n]+token/i);
   assert.match(frontendSpec, /KF-UI-013/);
   assert.match(frontendSpec, /AC-UI-013/);
@@ -199,6 +202,18 @@ test('project site and Console implement separate light and dark themes', () => 
   assertReadablePalette(siteLight, ['text', 'muted', 'cyan', 'green', 'amber', 'violet', 'danger'], 'site light');
   assertReadablePalette(consoleDark, ['text', 'muted', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console dark');
   assertReadablePalette(consoleLight, ['text', 'muted', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console light');
+});
+
+test('write-token setup is discoverable while local secrets remain ignored', () => {
+  const consoleScript = readFileSync('endlessWpKnowledgeRunner/web/app.js', 'utf8');
+  const envExample = readFileSync('.env.example', 'utf8');
+  const gitignore = readFileSync('.gitignore', 'utf8');
+  const packageJson = JSON.parse(readFileSync('package.json', 'utf8')) as { scripts: Record<string, string> };
+  assert.match(consoleScript, /复制仓库根目录的 <code>\.env\.example<\/code> 为 <code>\.env\.local<\/code>/);
+  assert.match(consoleScript, /WP_KNOWLEDGE_WRITE_TOKEN=请替换为随机长令牌/);
+  assert.match(envExample, /^WP_KNOWLEDGE_WRITE_TOKEN=/m);
+  assert.match(gitignore, /^\.env\.local$/m);
+  assert.match(packageJson.scripts['knowledge:serve'], /--env-file-if-exists=\.env\.local/);
 });
 
 test('legacy Pages root is a thin adapter over the component-owned site', () => {
