@@ -20,6 +20,8 @@ WorkPanel 架构、实现分析、规划和评审证据。
 - [2026-09-01 PR #11 知识飞轮交付测评](调研/2026-09-01-PR11知识飞轮交付测评.md)
 - [Connecter P0-P3 修改计划](规划/Connecter%20P0-P3修改计划.md)
 - [ohMyWorkPanel 前台风格一致性评估](调研/2026-08-23-ohMyWorkPanel-frontend-style-consistency.md)
+- [Claude Academy 平台分析](调研/2026-08-23-Claude-Academy平台分析.md)
+- [ohMyWorkPanel Self-Marketing MVP 架构评估](调研/2026-09-01-ohMyWorkPanel-Self-Marketing-MVP架构评估.md)
 
 ## 评审证据
 
