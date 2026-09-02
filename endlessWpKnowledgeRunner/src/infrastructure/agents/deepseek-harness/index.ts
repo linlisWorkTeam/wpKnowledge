@@ -437,11 +437,11 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
     let errorCode: string | null = null;
     try {
       const stdout = await new Promise<string>((resolveOutput, reject) => {
-        const child = this.spawnProcess(this.command, [...this.args, prompt], {
+        const child = this.spawnProcess(this.command, [...this.args], {
           cwd: workspaceRoot,
           env: this.env,
           shell: false,
-          stdio: ['ignore', 'pipe', 'pipe'],
+          stdio: ['pipe', 'pipe', 'pipe'],
           windowsHide: true,
         });
         const stdoutChunks: Buffer[] = [];
@@ -490,6 +490,11 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
         };
         child.stdout.on('data', (chunk: Buffer) => collect(stdoutChunks, chunk, 'stdout'));
         child.stderr.on('data', (chunk: Buffer) => collect(stderrChunks, chunk, 'stderr'));
+        child.stdin.on('error', () => {
+          terminate();
+          rejectOnce(new Error('DSH_AGENT_STDIN_FAILED'));
+        });
+        child.stdin.end(prompt, 'utf8');
         child.on('error', (error) => {
           closed = true;
           clearTimeout(timeout);

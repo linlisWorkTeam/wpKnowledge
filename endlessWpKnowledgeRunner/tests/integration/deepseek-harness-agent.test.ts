@@ -196,7 +196,9 @@ test('DeepSeek Harness provider validates structured output and emits a redacted
   const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-'));
   const script = join(workspace, 'fake-dsh.mjs');
   writeFileSync(script, `
-const prompt = process.argv.at(-1);
+import { readFileSync } from 'node:fs';
+const prompt = readFileSync(0, 'utf8');
+if (process.argv.includes(prompt)) process.exit(19);
 if (!prompt.includes('JSON Schema') || !prompt.includes('run-1:doc-gen:0')) process.exit(8);
 process.stdout.write(JSON.stringify({ answer: 'validated' }));
 `);
@@ -222,6 +224,7 @@ test('DeepSeek Harness headless provider escalates to SIGKILL when SIGTERM does 
   const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-timeout-'));
   const signals: NodeJS.Signals[] = [];
   class IgnoringChild extends EventEmitter {
+    readonly stdin = new PassThrough();
     readonly stdout = new PassThrough();
     readonly stderr = new PassThrough();
     killed = false;
