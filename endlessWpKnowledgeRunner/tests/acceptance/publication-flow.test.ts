@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createEvent } from '../../src/domain/index.ts';
 import { acceptedCandidate, createTestComposition } from '../helpers/fixture.ts';
 
 test('candidate becomes VERIFIED only after integrity-checked evidence and deterministic PASS', async () => {
@@ -72,6 +73,43 @@ test('failed behavior gate cannot publish knowledge', async () => {
       /only PASS decisions may publish/,
     );
     assert.equal(fixture.service.getKnowledgeVersion(candidate.version.versionId)?.status, 'CANDIDATE');
+  } finally {
+    fixture.dispose();
+  }
+});
+
+test('repository cannot publish a non-PASS decision when the application service is bypassed', async () => {
+  const fixture = createTestComposition();
+  try {
+    const candidate = await acceptedCandidate(fixture, '-repository-boundary');
+    let run = fixture.service.createRun(candidate.version.moduleId, 'local-v1');
+    run = fixture.service.transition(run.runId, 'PLANNED');
+    run = fixture.service.transition(run.runId, 'GENERATING');
+    run = fixture.service.transition(run.runId, 'EVALUATING');
+    const evidence = await fixture.artifacts.put(Buffer.from('{}'), 'application/json');
+    const { decision } = await fixture.service.recordEvaluation({
+      runId: run.runId,
+      versionId: candidate.version.versionId,
+      evidenceRefs: [evidence],
+      toolchainFingerprint: 'fake-language-plugin@1.0.0',
+      criticalFailures: 1,
+      testsPassed: 0,
+      testsTotal: 1,
+      stability: 0,
+    }, fixture.config.publicationGate);
+    const reviewing = fixture.repository.getRun(run.runId);
+    assert.ok(reviewing);
+    const publicationKey = `${candidate.version.moduleId}:${candidate.version.versionId}:repository-bypass`;
+    assert.throws(() => fixture.repository.publish(
+      publicationKey,
+      { ...reviewing, state: 'VERIFIED' },
+      candidate.version,
+      decision,
+      createEvent(run.runId, 'KnowledgePublished', { publicationKey }, reviewing.updatedAt),
+    ), /repository publish requires a PASS gate decision/);
+    assert.equal(fixture.repository.getPublication(publicationKey), null);
+    assert.equal(fixture.repository.getKnowledgeVersion(candidate.version.versionId)?.status, 'CANDIDATE');
+    assert.equal(fixture.repository.getRun(run.runId)?.state, 'REVIEWING');
   } finally {
     fixture.dispose();
   }

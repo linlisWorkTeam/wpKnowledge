@@ -389,6 +389,7 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
     event: DomainEvent,
   ): { publicationKey: string; versionId: string; publishedAt: string; replayed: boolean } {
     return this.transaction(() => {
+      assertInvariant(decision.outcome === 'PASS', 'repository publish requires a PASS gate decision');
       const existing = this.getPublication(publicationKey);
       if (existing) return { ...existing, replayed: true };
       this.database.prepare(`
