@@ -204,9 +204,24 @@ test('project site and Console implement separate light and dark themes', () => 
 test('Pages workflow deploys only the static site directory', () => {
   const workflow = readFileSync('.github/workflows/pages.yml', 'utf8');
   const config = YAML.parse(workflow);
-  const steps = config.jobs.deploy.steps as Array<{ uses?: string; with?: { path?: string } }>;
+  const steps = config.jobs.deploy.steps as Array<{
+    name?: string;
+    id?: string;
+    if?: string;
+    uses?: string;
+    run?: string;
+    with?: { path?: string };
+  }>;
   assert.deepEqual(config.on.push.branches, ['main']);
-  assert.deepEqual(config.permissions, { contents: 'read', pages: 'write', 'id-token': 'write' });
+  assert.deepEqual(config.permissions, {
+    actions: 'read', contents: 'read', pages: 'write', 'id-token': 'write',
+  });
+  const sourceStep = steps.find((step) => step.id === 'pages-source');
+  assert.match(sourceStep?.run ?? '', /\/repos\/\$\{GITHUB_REPOSITORY\}\/pages/);
+  assert.match(sourceStep?.run ?? '', /\{"build_type":"workflow"\}/);
+  const drainStep = steps.find((step) => step.name === 'Wait for legacy Pages deployment to drain');
+  assert.equal(drainStep?.if, "steps.pages-source.outputs.changed == 'true'");
+  assert.match(drainStep?.run ?? '', /dynamic\/pages\/pages-build-deployment/);
   assert.equal(steps.find((step) => step.uses === 'actions/configure-pages@v6')?.uses, 'actions/configure-pages@v6');
   assert.equal(
     steps.find((step) => step.uses === 'actions/upload-pages-artifact@v5')?.with?.path,

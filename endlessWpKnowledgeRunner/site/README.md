@@ -25,6 +25,6 @@ npm run site:serve
 
 ## 发布
 
-`.github/workflows/pages.yml` 在 `main` 的站点文件变化后发布本目录。仓库管理员需要在 GitHub 的 Settings → Pages 中把 Source 设为 **GitHub Actions**。之后也可以从 Actions 页面手动运行。
+`.github/workflows/pages.yml` 在 `main` 的站点文件变化后发布本目录。工作流会先检查 Pages Source；如果仓库仍使用分支/Jekyll 构建，它会用仓库自己的 `pages: write` Token 切到 **GitHub Actions**，等待已经启动的旧部署结束，再发布本目录，避免两个发布器互相覆盖。组织策略不允许工作流修改 Pages 设置时，管理员仍需在 Settings → Pages 手工选择 **GitHub Actions**。之后也可以从 Actions 页面手动运行。
 
 默认地址是 <https://linlisworkteam.github.io/wpKnowledge/>。若组织或仓库改名，要同步更新 `index.html` 中的 canonical、Open Graph URL 和文档里的访问地址。

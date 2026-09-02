@@ -157,4 +157,4 @@ npm run site:check
 npm run site:serve
 ```
 
-打开 <http://127.0.0.1:4175>。合并到 `main` 后，`.github/workflows/pages.yml` 会发布 `endlessWpKnowledgeRunner/site/`。仓库管理员需要在 Settings → Pages 中将来源选为 **GitHub Actions**。预期公网地址是 <https://linlisworkteam.github.io/wpKnowledge/>。
+打开 <http://127.0.0.1:4175>。合并到 `main` 后，`.github/workflows/pages.yml` 会发布 `endlessWpKnowledgeRunner/site/`。工作流先通过 GitHub Pages API 确认 Source 是 **GitHub Actions**；首次从分支/Jekyll 模式切换时，它会等待同一提交的旧部署排空，再发布静态目录，避免旧构建随后覆盖新站点。若组织策略拒绝工作流修改 Pages 设置，管理员需要在 Settings → Pages 手工完成同一选择。预期公网地址是 <https://linlisworkteam.github.io/wpKnowledge/>。
