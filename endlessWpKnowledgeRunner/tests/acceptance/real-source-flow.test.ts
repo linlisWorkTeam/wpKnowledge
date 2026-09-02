@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -41,10 +42,14 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
   const realUserDirectories = [
     process.env.HOME, process.env.USERPROFILE, process.env.APPDATA, process.env.LOCALAPPDATA,
   ].filter((value): value is string => Boolean(value));
+  const realUserDirectoryDigests = realUserDirectories.map((value) =>
+    createHash('sha256').update(value).digest('hex'));
   const isolationProbe = [
-    `const forbidden = ${JSON.stringify(realUserDirectories)};`,
+    "const { createHash } = process.getBuiltinModule('node:crypto');",
+    `const forbidden = ${JSON.stringify(realUserDirectoryDigests)};`,
     "const keys = ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'];",
-    "if (keys.some((key) => !process.env[key] || forbidden.includes(process.env[key]))) process.exit(2);",
+    "const digest = (value) => createHash('sha256').update(value).digest('hex');",
+    "if (keys.some((key) => !process.env[key] || forbidden.includes(digest(process.env[key])))) process.exit(2);",
   ].join(' ');
 
   const composition = createComposition({ runtimeDir });
@@ -101,7 +106,8 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
     assert.equal(report.firstEvaluation.passed, false);
     assert.equal(report.firstDecision.outcome, 'ITERATE');
     assert.equal(report.finalEvaluation.passed, true);
-    assert.equal(JSON.stringify(report.finalEvaluation).includes(realUserDirectories[0] ?? '\0'), false);
+    const isolationResult = report.finalEvaluation.results.filter((result) => result.purpose === 'check').at(-1);
+    assert.equal(isolationResult?.exitCode, 0);
     assert.equal(report.finalDecision.outcome, 'PASS');
     assert.equal(report.finalVersion.parentVersionId, report.firstVersion.versionId);
     assert.equal(composition.service.getKnowledgeVersion(report.firstVersion.versionId)?.status, 'CANDIDATE');
