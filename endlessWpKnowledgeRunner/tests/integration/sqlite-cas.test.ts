@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import type { DomainEventType } from '../../src/domain/index.ts';
+import { createEvent, type DomainEventType } from '../../src/domain/index.ts';
 import { acceptedCandidate, createTestComposition } from '../helpers/fixture.ts';
 
 test('CAS deduplicates immutable content and detects corruption', async () => {
@@ -127,6 +127,43 @@ test('failed checkpoint is recorded and can be retried once', async () => {
     assert.deepEqual(fixture.repository.listEvents(run.runId).map((event) => event.eventType), [
       'RunCreated', 'NodeFailed', 'NodeCompleted',
     ]);
+  } finally {
+    fixture.dispose();
+  }
+});
+
+test('expired checkpoint lease can be reclaimed while the stale owner is fenced out', () => {
+  const fixture = createTestComposition();
+  try {
+    const run = fixture.service.createRun('checkpoint-lease', 'local-v1');
+    const generationKey = `${run.runId}:docgen:0`;
+    const original = fixture.repository.claimCheckpoint({
+      runId: run.runId, nodeId: 'docgen', generationKey, status: 'RUNNING',
+      inputRefs: [], outputRefs: [], retryCount: 0, updatedAt: '2026-09-02T00:00:00.000Z',
+    });
+    assert.equal(original.retryCount, 0);
+    assert.throws(() => fixture.repository.claimCheckpoint({
+      ...original, retryCount: 1, updatedAt: '2026-09-02T00:04:59.999Z',
+    }), /checkpoint is already running/);
+    const reclaimed = fixture.repository.claimCheckpoint({
+      ...original, retryCount: 1, updatedAt: '2026-09-02T00:05:00.000Z',
+    });
+    assert.equal(reclaimed.retryCount, 1);
+    const staleEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:05:01.000Z');
+    assert.throws(
+      () => fixture.repository.commitCheckpoint(generationKey, 0, [], staleEvent, staleEvent.occurredAt),
+      /checkpoint is not running/,
+    );
+    assert.throws(
+      () => fixture.repository.failCheckpoint(generationKey, 0, staleEvent, staleEvent.occurredAt),
+      /checkpoint is not running/,
+    );
+    const winnerEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:05:02.000Z');
+    const committed = fixture.repository.commitCheckpoint(
+      generationKey, 1, [], winnerEvent, winnerEvent.occurredAt,
+    );
+    assert.equal(committed.status, 'COMMITTED');
+    assert.equal(committed.retryCount, 1);
   } finally {
     fixture.dispose();
   }

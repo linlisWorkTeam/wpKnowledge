@@ -94,9 +94,15 @@ export class LocalCasArtifactStore implements ArtifactStore {
 export class SQLiteFlywheelRepository implements FlywheelRepository {
   readonly databasePath: string;
   readonly database: DatabaseSync;
+  readonly checkpointLeaseMs: number;
 
-  constructor(databasePath: string) {
+  constructor(databasePath: string, options: { checkpointLeaseMs?: number } = {}) {
     this.databasePath = databasePath;
+    this.checkpointLeaseMs = options.checkpointLeaseMs ?? 300_000;
+    assertInvariant(
+      Number.isSafeInteger(this.checkpointLeaseMs) && this.checkpointLeaseMs > 0,
+      'checkpoint lease must be a positive integer',
+    );
     ensureParent(databasePath);
     this.database = new DatabaseSync(databasePath);
   }
@@ -451,13 +457,30 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
           'generationKey input collision',
         );
         if (existing.status === 'COMMITTED') return existing;
-        assertInvariant(existing.status === 'FAILED', `checkpoint is already running: ${checkpoint.generationKey}`);
+        const existingUpdatedAt = Date.parse(existing.updatedAt);
+        const requestedAt = Date.parse(checkpoint.updatedAt);
+        const leaseExpired = existing.status === 'RUNNING'
+          && Number.isFinite(existingUpdatedAt)
+          && Number.isFinite(requestedAt)
+          && requestedAt - existingUpdatedAt >= this.checkpointLeaseMs;
+        assertInvariant(
+          existing.status === 'FAILED' || leaseExpired,
+          `checkpoint is already running: ${checkpoint.generationKey}`,
+        );
+        assertInvariant(
+          checkpoint.retryCount === existing.retryCount + 1,
+          `checkpoint retry fence is invalid: ${checkpoint.generationKey}`,
+        );
         const result = this.database.prepare(`
           UPDATE checkpoints SET status = 'RUNNING', output_refs_json = '[]', retry_count = ?, updated_at = ?
-          WHERE generation_key = ? AND status = 'FAILED'
-        `).run(checkpoint.retryCount, checkpoint.updatedAt, checkpoint.generationKey);
+          WHERE generation_key = ? AND status = ? AND retry_count = ? AND updated_at = ?
+        `).run(
+          checkpoint.retryCount, checkpoint.updatedAt, checkpoint.generationKey,
+          existing.status, existing.retryCount, existing.updatedAt,
+        );
         assertInvariant(Number(result.changes) === 1, `checkpoint claim conflict: ${checkpoint.generationKey}`);
       } else {
+        assertInvariant(checkpoint.retryCount === 0, `new checkpoint retry fence is invalid: ${checkpoint.generationKey}`);
         this.database.prepare(`
           INSERT INTO checkpoints(
             generation_key, run_id, node_id, status, input_refs_json, output_refs_json, retry_count, updated_at
@@ -471,24 +494,26 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
     });
   }
 
-  commitCheckpoint(generationKey: string, outputRefs: ArtifactRef[], event: DomainEvent, now: string): NodeCheckpoint {
+  commitCheckpoint(
+    generationKey: string, retryCount: number, outputRefs: ArtifactRef[], event: DomainEvent, now: string,
+  ): NodeCheckpoint {
     return this.transaction(() => {
       const result = this.database.prepare(`
         UPDATE checkpoints SET status = 'COMMITTED', output_refs_json = ?, updated_at = ?
-        WHERE generation_key = ? AND status = 'RUNNING'
-      `).run(json(outputRefs), now, generationKey);
+        WHERE generation_key = ? AND status = 'RUNNING' AND retry_count = ?
+      `).run(json(outputRefs), now, generationKey, retryCount);
       assertInvariant(Number(result.changes) === 1, `checkpoint is not running: ${generationKey}`);
       this.insertEvent(event);
       return this.getCheckpoint(generationKey) as NodeCheckpoint;
     });
   }
 
-  failCheckpoint(generationKey: string, event: DomainEvent, now: string): NodeCheckpoint {
+  failCheckpoint(generationKey: string, retryCount: number, event: DomainEvent, now: string): NodeCheckpoint {
     return this.transaction(() => {
       const result = this.database.prepare(`
         UPDATE checkpoints SET status = 'FAILED', updated_at = ?
-        WHERE generation_key = ? AND status = 'RUNNING'
-      `).run(now, generationKey);
+        WHERE generation_key = ? AND status = 'RUNNING' AND retry_count = ?
+      `).run(now, generationKey, retryCount);
       assertInvariant(Number(result.changes) === 1, `checkpoint is not running: ${generationKey}`);
       this.insertEvent(event);
       return this.getCheckpoint(generationKey) as NodeCheckpoint;

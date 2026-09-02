@@ -59,8 +59,8 @@ export interface FlywheelRepository {
   listEvents(runId: string): DomainEvent[];
   getCheckpoint(generationKey: string): NodeCheckpoint | null;
   claimCheckpoint(checkpoint: NodeCheckpoint): NodeCheckpoint;
-  commitCheckpoint(generationKey: string, outputRefs: ArtifactRef[], event: DomainEvent, now: string): NodeCheckpoint;
-  failCheckpoint(generationKey: string, event: DomainEvent, now: string): NodeCheckpoint;
+  commitCheckpoint(generationKey: string, retryCount: number, outputRefs: ArtifactRef[], event: DomainEvent, now: string): NodeCheckpoint;
+  failCheckpoint(generationKey: string, retryCount: number, event: DomainEvent, now: string): NodeCheckpoint;
   listAgentPromptConfigurations(): AgentPromptConfiguration[];
   saveAgentPromptConfiguration(configuration: AgentPromptConfiguration, event: DomainEvent): AgentPromptConfiguration;
   recordWorkflowNodeProjection(projection: WorkflowNodeProjection, event: DomainEvent): void;

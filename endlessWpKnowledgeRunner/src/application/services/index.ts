@@ -250,7 +250,7 @@ export class KnowledgeFlywheelService {
         assertArtifactRef(ref);
         assertInvariant(await this.artifacts.verify(ref), `node output artifact failed integrity verification: ${ref.artifactId}`);
       }
-      return this.repository.commitCheckpoint(claimed.generationKey, outputRefs, createEvent(
+      return this.repository.commitCheckpoint(claimed.generationKey, claimed.retryCount, outputRefs, createEvent(
         claimed.runId,
         'NodeCompleted',
         { nodeId: claimed.nodeId, generationKey: claimed.generationKey, outputRefs },
@@ -258,7 +258,7 @@ export class KnowledgeFlywheelService {
       ), this.clock());
     } catch (error) {
       const failedAt = this.clock();
-      this.repository.failCheckpoint(claimed.generationKey, createEvent(
+      this.repository.failCheckpoint(claimed.generationKey, claimed.retryCount, createEvent(
         claimed.runId,
         'NodeFailed',
         {

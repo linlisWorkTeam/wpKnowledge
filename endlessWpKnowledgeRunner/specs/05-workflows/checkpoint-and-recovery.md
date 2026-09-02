@@ -15,6 +15,7 @@
 
 - `workflow-resume` 读取同一 `threadId/runId` 的状态历史。普通中断从最新 checkpoint 继续；执行状态为 `FAILED` 时，选择最近一个包含 task error 的 checkpoint 分支，重新调度该失败 super-step。
 - 节点中途崩溃视为“结果未知”；允许重放，但同 GenerationKey 返回已提交结果或重新执行后 CAS 去重。
+- `RUNNING` checkpoint 使用五分钟租约。租约内的重复认领必须拒绝；租约过期后允许同作用域和同输入以递增 `retryCount` 接管。`retryCount` 同时是 fencing token，旧执行者不得提交或标记新租约失败。
 - 模型流式半成品、沙箱临时目录和未提交对象不进入领域状态，恢复时清理。
 - 发布采用 `publicationKey=moduleId+versionId+policyId` 的比较交换；重复发布返回原 receipt。
 - Agent/进程瞬时失败只把 LangGraph 执行标为 `FAILED`，不得自动把 FlywheelRun 写成业务终态。checkpoint 损坏或 Artifact 摘要不符时禁止继续，治理层才把 Run 转为 `FAILED` 并记录 `INTEGRITY_FAILURE`。
