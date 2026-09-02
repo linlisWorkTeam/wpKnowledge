@@ -5,7 +5,7 @@
   "type": "object",
   "required": ["schemaVersion", "kind", "languageId", "pluginVersion", "payload"],
   "properties": {
-    "schemaVersion": {"const": "1.0.0"},
+    "schemaVersion": {"const": "1.0"},
     "kind": {"enum": ["capability", "discoveryRequest", "discoveryResult", "executionPlan", "normalizedResult"]},
     "languageId": {"type": "string", "pattern": "^[a-z][a-z0-9+.-]*$"},
     "pluginVersion": {"type": "string", "minLength": 1},

@@ -4,6 +4,8 @@ import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020Import from 'ajv/dist/2020.js';
 import addFormatsImport from 'ajv-formats';
+import { createArtifactRef, createEvent } from '../../src/domain/index.ts';
+import { AGENT_IDS, type AgentId } from '../../src/application/ports/index.ts';
 
 const specRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const schemaRoot = join(specRoot, 'schemas');
@@ -39,33 +41,33 @@ const ajv = new Ajv2020({ allErrors: true, strict: true });
 addFormats(ajv);
 for (const schema of Object.values(schemas)) ajv.addSchema(schema);
 
-function validate(name: string, instance: Record<string, unknown>): void {
+function validate(name: string, instance: unknown): void {
   const id = String(schemas[name].$id);
   const validator = ajv.getSchema(id);
   invariant(validator, `schema not registered: ${name}`);
   invariant(validator(instance), `${name} rejected fixture: ${ajv.errorsText(validator.errors)}`);
 }
 
-function expectInvalid(name: string, instance: Record<string, unknown>, label: string): void {
+function expectInvalid(name: string, instance: unknown, label: string): void {
   const validator = ajv.getSchema(String(schemas[name].$id));
   invariant(validator, `schema not registered: ${name}`);
   invariant(!validator(instance), `Invalid fixture unexpectedly passed: ${label}`);
 }
 
 function artifact(seed = 'a') {
-  return { artifactId: `art_${seed.repeat(8)}`, mediaType: 'application/json', sha256: seed.repeat(64), size: 1 };
+  return createArtifactRef(Buffer.from(seed.repeat(8), 'utf8'), 'application/json');
 }
 
-function command(agentType: string, payload: Record<string, unknown>) {
+function command(agentType: AgentId, payload: Record<string, unknown>) {
   return {
-    schemaVersion: '1.0.0', commandId: `cmd-${agentType}`, runId: 'run-1', agentType,
+    schemaVersion: '1.0', commandId: `cmd-${agentType}`, runId: 'run-1', agentType,
     generationKey: `generation-${agentType}-0001`, payload,
   };
 }
 
-function result(agentType: string, payload: Record<string, unknown>, outputRefs: Record<string, unknown>[] = []) {
+function result(agentType: AgentId, payload: Record<string, unknown>, outputRefs: unknown[] = []) {
   return {
-    schemaVersion: '1.0.0', commandId: `cmd-${agentType}`, runId: 'run-1', agentType,
+    schemaVersion: '1.0', commandId: `cmd-${agentType}`, runId: 'run-1', agentType,
     status: 'SUCCEEDED', outputRefs, payload,
   };
 }
@@ -79,13 +81,14 @@ function validateAgentContracts(): [number, number] {
   };
   const commands = [
     command('orchestrator', { policyRef: refA, moduleRefs: [refB] }),
-    command('docgen', { moduleId: 'example', sourceRefs: [refA], publicInterfaceRefs: [refB] }),
-    command('docworker', { moduleId: 'example', sourceRefs: [refA], publicInterfaceRefs: [refB] }),
-    command('testgen', { moduleId: 'example', sourceSnapshotRef: refA, publicInterfaceRefs: [refB], languageId: 'cpp', testPolicyRef: refA }),
-    command('codegen', { knowledgeRef: refA, publicInterfaceRefs: [refB], languageId: 'cpp', buildContractRef: refA }),
+    command('doc-gen', { moduleId: 'example', sourceRefs: [refA], publicInterfaceRefs: [refB] }),
+    command('doc-worker', { moduleId: 'example', sourceRefs: [refA], publicInterfaceRefs: [refB] }),
+    command('test-gen', { moduleId: 'example', sourceSnapshotRef: refA, publicInterfaceRefs: [refB], languageId: 'cpp', testPolicyRef: refA }),
+    command('code', { knowledgeRef: refA, publicInterfaceRefs: [refB], languageId: 'cpp', buildContractRef: refA }),
     command('check', { diffRef: refA, criteriaRef: refB, publicInterfaceRefs: [refA] }),
     command('review', { knowledgeRef: refA, evaluationReportRef: refB, criteriaRef: refA }),
   ];
+  invariant(AGENT_IDS.every((agentId) => commands.some((fixture) => fixture.agentType === agentId)), 'Agent command fixtures must cover AGENT_IDS');
   for (const fixture of commands) {
     validate('agent-command.schema.json', fixture);
     const invalid = clone(fixture);
@@ -93,21 +96,21 @@ function validateAgentContracts(): [number, number] {
     expectInvalid('agent-command.schema.json', invalid, `${fixture.agentType} command extra field`);
   }
   const node = {
-    nodeId: 'node-docgen-1', agentType: 'docgen', dependsOn: [], generationKey: 'generation-node-0001',
+    nodeId: 'node-docgen-1', agentType: 'doc-gen', dependsOn: [], generationKey: 'generation-node-0001',
     inputSchema: 'https://wpknowledge.local/schemas/agent-command/v1',
     outputSchema: 'https://wpknowledge.local/schemas/agent-result/v1', resourceClaims: ['knowledge:example'],
     artifactExpectations: ['knowledgeCandidate'],
   };
   const results = [
     result('orchestrator', { resultKind: 'plan', nodes: [node] }),
-    result('docgen', { resultKind: 'knowledgeCandidate', bodyRef: refA, provenance: [refB], changedPaths: ['modules/example'] }, [refA]),
-    result('docworker', { resultKind: 'knowledgeChunk', chunkRef: refA, provenance: [refB] }, [refA]),
-    result('testgen', { resultKind: 'testCandidates', candidateSetRef: refA, caseManifestRef: refB, oracleClaims: ['claim-1'] }, [refA, refB]),
-    result('codegen', { resultKind: 'codeArtifact', codeRef: refA }, [refA]),
+    result('doc-gen', { resultKind: 'knowledgeCandidate', bodyRef: refA, provenance: [refB], changedPaths: ['modules/example'] }, [refA]),
+    result('doc-worker', { resultKind: 'knowledgeChunk', chunkRef: refA, provenance: [refB] }, [refA]),
+    result('test-gen', { resultKind: 'testCandidates', candidateSetRef: refA, caseManifestRef: refB, oracleClaims: ['claim-1'] }, [refA, refB]),
+    result('code', { resultKind: 'codeArtifact', codeRef: refA }, [refA]),
     result('check', { resultKind: 'findings', findings: [] }),
     result('review', { resultKind: 'attribution', corrections: [correction], unresolvedRisks: [] }, [refA]),
   ];
-  const failed = result('docgen', { resultKind: 'error', errorCode: 'AGENT_OUTPUT_INVALID', message: 'invalid output', retryable: true });
+  const failed = result('doc-gen', { resultKind: 'error', errorCode: 'AGENT_OUTPUT_INVALID', message: 'invalid output', retryable: true });
   failed.status = 'FAILED';
   results.push(failed);
   for (const fixture of results) {
@@ -117,7 +120,7 @@ function validateAgentContracts(): [number, number] {
     expectInvalid('agent-result.schema.json', invalid, `${fixture.agentType} result extra field`);
   }
   const mismatch = clone(results[0]);
-  mismatch.agentType = 'codegen';
+  mismatch.agentType = 'code';
   expectInvalid('agent-result.schema.json', mismatch, 'result kind must match agent type');
   return [commands.length, results.length];
 }
@@ -126,7 +129,7 @@ function validateEvaluation(): void {
   const refA = artifact('a');
   const refB = artifact('b');
   const report = {
-    schemaVersion: '1.0.0', reportId: 'report-1', runId: 'run-1', iteration: 1,
+    schemaVersion: '1.0', reportId: 'report-1', runId: 'run-1', iteration: 1,
     inputRefs: [refA], policyVersion: 'gate-policy-1', toolchainFingerprint: 'clang-18-linux-amd64',
     pluginFingerprint: 'cpp-plugin-1', testSetVersion: 'core-gate-1',
     modelConfigSummary: { provider: 'internal', model: 'example', parametersDigest: 'c'.repeat(64) },
@@ -154,12 +157,9 @@ function validateSupporting(): void {
     correctionId: 'COR-0001', knowledgePath: 'modules/example/behavior', criterion: 'AC-FLOW-002',
     evidenceRefs: [ref], risk: 'Incorrect behavior remains published',
   });
-  const event = {
-    schemaVersion: '1.0.0', eventId: 'event-1', eventType: 'RunCreated', runId: 'run-1',
-    occurredAt: '2026-08-31T09:22:00Z', causationId: 'command-1', payload: {},
-  };
+  const event = createEvent('run-1', 'RunCreated', {}, '2026-08-31T09:22:00Z');
   validate('event.schema.json', event);
-  const invalid = clone(event) as Record<string, unknown>;
+  const invalid = clone(event) as unknown as Record<string, unknown>;
   delete invalid.causationId;
   expectInvalid('event.schema.json', invalid, 'event causation is required');
 }

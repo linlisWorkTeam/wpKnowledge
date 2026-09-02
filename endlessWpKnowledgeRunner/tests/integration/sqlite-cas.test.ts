@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { existsSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
+import type { DomainEventType } from '../../src/domain/index.ts';
 import { acceptedCandidate, createTestComposition } from '../helpers/fixture.ts';
 
 test('CAS deduplicates immutable content and detects corruption', async () => {
@@ -164,7 +165,7 @@ test('evaluation, decision, review transition, and events roll back atomically',
       outcome: 'PASS' as const, reasonCodes: ['ALL_DETERMINISTIC_GATES_PASSED'],
       evidenceRefs: [candidate.version.bodyRef], createdAt: run.updatedAt,
     };
-    const event = (eventId: string, eventType: string) => ({
+    const event = (eventId: string, eventType: DomainEventType) => ({
       eventId, eventType, schemaVersion: '1.0' as const, runId: run.runId,
       occurredAt: run.updatedAt, causationId: null, payload: {},
     });

@@ -5,10 +5,10 @@
   "type": "object",
   "required": ["schemaVersion", "commandId", "runId", "agentType", "generationKey", "payload"],
   "properties": {
-    "schemaVersion": {"const": "1.0.0"},
+    "schemaVersion": {"const": "1.0"},
     "commandId": {"type": "string", "minLength": 1},
     "runId": {"type": "string", "minLength": 1},
-    "agentType": {"enum": ["orchestrator", "docgen", "docworker", "testgen", "codegen", "check", "review"]},
+    "agentType": {"enum": ["orchestrator", "doc-gen", "doc-worker", "test-gen", "code", "check", "review"]},
     "generationKey": {"type": "string", "minLength": 16},
     "payload": {"type": "object"}
   },
@@ -18,19 +18,19 @@
       "then": {"properties": {"payload": {"$ref": "#/$defs/orchestratorPayload"}}}
     },
     {
-      "if": {"properties": {"agentType": {"const": "docgen"}}, "required": ["agentType"]},
+      "if": {"properties": {"agentType": {"const": "doc-gen"}}, "required": ["agentType"]},
       "then": {"properties": {"payload": {"$ref": "#/$defs/docgenPayload"}}}
     },
     {
-      "if": {"properties": {"agentType": {"const": "docworker"}}, "required": ["agentType"]},
+      "if": {"properties": {"agentType": {"const": "doc-worker"}}, "required": ["agentType"]},
       "then": {"properties": {"payload": {"$ref": "#/$defs/docworkerPayload"}}}
     },
     {
-      "if": {"properties": {"agentType": {"const": "testgen"}}, "required": ["agentType"]},
+      "if": {"properties": {"agentType": {"const": "test-gen"}}, "required": ["agentType"]},
       "then": {"properties": {"payload": {"$ref": "#/$defs/testgenPayload"}}}
     },
     {
-      "if": {"properties": {"agentType": {"const": "codegen"}}, "required": ["agentType"]},
+      "if": {"properties": {"agentType": {"const": "code"}}, "required": ["agentType"]},
       "then": {"properties": {"payload": {"$ref": "#/$defs/codegenPayload"}}}
     },
     {

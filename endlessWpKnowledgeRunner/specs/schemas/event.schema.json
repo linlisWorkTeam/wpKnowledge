@@ -5,12 +5,12 @@
   "type": "object",
   "required": ["schemaVersion", "eventId", "eventType", "runId", "occurredAt", "causationId", "payload"],
   "properties": {
-    "schemaVersion": {"const": "1.0.0"},
+    "schemaVersion": {"const": "1.0"},
     "eventId": {"type": "string", "minLength": 1},
-    "eventType": {"enum": ["RunCreated", "NodeStarted", "ArtifactCommitted", "EvaluationCompleted", "CorrectionProposed", "GateDecided", "KnowledgePublished", "RunTerminated", "AccessDenied"]},
+    "eventType": {"enum": ["RunCreated", "RunStateChanged", "ArtifactCommitted", "GateDecided", "KnowledgePublished", "NodeCompleted", "NodeFailed", "AgentPromptConfigured", "WorkflowNodeStateChanged"]},
     "runId": {"type": "string", "minLength": 1},
     "occurredAt": {"type": "string", "format": "date-time"},
-    "causationId": {"type": "string", "minLength": 1},
+    "causationId": {"type": ["string", "null"], "minLength": 1},
     "payload": {"type": "object"}
   },
   "additionalProperties": false

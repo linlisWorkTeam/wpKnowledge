@@ -10,6 +10,12 @@ export type RunState = typeof RUN_STATES[number];
 export type GateOutcome = 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED';
 export type KnowledgeStatus = 'CANDIDATE' | 'VERIFIED' | 'LOW_CONFIDENCE' | 'SUPERSEDED';
 export type QualityOutcome = 'ACCEPTED' | 'REJECTED';
+export const DOMAIN_EVENT_TYPES = [
+  'RunCreated', 'RunStateChanged', 'ArtifactCommitted', 'GateDecided',
+  'KnowledgePublished', 'NodeCompleted', 'NodeFailed', 'AgentPromptConfigured',
+  'WorkflowNodeStateChanged',
+] as const;
+export type DomainEventType = typeof DOMAIN_EVENT_TYPES[number];
 
 export interface ArtifactRef {
   artifactId: string;
@@ -92,7 +98,7 @@ export interface GateDecision {
 
 export interface DomainEvent {
   eventId: string;
-  eventType: string;
+  eventType: DomainEventType;
   schemaVersion: '1.0';
   runId: string;
   occurredAt: string;
@@ -198,7 +204,7 @@ export function decideGate(
 
 export function createEvent(
   runId: string,
-  eventType: string,
+  eventType: DomainEventType,
   payload: Record<string, unknown>,
   now: string,
   causationId: string | null = null,
