@@ -9,6 +9,13 @@ const htmlPath = `${siteRoot}/index.html`;
 const html = readFileSync(htmlPath, 'utf8');
 const css = readFileSync(`${siteRoot}/styles.css`, 'utf8');
 const script = readFileSync(`${siteRoot}/app.js`, 'utf8');
+const release = JSON.parse(readFileSync(`${siteRoot}/release.json`, 'utf8')) as {
+  schemaVersion: number;
+  releaseId: string;
+  contentCommit: string;
+  evidenceRunId: string;
+  siteRoot: string;
+};
 
 function themeTokens(source: string, selector: string): Record<string, string> {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -53,6 +60,7 @@ function assertReadablePalette(
 test('GitHub Pages site is self-contained and project-path safe', () => {
   for (const path of [
     'index.html', 'styles.css', 'app.js', 'mark.svg', 'social-card.svg', '.nojekyll', 'README.md',
+    'release.json',
   ]) {
     assert.equal(existsSync(`${siteRoot}/${path}`), true, `missing site asset: ${path}`);
   }
@@ -72,6 +80,15 @@ test('GitHub Pages site is self-contained and project-path safe', () => {
       `missing local asset: ${match[1]}`,
     );
   }
+});
+
+test('public release marker binds the site to reviewed content and live evidence', () => {
+  assert.equal(release.schemaVersion, 1);
+  assert.match(release.releaseId, /^sdk-demo-\d{4}-\d{2}-\d{2}$/);
+  assert.match(release.contentCommit, /^[a-f0-9]{40}$/);
+  assert.match(release.evidenceRunId, /^[a-f0-9-]{36}$/);
+  assert.equal(release.siteRoot, siteRoot);
+  assert.ok(html.includes(release.evidenceRunId.slice(0, 8)), 'site must render the evidence Run');
 });
 
 test('project site exposes human and Agent onboarding without weakening trust gates', () => {

@@ -18,6 +18,7 @@ npm run site:serve
 - `styles.css`：深色/浅色主题、响应式布局和动效；
 - `app.js`：主题、导航、飞轮阶段、快速入门页签和复制；
 - `mark.svg`、`social-card.svg`：站点图标和分享卡片；
+- `release.json`：当前公开内容的发布标识、内容提交和演示证据 Run，供部署验收读取；
 - `dev-server.mjs`：无依赖的本地静态服务器。
 
 页面使用相对资源路径，可以部署在 GitHub Pages 的 `/wpKnowledge/` 项目子路径下。没有 CDN、第三方字体、统计脚本或后端请求。
