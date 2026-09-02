@@ -1,8 +1,17 @@
-# Knowledge Flywheel architecture
+# Knowledge Flywheel 架构
 
-## Boundary
+> 文档语言：中文是规范说明的默认语言。类名、接口名和状态值保留英文，方便与代码互查。
 
-The runtime uses a hexagonal dependency direction:
+<details lang="en">
+<summary>English summary</summary>
+
+wpKnowledge owns knowledge governance: `FlywheelRun`, evidence, `KnowledgeVersion`, the deterministic publication Gate and atomic publication. The embedded `domain-knowledge` module owns LangGraph execution, fan-out, loops, cancellation and graph checkpoints. Both layers share `runId`, but LangGraph state never becomes a second business registry. Only the wpKnowledge publication transaction may create a `VERIFIED` version.
+
+</details>
+
+## 架构边界
+
+运行时采用六边形依赖方向：
 
 ```text
 DSH / CLI / HTTP / Web Console
@@ -19,54 +28,60 @@ DSH / CLI / HTTP / Web Console
                   LangGraph infrastructure
 ```
 
-`packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. `infrastructure/domain-knowledge` implements the workflow port with LangGraph and remains a separately shaped module so its graph runtime can evolve without moving knowledge-governance rules into it. Architecture tests enforce these rules.
+`packages/domain` 不引入工作流 SDK、数据库、模型 Provider、编译器或特定语言类型。`packages/application` 只依赖领域层和 Port。`infrastructure/domain-knowledge` 用 LangGraph 实现工作流 Port，并保持独立模块形态。这样，图运行时可以继续演进，知识治理规则仍留在上层。架构契约测试会检查这些边界。
 
-`fw.mjs` is a compatibility facade at the CLI edge. The same component owns product specs, browser assets, the HTTP adapter, a read-only console projection, shared core packages, tests, and acceptance fixtures. `apps/runner/src/server.ts` is the sole HTTP implementation. All write paths delegate to the component's shared application services and therefore cannot own a second registry, lifecycle, score, workflow, or publication authority.
+`fw.mjs` 是 CLI 边缘的兼容门面。组件内统一维护产品 Spec、浏览器资源、HTTP Adapter、Console 只读投影、共享核心包、测试和验收 fixture。`apps/runner/src/server.ts` 是唯一 HTTP 实现。所有写路径都委派给共享 Application Service，不能另建 Registry、生命周期、评分、工作流或发布权威。
 
-## Two kinds of state
+## 两类状态
 
-The integration deliberately keeps two state models because they answer different questions:
+系统有意保留两套状态模型，因为它们回答的问题不同：
 
-- `FlywheelRun`, `KnowledgeVersion`, `EvaluationReport` and `PublicationReceipt` are business facts owned by wpKnowledge and persisted in the Registry.
-- LangGraph `GraphState` is execution control: current node, fan-out workers, route, attempts and resumable context. It is stored by the graph checkpointer and must not become a second knowledge or publication store.
+- `FlywheelRun`、`KnowledgeVersion`、`EvaluationReport` 和 `PublicationReceipt` 是 wpKnowledge 持有的业务事实，持久化在 Registry。
+- LangGraph `GraphState` 用于执行控制，记录当前节点、fan-out worker、路由、尝试次数和可恢复上下文。它由图 Checkpointer 保存，不能成为第二个知识库或发布库。
 
-Both use the same `runId` (`thread_id` in LangGraph). Every node transition is copied through `WorkflowObserver` into `WorkflowNodeProjection`; the Console reads that stable projection rather than opening the graph checkpoint database. Graph checkpoints support workflow recovery, while `GenerationKey`, CAS, Registry events and publication keys protect business side effects and audit history.
+两层共享同一个 `runId`，在 LangGraph 中对应 `thread_id`。节点状态通过 `WorkflowObserver` 写入 `WorkflowNodeProjection`；Console 读取稳定投影，不直接打开图的 checkpoint 数据库。图 checkpoint 负责恢复执行，`GenerationKey`、CAS、Registry Event 和 publication key 负责保护业务副作用与审计记录。
 
-The graph has a workflow routing gate for `iterate/rollback/pass/stopped`. A route to `pass` is only a request to the upper application layer: the deterministic knowledge publication gate remains authoritative and performs the atomic publish transaction.
+图中有一个工作流路由 Gate，处理 `ITERATE`、`ROLLBACK`、`PASS` 和 `STOPPED`。`PASS` 只表示向上层请求发布；真正有权决定发布的仍是 wpKnowledge 的确定性知识 Gate。
 
-## Agent customization boundary
+## Agent 定制边界
 
-The seven graph roles—Orchestrator, DocGen, DocWorker, TestGen, Code, Check and Review—have fixed identifiers, responsibilities, input/output contracts, topology and tool permissions in `infrastructure/domain-knowledge/src/agent-definitions.ts`. Operators can inspect all of them in the Console and maintain only a `promptAddon`. The runtime appends it to the versioned base prompt; it never replaces the base prompt or changes a node contract. Prompt changes are revisioned and audited by `AgentCatalogService`.
+七个图角色是 Orchestrator、DocGen、DocWorker、TestGen、Code、Check 和 Review。它们的标识、职责、输入输出契约、拓扑和工具权限固定在 `infrastructure/domain-knowledge/src/agent-definitions.ts`。
 
-## Knowledge lifecycle
+操作员可以在 Console 查看所有角色，但只能维护 `promptAddon`。运行时把追加提示词拼在有版本的基础提示词后面，不替换基础提示词，也不改变节点契约。`AgentCatalogService` 会记录提示词修订和审计信息。
 
-1. Ingestion commits Markdown bytes to CAS and creates a `CANDIDATE` version in SQLite.
-2. The deterministic Quality Gate reports structure, provenance, verification anchors and substance. `ACCEPTED` means the candidate is suitable for behavioral evaluation; it does not mean correct.
-3. A run moves through explicit monotonic states. An `EvaluationReport` binds test totals, critical failures, stability, toolchain fingerprint and immutable evidence artifacts. The report, Gate decision, review transition and their events commit in one transaction; an identical retry replays the same persisted result and a conflicting retry is rejected.
-4. The deterministic Gate returns `PASS`, `ITERATE`, `ROLLBACK` or `STOPPED`.
-5. Publication verifies CAS integrity and performs one SQLite transaction that updates the run, supersedes the previous verified version, verifies the new version, appends the event and creates the publication receipt.
+## 知识生命周期
 
-The real-source acceptance slice adds a `ProjectEvaluator` port. Its trusted local adapter resolves and archives an exact Git commit into a temporary workspace without changing the repository's current checkout, applies generated files only there, executes allowlisted tools without a shell, and commits the complete process evidence to CAS. DocGen/CodeGen/Review outputs are independently JSON-Schema validated; the checked-in scenario provider is deterministic test infrastructure, not evidence of live-model quality.
+1. 摄取流程把 Markdown 原始字节写入 CAS，并在 SQLite 创建 `CANDIDATE` 版本。
+2. 确定性 Quality Gate 检查结构、来源、验证锚点和内容是否充实。`ACCEPTED` 只表示候选可以进入行为评测，不表示内容正确。
+3. Run 按显式且单调的状态机前进。`EvaluationReport` 绑定测试总数、关键失败、稳定性、工具链指纹和不可变证据。评测报告、Gate 决定、Review 状态迁移及对应 Event 在同一事务提交。完全相同的重试会重放既有结果，输入冲突的重试会被拒绝。
+4. 确定性 Gate 返回 `PASS`、`ITERATE`、`ROLLBACK` 或 `STOPPED`。
+5. 发布流程先验证 CAS 完整性，再用一个 SQLite 事务更新 Run、将旧版本标为 superseded、把新版本标为 verified、追加 Event 并创建发布回执。
 
-## Persistence
+真实源码验收还定义了 `ProjectEvaluator` Port。本地受信 Adapter 会解析并归档指定 Git commit，在临时目录执行，不改变源码仓库当前 checkout。生成文件只写入临时目录；工具必须在白名单中，且不得经过 shell。完整进程证据最终写入 CAS。
 
-- Artifact ID is `sha256:<digest>` and must match the content digest.
-- CAS writes a temporary object, flushes it, renames it and verifies the committed bytes.
-- SQLite uses WAL and `synchronous=FULL`.
-- State, events, gate decisions and publication pointers are committed transactionally.
-- LangGraph writes execution checkpoints to `workflow/checkpoints.sqlite`; the Registry remains the only store for business facts and Console projections.
-- A `GenerationKey` identifies a node side effect. Re-execution returns the committed checkpoint output; a concurrent duplicate fails closed while the first execution is running, and a recorded failure may be retried without losing its retry count or event history.
-- Publication key is `moduleId:versionId:policyId`; repeated publication returns the existing receipt.
+DocGen、CodeGen 和 Review 输出会分别经过 JSON Schema 校验。仓库内置的场景 Provider 是确定性测试设施，不能用来证明 live 模型质量。
 
-## Security boundary
+## 持久化
 
-- Versioned `/api/v1` HTTP GET operations are read-only.
-- HTTP mutation is disabled unless `WP_KNOWLEDGE_WRITE_TOKEN` is configured and every request supplies the bearer token.
-- The token is a local trusted-operator boundary, not a complete subject/resource/action authorization matrix. The current evaluation endpoint records and validates submitted evidence metadata; it does not itself compile or execute code.
-- DSH accesses the versioned HTTP API and never launches Python or a shell.
-- The trusted project evaluator sanitizes its environment, rejects path traversal and symlink targets, caps time/output, and terminates process trees. These controls protect an acceptance run from accidental damage; a child process still shares the host kernel and is not safe for hostile code.
-- The core separately defines a Sandbox port. Until a real OS isolation adapter passes escape, network, filesystem and resource tests, untrusted C++ execution must fail closed.
+- Artifact ID 使用 `sha256:<digest>`，并且必须与内容摘要一致。
+- CAS 先写临时对象，flush 后重命名，再校验提交后的字节。
+- SQLite 使用 WAL 和 `synchronous=FULL`。
+- 状态、Event、GateDecision 和发布指针按事务提交。
+- LangGraph 把执行 checkpoint 写入 `workflow/checkpoints.sqlite`；Registry 仍是业务事实和 Console 投影的唯一存储。
+- `GenerationKey` 标识一次节点副作用。重复执行会返回已提交输出；首个执行尚在运行时，并发重复请求会 fail closed；失败记录可以重试，尝试次数和 Event 历史不会丢失。
+- publication key 为 `moduleId:versionId:policyId`；重复发布返回既有回执。
 
-## Runtime requirement
+<a id="security-boundary"></a>
 
-Node.js 24 or newer is required because the local adapter uses the built-in `node:sqlite` API. Runtime dependencies include the embedded LangGraph/checkpointer packages and `yaml` for one-time legacy OKF migration; normal knowledge storage uses JSON columns and CAS rather than YAML parsing.
+## 安全边界
+
+- `/api/v1` 下的 HTTP GET 操作只读。
+- 只有配置 `WP_KNOWLEDGE_WRITE_TOKEN` 且请求携带 Bearer token 时，HTTP 写接口才会启用。
+- token 只是本地受信操作员边界，不是完整的用户、资源和动作授权矩阵。当前评测接口负责记录并校验提交的证据元数据，不自行编译或执行代码。
+- DSH 只访问带版本的 HTTP API，不启动 Python 或 shell。
+- 受信项目评测器会净化环境、拒绝路径穿越和符号链接目标、限制时间与输出，并终止进程树。这些措施用于避免验收任务误伤宿主机；子进程仍共享宿主机内核，不能用来运行敌对代码。
+- 核心层另外定义了 Sandbox Port。真实 OS 隔离 Adapter 在通过逃逸、网络、文件系统和资源测试前，不受信的 C++ 执行必须 fail closed。
+
+## 运行要求
+
+本地 Adapter 使用内置 `node:sqlite` API，因此要求 Node.js 24 或更高版本。运行依赖包括内嵌 LangGraph/checkpointer 包，以及一次性迁移旧 OKF 所需的 `yaml`。正常知识存储使用 JSON 列和 CAS，不依赖 YAML 解析。

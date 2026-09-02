@@ -4,6 +4,13 @@
 
 本目录是 `endlessWpKnowledgeRunner` 的唯一规范性事实源。`KF-SYS-*` 使用独立命名空间，避免与历史 `mvp-flywheel/docs/` 中的 `SYS-*` 需求发生冲突。本文档定义需求、产品、架构、领域、工作流、Agent 契约、评测、安全与验收；实现进度由追踪矩阵明确标记。关键词“必须 / 不得 / 应当 / 可以”分别表示强制、禁止、推荐和可选。
 
+<details lang="en">
+<summary>English summary</summary>
+
+This directory is the normative source for Knowledge Flywheel behavior. Requirements use stable `KF-SYS-*` and `NFR-*` identifiers and must map to acceptance criteria, implementation units and tests. LangGraph controls execution; wpKnowledge remains authoritative for business state, evidence, publication gates and `VERIFIED` knowledge.
+
+</details>
+
 ## 阅读顺序与目录
 
 1. [术语表](glossary.md)

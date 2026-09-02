@@ -2,6 +2,13 @@
 
 本指南有两条路径。你可以自己运行命令，也可以把后面的 Prompt 交给 Agent，让它完成环境检查、安装、验证和启动。两条路径都不会伪造评测证据或自动发布 `VERIFIED` 知识。
 
+<details lang="en">
+<summary>English summary</summary>
+
+Install Git, Node.js 24+ and npm. Run `npm ci`, `npm run typecheck`, `npm run validate:specs` and `npm test`, then initialize the local runtime with `npm run knowledge -- init`. Start the read-only Console with `npm run knowledge:serve`. An Agent may perform these setup steps, but it must not weaken tests, fabricate evidence or manually turn `CANDIDATE` into `VERIFIED`.
+
+</details>
+
 ## 路径 A：使用者自己配置
 
 ### 1. 准备环境

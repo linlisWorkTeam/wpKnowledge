@@ -1,5 +1,12 @@
 # 安全策略
 
+<details lang="en">
+<summary>English summary</summary>
+
+Do not disclose exploitable details, credentials or tokens in public issues or pull requests. The Console is read-only by default. `WP_KNOWLEDGE_WRITE_TOKEN` is a trusted-operator boundary, not full RBAC, and must not be exposed over plain public HTTP. The trusted evaluator limits commands and resources but is not an OS sandbox for hostile code.
+
+</details>
+
 ## 支持范围
 
 当前项目处于 P0-B 实现验证阶段，安全修复面向默认分支和维护者明确指定的活动开发分支。历史 `mvp-flywheel/` 不作为受支持的生产运行时；如问题只存在于历史实现，报告中请明确标注。

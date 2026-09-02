@@ -432,6 +432,11 @@ button:focus-visible {
 
 .copy-toast { position: fixed; z-index: 90; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 10px 16px; border: 1px solid rgba(117, 231, 186, .4); border-radius: 8px; background: #10251f; color: #85e8c1; box-shadow: var(--shadow); font-size: .7rem; }
 
+.i18n-summary { max-width: 680px; margin-top: 20px; padding: 13px 16px; border: 1px solid var(--line-soft); border-radius: 10px; background: var(--surface-soft); color: var(--muted); }
+.i18n-summary summary { width: max-content; cursor: pointer; color: var(--cyan); font-family: var(--font-mono); font-size: .66rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.i18n-summary p { margin: 11px 0 0; font-size: .77rem; line-height: 1.7; }
+.i18n-summary code { color: var(--green); }
+
 .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
 .reveal.visible { opacity: 1; transform: none; }
 

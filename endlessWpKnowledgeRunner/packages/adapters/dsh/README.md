@@ -1,14 +1,21 @@
-# DeepSeek Harness adapter
+# DeepSeek Harness Adapter
 
-This adapter registers `wp_knowledge_*` tools against the authenticated Knowledge Flywheel HTTP API. It never launches Python or a shell, and it does not decide whether knowledge is verified.
+此 Adapter 把 `wp_knowledge_*` 工具注册到需要鉴权的 Knowledge Flywheel HTTP API。它不启动 Python 或 shell，也不判断知识是否可以发布。
 
-Configuration:
+<details lang="en">
+<summary>English summary</summary>
+
+The DSH adapter only translates `wp_knowledge_*` tool calls to the versioned HTTP API. It has no shell access and no publication authority. Read tools work without a write token; mutation tools fail closed when the token is missing.
+
+</details>
+
+配置：
 
 ```text
 WP_KNOWLEDGE_URL=http://127.0.0.1:4174
-WP_KNOWLEDGE_WRITE_TOKEN=<same token used by the runner>
+WP_KNOWLEDGE_WRITE_TOKEN=<与 Runner 相同的 token>
 ```
 
-Read tools work without a write token. `wp_knowledge_scan` can only inspect the server-configured acquisition roots. Candidate ingestion and feedback fail closed when the token is absent. DSH remains an adapter dependency; no DSH type enters `packages/domain` or `packages/application`.
+只读工具不需要写 token。`wp_knowledge_scan` 只能检查服务端预先配置的 acquisition root。未配置 token 时，候选摄取和反馈接口会 fail closed。
 
-The old timer-driven harvester was intentionally removed. Scheduling and recovery belong to the workflow layer, while this adapter only translates tool requests to versioned API calls.
+DSH 只存在于 Adapter 层；它的类型不能进入 `packages/domain` 或 `packages/application`。旧版基于定时器的 harvester 已删除。调度和恢复属于工作流层，这个 Adapter 只负责把工具请求转换为带版本的 API 调用。

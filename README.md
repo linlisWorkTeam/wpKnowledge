@@ -2,6 +2,15 @@
 
 > 让工程经验先经过真实执行，再进入可复用的知识库。
 
+<details lang="en">
+<summary>English summary</summary>
+
+wpKnowledge is an evidence-driven Knowledge Flywheel. Candidate knowledge is bound to provenance, exercised through generated implementations, evaluated independently and published only when the deterministic Gate returns `PASS`. The embedded LangGraph layer controls Agent execution; wpKnowledge remains authoritative for business state, evidence, knowledge versions and publication.
+
+Quick start: install Node.js 24+, run `npm ci`, `npm run typecheck`, `npm run validate:specs`, `npm test`, then `npm run knowledge:serve`.
+
+</details>
+
 [![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
 [项目网站](https://linlisworkteam.github.io/wpKnowledge/) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
@@ -91,6 +100,7 @@ npm run knowledge:serve
 | 理解产品界面和权限边界 | [前台产品设计](endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md) |
 | 理解架构和知识生命周期 | [架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md) |
 | 修改代码或 Spec | [贡献指南](CONTRIBUTING.md)与[开发指南](endlessWpKnowledgeRunner/docs/DEVELOPMENT.md) |
+| 编写或翻译文档 | [文档语言与 I18n 约定](endlessWpKnowledgeRunner/docs/DOCUMENTATION-I18N.md) |
 | 知道文件应该放在哪里 | [仓库目录规则](endlessWpKnowledgeRunner/docs/REPOSITORY-GUIDE.md) |
 | 运行分层测试 | [测试策略](endlessWpKnowledgeRunner/docs/TESTING.md) |
 | 部署、验收或排障 | [运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md) |

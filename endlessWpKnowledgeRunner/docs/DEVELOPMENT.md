@@ -70,7 +70,7 @@ CLI / HTTP / DSH / Web projection
 
 ### 大规模特性
 
-任何跨层特性都要逐项检查 Console、GitHub Pages 静态网站、工程文档、Spec、追踪矩阵和验收证据。若某个界面不受影响，也要在 PR 说明原因；不能只更新代码，让对外说明与实现分叉。
+任何跨层特性都要逐项检查 Console、GitHub Pages 静态网站、工程文档、Spec、追踪矩阵和验收证据。若某个界面不受影响，也要在 PR 说明原因；不能只更新代码，让对外说明与实现分叉。新增或重写文档时还要遵循[文档语言与 I18n 约定](DOCUMENTATION-I18N.md)。
 
 ## 配置与调试
 
@@ -93,6 +93,7 @@ CLI / HTTP / DSH / Web projection
 - Domain/Application/Adapter 实现；
 - 正常、失败、重试或权限边界测试；
 - 用户、开发或运维文档；
+- 中文主文与关键 English summary 没有能力口径冲突；
 - Console 与 GitHub Pages 的产品表达（适用时）；
 - PR 中可复现的实际验证结果。
 

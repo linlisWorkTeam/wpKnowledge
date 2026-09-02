@@ -2,6 +2,13 @@
 
 感谢参与 wpKnowledge。这个仓库以 Spec 驱动、证据可追踪和目录边界稳定为基本协作约定。
 
+<details lang="en">
+<summary>English summary</summary>
+
+Start from the current default branch and keep one pull request focused on one problem. Behavioral changes must update the relevant Spec, implementation, tests and traceability matrix together. Documentation is Chinese-first; key entry documents include a concise English summary. Run `npm run typecheck`, `npm run validate:specs` and `npm test` before requesting review.
+
+</details>
+
 ## 开始之前
 
 1. 先阅读根目录 [`README.md`](README.md)，确认当前能力和安全边界。
@@ -36,6 +43,7 @@
 - 外部来源使用可核对链接；关键源码证据优先固定 commit。
 - 不把计划写成已实现能力，也不把 deterministic fixture 写成 live-model 质量证明。
 - 调整文件位置时修复所有相对链接，并运行完整文档契约测试。
+- 解释性文字默认使用中文；关键内容按[文档语言与 I18n 约定](endlessWpKnowledgeRunner/docs/DOCUMENTATION-I18N.md)补简短 English summary，不维护无人校验的全文镜像。
 
 ## 本地验证
 

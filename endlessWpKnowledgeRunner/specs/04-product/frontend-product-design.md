@@ -492,6 +492,7 @@ sequenceDiagram
 | KF-UI-014 | P0 | Agents 页面必须显示全部 Agent 的固定职责、输入输出、基础提示词和追加提示词；每次 Run 中的 Agent 节点状态在 Run 工作台显示。 | AC-UI-014 |
 | KF-UI-015 | P0 | 治理模式只能修改 Agent 的追加提示词；服务端必须拒绝任何拓扑、职责、Schema、Provider 实现或权限替换。 | AC-UI-015 |
 | KF-UI-016 | P0 | Run 工作台必须显示 LangGraph 节点投影，并明确区分执行状态与 FlywheelRun 业务状态。 | AC-UI-016 |
+| KF-UI-017 | P1 | 项目官网和 Console 的默认语言必须是中文；官网关键产品摘要应提供带 `lang="en"` 语义的英文版本，代码标识符、API 和状态值不得翻译。 | AC-UI-017 |
 
 ### 12.1 验收场景
 
@@ -513,6 +514,7 @@ sequenceDiagram
 | AC-UI-014 | Given 已启动或未启动工作流，When 打开 Agents 页面和 Run 工作台，Then 七类 Agent 均可查阅，固定契约与可编辑提示词分离，节点状态按 runId 展示。 |
 | AC-UI-015 | Given 有效写 token，When 保存 promptAddon，Then 后续执行使用该值并产生审计；When 请求包含 role、inputs、outputs、tools 或 edges，Then 服务端拒绝。 |
 | AC-UI-016 | Given LangGraph 正在运行，When 打开 Run 工作台，Then 页面从 wpKnowledge 节点投影显示 pending/running/completed/failed，不把 graph route 当成知识发布状态。 |
+| AC-UI-017 | Given 中文或英文读者打开项目官网，When 阅读首屏，Then 页面默认显示完整中文叙述，并能展开关键英文摘要；页面语言、英文区域和状态/API 标识具有正确语义。 |
 
 ## 13. 实施阶段
 

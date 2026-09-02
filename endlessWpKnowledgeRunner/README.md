@@ -2,6 +2,13 @@
 
 `endlessWpKnowledgeRunner` 是 wpKnowledge 当前 Knowledge Flywheel 的完整组件根目录。运行代码、产品控制台、Spec、验收 fixture、测试和运行文档在这里共同演进；仓库根目录只保留工作区入口和跨项目协作文件。
 
+<details lang="en">
+<summary>English summary</summary>
+
+This directory is the complete Knowledge Flywheel component. It contains the TypeScript runtime, embedded LangGraph infrastructure, Console, specs, acceptance fixtures and tests. wpKnowledge owns governance and publication; `domain-knowledge` owns workflow execution. The current automated ohMyWorkPanel path uses deterministic Agent fixtures and must not be presented as live-model quality evidence.
+
+</details>
+
 ## 它负责什么
 
 - 把 Markdown 或项目经验摄取为带来源的 `CANDIDATE`；

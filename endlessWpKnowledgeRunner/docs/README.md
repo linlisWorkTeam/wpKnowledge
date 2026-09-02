@@ -11,6 +11,7 @@
 | 搭建开发环境和实现变更 | [DEVELOPMENT.md](DEVELOPMENT.md) | 贡献者、Agent |
 | 选择测试层级和提交证据 | [TESTING.md](TESTING.md) | 贡献者、评审者 |
 | 确定目录和文件归属 | [REPOSITORY-GUIDE.md](REPOSITORY-GUIDE.md) | 所有贡献者 |
+| 编写中文主文档与英文摘要 | [DOCUMENTATION-I18N.md](DOCUMENTATION-I18N.md) | 所有贡献者、Agent |
 | 摄取、评测、发布、验收和部署 | [OPERATIONS.md](OPERATIONS.md) | 操作员、维护者 |
 | 从旧 Runner 迁移 | [MIGRATION.md](MIGRATION.md) | 旧版本使用者 |
 | 本地预览或发布项目官网 | [site/README.md](../site/README.md) | 维护者 |
@@ -37,3 +38,4 @@
 3. 命令必须从仓库根目录可执行，并注明额外前提。
 4. 相对链接必须通过 `component-layout` 契约测试。
 5. 不在仓库根目录创建第二个 `docs/`；组件相关文档全部留在本目录。
+6. 解释性文字以中文为主；关键入口按 [I18n 约定](DOCUMENTATION-I18N.md)提供 English summary。

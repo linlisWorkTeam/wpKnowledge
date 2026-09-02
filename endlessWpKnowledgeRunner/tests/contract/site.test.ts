@@ -101,6 +101,17 @@ test('project site exposes human and Agent onboarding without weakening trust ga
   }
 });
 
+test('documentation surfaces are Chinese-first with semantic English summaries', () => {
+  const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
+  assert.match(html, /<html lang="zh-CN">/);
+  assert.match(consoleHtml, /<html lang="zh-CN">/);
+  assert.match(html, /<meta property="og:locale" content="zh_CN">/);
+  assert.match(html, /<meta property="og:locale:alternate" content="en_US">/);
+  assert.match(html, /<details class="i18n-summary" lang="en">/);
+  assert.match(html, /<summary>English summary<\/summary>/);
+  assert.match(css, /\.i18n-summary/);
+});
+
 test('site and Console expose the embedded workflow boundary and prompt-only Agent customization', () => {
   const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
   const consoleScript = readFileSync('endlessWpKnowledgeRunner/web/app.js', 'utf8');

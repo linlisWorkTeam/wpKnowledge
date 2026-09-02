@@ -1,6 +1,15 @@
-# Knowledge Flywheel operations
+# Knowledge Flywheel 运维手册
 
-## Local initialization
+> 中文是本文默认语言。命令、环境变量、API 路径和状态值保留英文。
+
+<details lang="en">
+<summary>English summary</summary>
+
+Initialize the local SQLite/CAS runtime with `knowledge init`, ingest candidates, attach independently produced evaluation evidence, and publish only with a persisted `PASS` decision. The Console is read-only by default. HTTP mutations require `WP_KNOWLEDGE_WRITE_TOKEN`; do not expose them over plain public HTTP.
+
+</details>
+
+## 本地初始化
 
 ```powershell
 npm install
@@ -10,9 +19,9 @@ npm run knowledge -- scan
 npm run knowledge -- list --status CANDIDATE
 ```
 
-Use `WP_FLYWHEEL_HOME` to place SQLite/CAS outside the default `.workpanel/` directory.
+设置 `WP_FLYWHEEL_HOME` 可以把 SQLite/CAS 放到默认 `.workpanel/` 以外的目录。
 
-## Add a candidate
+## 添加候选知识
 
 ```powershell
 npm run knowledge -- ingest `
@@ -21,15 +30,15 @@ npm run knowledge -- ingest `
   --source knowledge/inbox/example.md `
   --source-commit <commit> `
   --pinned `
-  --title "Example knowledge" `
-  --description "Why this knowledge is reusable"
+  --title "示例知识" `
+  --description "说明这条知识为什么可以复用"
 ```
 
-The result contains a `quality` report and a KnowledgeVersion whose status is still `CANDIDATE`.
+命令返回质量报告和 `KnowledgeVersion`，此时状态仍是 `CANDIDATE`。
 
-## Behavioral evaluation and publication
+## 行为评测与发布
 
-The general `evaluate` command remains a trusted report-ingestion adapter: it records supplied evidence but does not launch a process. Operators must only submit results produced by an independently controlled evaluator.
+通用 `evaluate` 命令是受信报告摄取 Adapter：它记录外部提交的证据，但不启动进程。操作员只能提交由独立受控评测器产生的结果。
 
 ```powershell
 npm run knowledge -- create-run --module example-module --policy local-v1
@@ -53,11 +62,13 @@ npm run knowledge -- publish `
   --decision <pass-decision-id>
 ```
 
-Recording an evaluation atomically stores the report and Gate decision while moving the run from `EVALUATING` to `REVIEWING`; this applies equally to CLI and HTTP callers. An exact retry returns the original report and decision without adding events, while a retry with different inputs fails closed as a replay collision. The CLI rejects publication when the decision is not PASS, evidence belongs to another run/version, provenance is absent, or the body artifact fails integrity verification.
+记录评测时，系统会在同一事务保存报告和 GateDecision，并把 Run 从 `EVALUATING` 推进到 `REVIEWING`。CLI 和 HTTP 遵循同一规则。完全相同的重试返回原报告与决定，不新增 Event；输入不同的重试会因 replay collision 而 fail closed。
 
-## Fixed-commit real-source acceptance
+出现以下任一情况，CLI 都会拒绝发布：GateDecision 不是 `PASS`、证据属于其他 Run 或版本、缺少 provenance，或者正文 Artifact 完整性校验失败。
 
-The project acceptance command exercises the full two-iteration flow against a clean archive of a pinned ohMyWorkPanel commit. It proves the reference gate, an intentionally failing first generation, structured Correction, incremental knowledge revision, fresh code generation, independent process evaluation, deterministic PASS and idempotent publication.
+## 固定 commit 的真实源码验收
+
+项目验收命令会对固定的 ohMyWorkPanel commit 运行完整两轮流程。它验证 reference gate、首轮故意失败、结构化 Correction、知识增量修订、fresh 代码生成、独立进程评测、确定性 `PASS` 和幂等发布。
 
 ```powershell
 npm run acceptance:ohmyworkpanel -- `
@@ -66,11 +77,15 @@ npm run acceptance:ohmyworkpanel -- `
   --output summary
 ```
 
-The source repository must contain the exact commit pinned in `endlessWpKnowledgeRunner/acceptance/ohmyworkpanel/scenario.json`; a missing or non-exact object fails closed. The current branch may advance: the report distinguishes its checkout HEAD from the archived acceptance commit and never checks out or modifies either. The evaluator uses `git archive`, writes generated files only into a temporary directory, permits only `node`, `pnpm` and `cargo`, avoids shell execution, sanitizes inherited environment variables, enforces command timeout/output limits, and stores tool versions, redacted argv, exit status and redacted output in CAS. The checked-in Agent provider replays schema-validated fixtures, so this command validates orchestration and execution—not live GLM/DeepSeek quality. It is also not an OS sandbox; run it only against trusted source and generated code.
+源码仓库必须包含 `endlessWpKnowledgeRunner/acceptance/ohmyworkpanel/scenario.json` 固定的 commit；对象缺失或不一致时会 fail closed。当前分支可以继续前进：报告会区分 checkout HEAD 和归档验收 commit，整个过程不会 checkout 或修改源码仓库。
 
-## Embedded LangGraph workflow
+评测器使用 `git archive`，生成文件只写临时目录；可执行工具限于 `node`、`pnpm` 和 `cargo`。它不经过 shell，会净化继承环境、限制命令时间与输出，并把工具版本、脱敏 argv、退出状态和脱敏输出保存到 CAS。
 
-The production-shaped entrypoint uses the same fixed ohMyWorkPanel scenario but runs it through the embedded `domain-knowledge` LangGraph infrastructure:
+仓库内置 Agent Provider 重放经过 schema 校验的 fixture。因此，这条命令证明的是编排和执行路径，不是 live GLM/DeepSeek 模型质量。它也不是 OS 沙箱，只能用于受信源码与生成代码。
+
+## 内嵌 LangGraph 工作流
+
+面向生产形态的入口使用同一个固定 ohMyWorkPanel 场景，但通过内嵌 `domain-knowledge` LangGraph 基础设施运行：
 
 ```bash
 npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
@@ -79,53 +94,62 @@ npm run knowledge -- workflow-resume --run <run-id>
 npm run knowledge -- workflow-cancel --run <run-id>
 ```
 
-LangGraph stores execution checkpoints under `$WP_FLYWHEEL_HOME/workflow/checkpoints.sqlite`. Do not treat this file as a business registry or expose it to the browser. The wpKnowledge SQLite Registry remains authoritative for `FlywheelRun`, Agent prompt revisions, node projections, knowledge versions, evaluation reports, events and publication receipts. Both layers correlate on `runId`.
+LangGraph 把执行 checkpoint 写到 `$WP_FLYWHEEL_HOME/workflow/checkpoints.sqlite`。不要把它当作业务 Registry，也不要暴露给浏览器。wpKnowledge SQLite Registry 仍持有 `FlywheelRun`、Agent prompt revision、节点投影、知识版本、评测报告、Event 和发布回执。两层用 `runId` 关联。
 
-The fixed graph always owns role duties, input/output contracts, topology and tools. Operators can inspect all roles with `npm run knowledge -- agents` and change only an appended prompt with `set-agent-prompt`. The HTTP equivalent is `PUT /api/v1/agents/:agentId/prompt` with the normal bearer token and the exact body `{ "promptAddon": "..." }`; extra fields fail closed.
+图角色的职责、输入输出契约、拓扑和工具固定。操作员可用 `npm run knowledge -- agents` 查看全部角色，只能通过 `set-agent-prompt` 修改追加提示词。对应 HTTP 接口是 `PUT /api/v1/agents/:agentId/prompt`，需要正常 Bearer token，body 必须严格为 `{ "promptAddon": "..." }`；额外字段会 fail closed。
 
-## Legacy Runner compatibility
+## 旧 Runner 兼容
 
-Existing automation can invoke `node endlessWpKnowledgeRunner/fw.mjs`. Supported commands delegate directly to the new CLI and share `WP_FLYWHEEL_HOME`; `--root` is rejected so callers cannot accidentally select a parallel store. Removed score/eval/harvest semantics fail explicitly. See `endlessWpKnowledgeRunner/README.md` for the mapping.
+已有自动化可以继续调用 `node endlessWpKnowledgeRunner/fw.mjs`。受支持的命令会直接委派给新 CLI，并共享 `WP_FLYWHEEL_HOME`。`--root` 会被拒绝，防止调用方误选另一套存储。已删除的 score/eval/harvest 语义会明确失败。命令映射见[组件首页](../README.md)。
 
-## Dashboard and API
+<a id="dashboard-and-api"></a>
+
+## Dashboard 与 API
 
 ```powershell
 $env:WP_KNOWLEDGE_WRITE_TOKEN = '<local-secret>'
 npm run knowledge:serve
 ```
 
-Open `http://127.0.0.1:4174`. Read endpoints do not require credentials. Mutation endpoints require `Authorization: Bearer <local-secret>`; with no configured token, writes return `503 WRITE_API_DISABLED`.
+打开 <http://127.0.0.1:4174>。只读接口不要求凭据；写接口要求 `Authorization: Bearer <local-secret>`。未配置 token 时，写请求返回 `503 WRITE_API_DISABLED`。
 
-For an explicitly public, read-only deployment, override the configured listener without enabling the write token:
+如需明确部署为公网只读服务，可覆盖监听地址，但不要设置写 token：
 
 ```bash
 WP_KNOWLEDGE_HOST=0.0.0.0 WP_KNOWLEDGE_PORT=80 npm run knowledge:serve
 ```
 
-Then open `http://<server-public-ip>/`. The cloud security group must allow inbound TCP traffic to the selected port. Prefer restricting the source CIDR to the operator's IP; do not expose mutation endpoints over plain HTTP. Use a TLS reverse proxy before enabling `WP_KNOWLEDGE_WRITE_TOKEN` on any non-local interface.
+随后打开 `http://<server-public-ip>/`。云安全组需要放行所选端口的 TCP 入站流量，建议把来源 CIDR 限制到操作员 IP。不要在明文 HTTP 上暴露写接口；任何非本地监听在启用 `WP_KNOWLEDGE_WRITE_TOKEN` 前都应先配置 TLS 反向代理。
 
-The product console provides Overview, Runs, Knowledge, Governance, Evidence, Agents and Settings views. Run observation uses `GET /api/v1/runs`, `GET /api/v1/runs/:runId`, `GET /api/v1/runs/:runId/workflow-nodes` and the ordered event tail at `GET /api/v1/runs/:runId/events?after=<event-seq>`. Agent metadata is available at `GET /api/v1/agents`. The browser remains read-only by default; the operator token is held only in current-page memory. With that token it can start the fixed ohMyWorkPanel workflow and edit `promptAddon`; it never simulates orchestration by chaining raw transitions or edits graph contracts.
+Console 提供概览、Runs、Knowledge、Governance、Evidence、Agents 和 Settings。Run 观察使用以下接口：
 
-The stable local API prefix is `/api/v1`. `/health` remains unversioned for process probes.
+- `GET /api/v1/runs`
+- `GET /api/v1/runs/:runId`
+- `GET /api/v1/runs/:runId/workflow-nodes`
+- `GET /api/v1/runs/:runId/events?after=<event-seq>`
+
+Agent 元数据来自 `GET /api/v1/agents`。浏览器默认只读，操作员 token 仅保存在当前页面内存。持有 token 后，前台可以启动固定 ohMyWorkPanel 工作流和编辑 `promptAddon`；它不会通过串接原始状态迁移来模拟编排，也不能修改图契约。
+
+稳定的本地 API 前缀是 `/api/v1`，进程探针 `/health` 不加版本。
 
 ## DSH
 
-Mount `packages/adapters/dsh/src/index.ts` as a normal Cordis plugin and configure:
+把 `packages/adapters/dsh/src/index.ts` 作为普通 Cordis plugin 挂载，并配置：
 
 ```text
 WP_KNOWLEDGE_URL=http://127.0.0.1:4174
 WP_KNOWLEDGE_WRITE_TOKEN=<local-secret>
 ```
 
-The adapter registers `wp_knowledge_query`, `wp_knowledge_status`, `wp_knowledge_scan`, `wp_knowledge_ingest_candidate` and `wp_knowledge_feedback`. It has no shell dependency and cannot publish knowledge. Scan roots are fixed in `runner.config.json`; callers cannot request arbitrary filesystem paths.
+Adapter 注册 `wp_knowledge_query`、`wp_knowledge_status`、`wp_knowledge_scan`、`wp_knowledge_ingest_candidate` 和 `wp_knowledge_feedback`。它不依赖 shell，也不能发布知识。scan root 固定在 `runner.config.json`，调用方不能指定任意文件系统路径。
 
-## GitHub Pages project site
+## GitHub Pages 项目网站
 
-The project website is a separate static surface. It explains the product and links to documentation, but never connects to the local Registry or mutation API.
+项目网站是单独的静态页面，只介绍产品并链接文档，不连接本地 Registry 或写 API。
 
 ```bash
 npm run site:check
 npm run site:serve
 ```
 
-Open <http://127.0.0.1:4175>. After merge to `main`, `.github/workflows/pages.yml` publishes `endlessWpKnowledgeRunner/site/`. A repository administrator must select **GitHub Actions** as the Pages source once in Settings → Pages. The expected public URL is <https://linlisworkteam.github.io/wpKnowledge/>.
+打开 <http://127.0.0.1:4175>。合并到 `main` 后，`.github/workflows/pages.yml` 会发布 `endlessWpKnowledgeRunner/site/`。仓库管理员需要在 Settings → Pages 中将来源选为 **GitHub Actions**。预期公网地址是 <https://linlisworkteam.github.io/wpKnowledge/>。

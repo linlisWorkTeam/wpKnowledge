@@ -1,12 +1,19 @@
-# domain-knowledge infrastructure
+# domain-knowledge 基础设施层
 
-This directory contains the embedded LangGraph execution layer used by the Knowledge Flywheel. It is intentionally kept separate from `packages/domain` and `packages/application` so the graph runtime, AgentRunner providers, workspace policy and checkpoint implementation can evolve without making LangGraph a knowledge-governance dependency.
+本目录保存 Knowledge Flywheel 内嵌的 LangGraph 执行层。它与 `packages/domain`、`packages/application` 分开维护，使图运行时、AgentRunner Provider、工作区策略和 checkpoint 实现能够独立演进，同时避免 LangGraph 变成知识治理依赖。
 
-Ownership is strict:
+<details lang="en">
+<summary>English summary</summary>
 
-- this module owns graph topology, parallel execution, loops, execution routing and graph checkpoints;
-- wpKnowledge owns FlywheelRun, KnowledgeVersion, evaluation evidence, publication decisions and public APIs;
-- graph node status is emitted through `WorkflowObserver`; the Console never reads the LangGraph SQLite schema directly;
-- Agent definitions are fixed in code. The only UI-customizable value is `promptAddon`.
+This module owns LangGraph execution: topology, parallel workers, loops, routing and graph checkpoints. wpKnowledge owns business facts, evidence, publication decisions and public APIs. The Console reads projected node status through `WorkflowObserver`; it never reads LangGraph SQLite directly.
 
-The code is derived from the `domain-knowledge` LangGraph spike and adapted to the wpKnowledge ports. Do not add a second knowledge store, publication registry or HTTP server here.
+</details>
+
+职责边界是固定的：
+
+- 本模块负责图拓扑、并行执行、循环、执行路由和图 checkpoint。
+- wpKnowledge 负责 `FlywheelRun`、`KnowledgeVersion`、评测证据、发布决定和公共 API。
+- 图节点状态通过 `WorkflowObserver` 输出；Console 不直接读取 LangGraph SQLite schema。
+- Agent 定义固定在代码中，前台只允许修改 `promptAddon`。
+
+这里的代码来自 `domain-knowledge` LangGraph spike，并已适配 wpKnowledge Port。不要在本目录新增第二套知识存储、发布 Registry 或 HTTP Server。

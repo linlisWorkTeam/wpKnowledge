@@ -27,6 +27,7 @@
 | KF-SYS-021 | AC-AGENT-003 | Implemented | infrastructure/domain-knowledge/src/agent-definitions.ts + packages/application/src/workflow-control.ts + web/app.js | tests/integration/server.test.ts + tests/contract/site.test.ts |
 | KF-SYS-022 | AC-E2E-002 | Implemented | packages/application/src/automated-project-workflow.ts + infrastructure/domain-knowledge/src/graph.ts | tests/acceptance/automated-langgraph-flow.test.ts |
 | KF-SYS-023 | AC-DOC-002 | Implemented | web + site + docs + specs + docs/DEVELOPMENT.md completion rule | tests/contract/site.test.ts + tests/contract/component-layout.test.ts |
+| KF-SYS-024 | AC-DOC-003 | Implemented | docs/DOCUMENTATION-I18N.md + repository documentation | tests/contract/component-layout.test.ts + tests/contract/site.test.ts |
 | NFR-001 | AC-SEC-002 | Partial | apps/runner/src/server.ts | tests/integration/server.test.ts |
 | NFR-002 | AC-REC-001 | Partial | checkpoints + publication transaction | tests/integration/sqlite-cas.test.ts |
 | NFR-003 | AC-REC-002 | Implemented | GenerationKey and publication key | tests/integration/sqlite-cas.test.ts + tests/acceptance/publication-flow.test.ts |

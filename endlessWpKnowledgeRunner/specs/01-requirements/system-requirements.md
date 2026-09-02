@@ -27,6 +27,7 @@
 | KF-SYS-021 | P0 | 系统必须展示全部 Agent 的固定职责、输入、输出和基础提示词，并只允许受信操作者修改追加提示词；拓扑、职责、Schema 和工具权限不得由前台替换。 | AC-AGENT-003 |
 | KF-SYS-022 | P0 | 自动工作流必须以 ohMyWorkPanel 固定场景证明 LangGraph 执行、节点可观察、失败迭代、真实项目评测与 KnowledgeVersion 原子发布协同有效。 | AC-E2E-002 |
 | KF-SYS-023 | P1 | 大规模特性变更必须同时评估并更新 Console、GitHub Pages、工程文档、Spec、追踪矩阵和验收证据。 | AC-DOC-002 |
+| KF-SYS-024 | P1 | 仓库解释性文档必须以中文为主；项目目标、快速启动、架构边界、安全限制和贡献入口等关键内容必须提供结构化 English summary，代码标识符和协议值保持源码拼写。 | AC-DOC-003 |
 
 ## P0-B Spike（P0-A 后独立开展）
 

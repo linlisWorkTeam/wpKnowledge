@@ -68,6 +68,7 @@ ohMyWorkPanel 相关研究、PR 评审和证据统一放在 `knowledge/3.workpan
 3. 移动文件必须同时更新 import、npm script、tsconfig、Spec、测试和 Markdown 相对链接。
 4. 运行数据、外部检出、生成产物和临时报告不进入受版本控制的产品目录。
 5. `component-layout` 契约测试负责阻止已收敛目录再次散落到根级。
+6. 文档解释性文字以中文为主；关键入口使用相邻 English summary，不建立无人校验的全文镜像。具体格式见[文档语言与 I18n 约定](DOCUMENTATION-I18N.md)。
 
 ## 命名
 
