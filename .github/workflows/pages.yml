@@ -6,11 +6,11 @@ on:
       - main
     paths:
       - endlessWpKnowledgeRunner/site/**
+      - index.html
       - .github/workflows/pages.yml
   workflow_dispatch:
 
 permissions:
-  actions: read
   contents: read
   pages: write
   id-token: write
@@ -23,14 +23,14 @@ jobs:
   deploy:
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: https://linlisworkteam.github.io/wpKnowledge/
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
 
-      - name: Select GitHub Actions as Pages source
+      - name: Detect GitHub Pages source
         id: pages-source
         env:
           GH_TOKEN: ${{ github.token }}
@@ -39,58 +39,31 @@ jobs:
           set -euo pipefail
           pages_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"
           current_build_type="$(
-            curl --fail-with-body --silent --show-error \
+            curl --silent --show-error \
               --header "Accept: application/vnd.github+json" \
               --header "Authorization: Bearer ${GH_TOKEN}" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
-              "${pages_api}" | jq -r '.build_type // "legacy"'
+              "${pages_api}" | jq -r '.build_type // "legacy"' 2>/dev/null || echo legacy
           )"
           if [ "${current_build_type}" = "workflow" ]; then
-            echo "changed=false" >> "${GITHUB_OUTPUT}"
+            echo "deploy=true" >> "${GITHUB_OUTPUT}"
             exit 0
           fi
-          curl --fail-with-body --silent --show-error \
-            --request PUT \
-            --header "Accept: application/vnd.github+json" \
-            --header "Authorization: Bearer ${GH_TOKEN}" \
-            --header "X-GitHub-Api-Version: 2022-11-28" \
-            --data '{"build_type":"workflow"}' \
-            "${pages_api}" >/dev/null
-          echo "changed=true" >> "${GITHUB_OUTPUT}"
+          echo "deploy=false" >> "${GITHUB_OUTPUT}"
+          echo "::notice::Pages Source is ${current_build_type}; the legacy Jekyll publisher will render the root compatibility entrypoint."
 
       - name: Configure Pages
+        if: steps.pages-source.outputs.deploy == 'true'
         uses: actions/configure-pages@v6
 
       - name: Upload static site
+        if: steps.pages-source.outputs.deploy == 'true'
         uses: actions/upload-pages-artifact@v5
         with:
           path: endlessWpKnowledgeRunner/site
           include-hidden-files: true
 
-      - name: Wait for legacy Pages deployment to drain
-        if: steps.pages-source.outputs.changed == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          runs_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/actions/runs?head_sha=${GITHUB_SHA}&per_page=100"
-          for attempt in $(seq 1 24); do
-            legacy_active="$(
-              curl --fail-with-body --silent --show-error \
-                --header "Accept: application/vnd.github+json" \
-                --header "Authorization: Bearer ${GH_TOKEN}" \
-                --header "X-GitHub-Api-Version: 2022-11-28" \
-                "${runs_api}" | jq '[.workflow_runs[] | select(.path == "dynamic/pages/pages-build-deployment" and .status != "completed")] | length'
-            )"
-            if [ "${legacy_active}" -eq 0 ]; then
-              exit 0
-            fi
-            sleep 5
-          done
-          echo "Legacy Pages deployment did not finish within 120 seconds." >&2
-          exit 1
-
       - name: Deploy to GitHub Pages
+        if: steps.pages-source.outputs.deploy == 'true'
         id: deployment
         uses: actions/deploy-pages@v5

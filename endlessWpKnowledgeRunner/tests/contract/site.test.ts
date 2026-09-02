@@ -201,7 +201,15 @@ test('project site and Console implement separate light and dark themes', () => 
   assertReadablePalette(consoleLight, ['text', 'muted', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console light');
 });
 
-test('Pages workflow deploys only the static site directory', () => {
+test('legacy Pages root is a thin adapter over the component-owned site', () => {
+  const rootEntry = readFileSync('index.html', 'utf8');
+  assert.match(rootEntry, /include_relative endlessWpKnowledgeRunner\/site\/index\.html/);
+  assert.match(rootEntry, /href="\.\/endlessWpKnowledgeRunner\/site\//);
+  assert.match(rootEntry, /src="\.\/endlessWpKnowledgeRunner\/site\//);
+  assert.ok(rootEntry.length < 1_000, 'root entry must not become a second copy of the site');
+});
+
+test('Pages workflow deploys the static directory only for an Actions source', () => {
   const workflow = readFileSync('.github/workflows/pages.yml', 'utf8');
   const config = YAML.parse(workflow);
   const steps = config.jobs.deploy.steps as Array<{
@@ -214,20 +222,22 @@ test('Pages workflow deploys only the static site directory', () => {
   }>;
   assert.deepEqual(config.on.push.branches, ['main']);
   assert.deepEqual(config.permissions, {
-    actions: 'read', contents: 'read', pages: 'write', 'id-token': 'write',
+    contents: 'read', pages: 'write', 'id-token': 'write',
   });
   const sourceStep = steps.find((step) => step.id === 'pages-source');
   assert.match(sourceStep?.run ?? '', /\/repos\/\$\{GITHUB_REPOSITORY\}\/pages/);
-  assert.match(sourceStep?.run ?? '', /\{"build_type":"workflow"\}/);
-  const drainStep = steps.find((step) => step.name === 'Wait for legacy Pages deployment to drain');
-  assert.equal(drainStep?.if, "steps.pages-source.outputs.changed == 'true'");
-  assert.match(drainStep?.run ?? '', /dynamic\/pages\/pages-build-deployment/);
-  assert.equal(steps.find((step) => step.uses === 'actions/configure-pages@v6')?.uses, 'actions/configure-pages@v6');
+  assert.doesNotMatch(sourceStep?.run ?? '', /--request PUT/);
+  assert.match(sourceStep?.run ?? '', /deploy=false/);
+  const configureStep = steps.find((step) => step.uses === 'actions/configure-pages@v6');
+  assert.equal(configureStep?.if, "steps.pages-source.outputs.deploy == 'true'");
+  const uploadStep = steps.find((step) => step.uses === 'actions/upload-pages-artifact@v5');
+  assert.equal(uploadStep?.if, "steps.pages-source.outputs.deploy == 'true'");
   assert.equal(
-    steps.find((step) => step.uses === 'actions/upload-pages-artifact@v5')?.with?.path,
+    uploadStep?.with?.path,
     'endlessWpKnowledgeRunner/site',
   );
-  assert.equal(steps.find((step) => step.uses === 'actions/deploy-pages@v5')?.uses, 'actions/deploy-pages@v5');
+  const deployStep = steps.find((step) => step.uses === 'actions/deploy-pages@v5');
+  assert.equal(deployStep?.if, "steps.pages-source.outputs.deploy == 'true'");
   assert.equal(existsSync('LICENSE'), true);
   assert.match(readFileSync('LICENSE', 'utf8'), /MIT License/);
 });
