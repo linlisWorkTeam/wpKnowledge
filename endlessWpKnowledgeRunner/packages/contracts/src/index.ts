@@ -61,6 +61,10 @@ export interface FlywheelRepository {
   claimCheckpoint(checkpoint: NodeCheckpoint): NodeCheckpoint;
   commitCheckpoint(generationKey: string, outputRefs: ArtifactRef[], event: DomainEvent, now: string): NodeCheckpoint;
   failCheckpoint(generationKey: string, event: DomainEvent, now: string): NodeCheckpoint;
+  listAgentPromptConfigurations(): AgentPromptConfiguration[];
+  saveAgentPromptConfiguration(configuration: AgentPromptConfiguration, event: DomainEvent): AgentPromptConfiguration;
+  recordWorkflowNodeProjection(projection: WorkflowNodeProjection, event: DomainEvent): void;
+  listWorkflowNodeProjections(runId: string): WorkflowNodeProjection[];
   status(): Record<string, unknown>;
 }
 
@@ -191,4 +195,104 @@ export interface ProjectEvaluator {
     prepareCommands: ProjectCommand[];
     commands: ProjectCommand[];
   }, signal?: AbortSignal): Promise<ProjectEvaluation>;
+}
+
+export const AGENT_IDS = [
+  'orchestrator', 'doc-gen', 'doc-worker', 'test-gen', 'code', 'check', 'review',
+] as const;
+
+export type AgentId = typeof AGENT_IDS[number];
+
+export interface AgentDefinition {
+  agentId: AgentId;
+  nodeId: string;
+  displayName: string;
+  responsibility: string;
+  basePrompt: string;
+  inputContract: string[];
+  outputContract: string[];
+  tools: string[];
+  customizableFields: readonly ['promptAddon'];
+}
+
+export interface AgentPromptConfiguration {
+  agentId: AgentId;
+  promptAddon: string;
+  revision: number;
+  updatedAt: string | null;
+}
+
+export type WorkflowNodeStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'CANCELLED';
+
+export interface WorkflowNodeProjection {
+  runId: string;
+  nodeId: string;
+  agentId: AgentId | null;
+  status: WorkflowNodeStatus;
+  iteration: number;
+  attempt: number;
+  detail: string;
+  error: string | null;
+  startedAt: string | null;
+  completedAt: string | null;
+  updatedAt: string;
+}
+
+export interface StartWorkflowCommand {
+  runId: string;
+  maxIterations: number;
+  workerCount: number;
+  context?: Record<string, unknown>;
+}
+
+export interface WorkflowHandle {
+  runId: string;
+  executionStatus: 'RUNNING' | 'COMPLETED' | 'FAILED' | 'STOPPED' | 'CANCELLED';
+}
+
+export interface WorkflowExecutionView extends WorkflowHandle {
+  currentNode: string | null;
+  iteration: number;
+  maxIterations: number;
+  route: 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED' | 'FAILED' | null;
+  error: string | null;
+}
+
+export interface WorkflowEngine {
+  start(command: StartWorkflowCommand): Promise<WorkflowHandle>;
+  resume(runId: string): Promise<WorkflowHandle>;
+  cancel(runId: string): Promise<void>;
+  wait(runId: string): Promise<WorkflowExecutionView>;
+  status(runId: string): Promise<WorkflowExecutionView>;
+}
+
+export interface WorkflowStageInput {
+  runId: string;
+  nodeId: string;
+  agentId: AgentId | null;
+  iteration: number;
+  maxIterations: number;
+  attempt: number;
+  prompt: string;
+  context: Record<string, unknown>;
+  workerId?: string;
+  signal?: AbortSignal;
+}
+
+export interface WorkflowStageResult {
+  detail: string;
+  context?: Record<string, unknown>;
+  route?: 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED' | 'FAILED';
+}
+
+export interface WorkflowStageExecutor {
+  execute(input: WorkflowStageInput): Promise<WorkflowStageResult>;
+}
+
+export interface WorkflowObserver {
+  record(projection: WorkflowNodeProjection): void;
+}
+
+export interface AgentPromptResolver {
+  getPromptAddon(agentId: AgentId): string;
 }

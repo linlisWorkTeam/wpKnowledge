@@ -27,4 +27,4 @@
 
 ## 阶段门
 
-P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等 checkpoint、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和无 shell 的 DSH API 适配器。PR 合入门还要求旧 Runner 兼容入口只委派给同一核心，并以固定 commit 的 ohMyWorkPanel 真实源码完成失败、纠错、fresh 再生成、独立执行评测和发布闭环。LangGraph/Temporal、内部 GLM 与敌对 C++ 沙箱仍需独立 Spike；受信真实项目验收不得被外推为敌对代码隔离证明。
+P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等业务副作用、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和无 shell 的 DSH API 适配器。LangGraph 已按 ADR-006 以内嵌 `domain-knowledge` infrastructure 接入：它执行 Agent 节点、并行、循环与 checkpoint，wpKnowledge 继续持有 Run、KnowledgeVersion、评测、发布和审计事实。固定 ohMyWorkPanel 自动场景已经覆盖失败、纠错、fresh 再生成、独立执行评测、节点投影和发布闭环；当前 Provider 仍是 deterministic fixture。内部 GLM、敌对 C++ 沙箱和完整崩溃注入仍待完成，受信真实项目验收不得被外推为 live 模型质量或敌对代码隔离证明。

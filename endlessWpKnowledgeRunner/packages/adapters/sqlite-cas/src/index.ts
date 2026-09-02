@@ -13,7 +13,8 @@ import type {
   KnowledgeStatus, KnowledgeVersion,
 } from '../../../domain/src/index.ts';
 import type {
-  ArtifactStore, CandidateInput, FlywheelRepository, NodeCheckpoint,
+  AgentId, AgentPromptConfiguration, ArtifactStore, CandidateInput, FlywheelRepository,
+  NodeCheckpoint, WorkflowNodeProjection,
 } from '../../../contracts/src/index.ts';
 
 function json(value: unknown): string {
@@ -201,6 +202,30 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
         updated_at TEXT NOT NULL
       );
 
+      CREATE TABLE IF NOT EXISTS agent_prompt_configurations (
+        agent_id TEXT PRIMARY KEY,
+        prompt_addon TEXT NOT NULL,
+        revision INTEGER NOT NULL,
+        updated_at TEXT NOT NULL
+      );
+
+      CREATE TABLE IF NOT EXISTS workflow_node_projections (
+        run_id TEXT NOT NULL,
+        node_id TEXT NOT NULL,
+        agent_id TEXT,
+        status TEXT NOT NULL,
+        iteration INTEGER NOT NULL,
+        attempt INTEGER NOT NULL,
+        detail TEXT NOT NULL,
+        error TEXT,
+        started_at TEXT,
+        completed_at TEXT,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY(run_id, node_id, iteration, attempt)
+      );
+      CREATE INDEX IF NOT EXISTS workflow_nodes_run_updated
+        ON workflow_node_projections(run_id, updated_at, node_id);
+
       INSERT OR IGNORE INTO schema_migrations(version, applied_at)
       VALUES (1, datetime('now'));
     `);
@@ -212,6 +237,7 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
       UPDATE events SET event_seq = rowid WHERE event_seq IS NULL;
       CREATE UNIQUE INDEX IF NOT EXISTS events_run_seq ON events(run_id, event_seq);
       INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (2, datetime('now'));
+      INSERT OR IGNORE INTO schema_migrations(version, applied_at) VALUES (3, datetime('now'));
     `);
   }
 
@@ -466,6 +492,101 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
       this.insertEvent(event);
       return this.getCheckpoint(generationKey) as NodeCheckpoint;
     });
+  }
+
+  listAgentPromptConfigurations(): AgentPromptConfiguration[] {
+    const rows = this.database.prepare(`
+      SELECT agent_id, prompt_addon, revision, updated_at
+      FROM agent_prompt_configurations ORDER BY agent_id
+    `).all() as Record<string, unknown>[];
+    return rows.map((row) => ({
+      agentId: String(row.agent_id) as AgentId,
+      promptAddon: String(row.prompt_addon),
+      revision: Number(row.revision),
+      updatedAt: String(row.updated_at),
+    }));
+  }
+
+  saveAgentPromptConfiguration(
+    configuration: AgentPromptConfiguration,
+    event: DomainEvent,
+  ): AgentPromptConfiguration {
+    return this.transaction(() => {
+      const current = this.database.prepare(`
+        SELECT revision FROM agent_prompt_configurations WHERE agent_id = ?
+      `).get(configuration.agentId) as { revision: number } | undefined;
+      assertInvariant(
+        configuration.revision === Number(current?.revision ?? 0) + 1,
+        `agent prompt revision conflict: ${configuration.agentId}`,
+      );
+      this.database.prepare(`
+        INSERT INTO agent_prompt_configurations(agent_id, prompt_addon, revision, updated_at)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(agent_id) DO UPDATE SET
+          prompt_addon = excluded.prompt_addon,
+          revision = excluded.revision,
+          updated_at = excluded.updated_at
+      `).run(
+        configuration.agentId,
+        configuration.promptAddon,
+        configuration.revision,
+        configuration.updatedAt,
+      );
+      this.insertEvent(event);
+      return structuredClone(configuration);
+    });
+  }
+
+  recordWorkflowNodeProjection(projection: WorkflowNodeProjection, event: DomainEvent): void {
+    this.transaction(() => {
+      this.database.prepare(`
+        INSERT INTO workflow_node_projections(
+          run_id, node_id, agent_id, status, iteration, attempt, detail,
+          error, started_at, completed_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(run_id, node_id, iteration, attempt) DO UPDATE SET
+          agent_id = excluded.agent_id,
+          status = excluded.status,
+          detail = excluded.detail,
+          error = excluded.error,
+          started_at = COALESCE(workflow_node_projections.started_at, excluded.started_at),
+          completed_at = excluded.completed_at,
+          updated_at = excluded.updated_at
+      `).run(
+        projection.runId,
+        projection.nodeId,
+        projection.agentId,
+        projection.status,
+        projection.iteration,
+        projection.attempt,
+        projection.detail,
+        projection.error,
+        projection.startedAt,
+        projection.completedAt,
+        projection.updatedAt,
+      );
+      this.insertEvent(event);
+    });
+  }
+
+  listWorkflowNodeProjections(runId: string): WorkflowNodeProjection[] {
+    const rows = this.database.prepare(`
+      SELECT * FROM workflow_node_projections
+      WHERE run_id = ? ORDER BY iteration, updated_at, node_id, attempt
+    `).all(runId) as Record<string, unknown>[];
+    return rows.map((row) => ({
+      runId: String(row.run_id),
+      nodeId: String(row.node_id),
+      agentId: row.agent_id === null ? null : String(row.agent_id) as AgentId,
+      status: String(row.status) as WorkflowNodeProjection['status'],
+      iteration: Number(row.iteration),
+      attempt: Number(row.attempt),
+      detail: String(row.detail),
+      error: row.error === null ? null : String(row.error),
+      startedAt: row.started_at === null ? null : String(row.started_at),
+      completedAt: row.completed_at === null ? null : String(row.completed_at),
+      updatedAt: String(row.updated_at),
+    }));
   }
 
   status(): Record<string, unknown> {

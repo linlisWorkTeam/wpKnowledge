@@ -29,6 +29,8 @@ test('Knowledge Flywheel implementation remains under its component root', () =>
     'docs/README.md',
     'docs/REPOSITORY-GUIDE.md',
     'docs/TESTING.md',
+    'infrastructure/domain-knowledge/README.md',
+    'infrastructure/domain-knowledge/src/index.ts',
     'packages/domain/src/index.ts',
     'specs/README.md',
     'site/index.html',

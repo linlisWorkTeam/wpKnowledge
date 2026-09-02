@@ -5,7 +5,7 @@
 The runtime uses a hexagonal dependency direction:
 
 ```text
-DSH / CLI / HTTP / future LangGraph
+DSH / CLI / HTTP / Web Console
                  │
                  ▼
            Application services
@@ -13,13 +13,30 @@ DSH / CLI / HTTP / future LangGraph
         ┌────────┴────────┐
         ▼                 ▼
       Domain            Ports
-                          ▲
-          SQLite/CAS / Agent / Sandbox / Language adapters
+        ▲                 ▲
+        │                 │
+ SQLite/CAS       embedded domain-knowledge
+                  LangGraph infrastructure
 ```
 
-`packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. Architecture tests enforce these rules.
+`packages/domain` imports no workflow SDK, database, model provider, compiler, or language-specific type. `packages/application` depends only on the domain and ports. `infrastructure/domain-knowledge` implements the workflow port with LangGraph and remains a separately shaped module so its graph runtime can evolve without moving knowledge-governance rules into it. Architecture tests enforce these rules.
 
 `fw.mjs` is a compatibility facade at the CLI edge. The same component owns product specs, browser assets, the HTTP adapter, a read-only console projection, shared core packages, tests, and acceptance fixtures. `apps/runner/src/server.ts` is the sole HTTP implementation. All write paths delegate to the component's shared application services and therefore cannot own a second registry, lifecycle, score, workflow, or publication authority.
+
+## Two kinds of state
+
+The integration deliberately keeps two state models because they answer different questions:
+
+- `FlywheelRun`, `KnowledgeVersion`, `EvaluationReport` and `PublicationReceipt` are business facts owned by wpKnowledge and persisted in the Registry.
+- LangGraph `GraphState` is execution control: current node, fan-out workers, route, attempts and resumable context. It is stored by the graph checkpointer and must not become a second knowledge or publication store.
+
+Both use the same `runId` (`thread_id` in LangGraph). Every node transition is copied through `WorkflowObserver` into `WorkflowNodeProjection`; the Console reads that stable projection rather than opening the graph checkpoint database. Graph checkpoints support workflow recovery, while `GenerationKey`, CAS, Registry events and publication keys protect business side effects and audit history.
+
+The graph has a workflow routing gate for `iterate/rollback/pass/stopped`. A route to `pass` is only a request to the upper application layer: the deterministic knowledge publication gate remains authoritative and performs the atomic publish transaction.
+
+## Agent customization boundary
+
+The seven graph roles—Orchestrator, DocGen, DocWorker, TestGen, Code, Check and Review—have fixed identifiers, responsibilities, input/output contracts, topology and tool permissions in `infrastructure/domain-knowledge/src/agent-definitions.ts`. Operators can inspect all of them in the Console and maintain only a `promptAddon`. The runtime appends it to the versioned base prompt; it never replaces the base prompt or changes a node contract. Prompt changes are revisioned and audited by `AgentCatalogService`.
 
 ## Knowledge lifecycle
 
@@ -37,6 +54,7 @@ The real-source acceptance slice adds a `ProjectEvaluator` port. Its trusted loc
 - CAS writes a temporary object, flushes it, renames it and verifies the committed bytes.
 - SQLite uses WAL and `synchronous=FULL`.
 - State, events, gate decisions and publication pointers are committed transactionally.
+- LangGraph writes execution checkpoints to `workflow/checkpoints.sqlite`; the Registry remains the only store for business facts and Console projections.
 - A `GenerationKey` identifies a node side effect. Re-execution returns the committed checkpoint output; a concurrent duplicate fails closed while the first execution is running, and a recorded failure may be retried without losing its retry count or event history.
 - Publication key is `moduleId:versionId:policyId`; repeated publication returns the existing receipt.
 
@@ -51,4 +69,4 @@ The real-source acceptance slice adds a `ProjectEvaluator` port. Its trusted loc
 
 ## Runtime requirement
 
-Node.js 24 or newer is required because the local adapter uses the built-in `node:sqlite` API. The repository pins the only third-party runtime dependency (`yaml`) for one-time legacy OKF migration; normal storage uses JSON columns and CAS rather than YAML parsing.
+Node.js 24 or newer is required because the local adapter uses the built-in `node:sqlite` API. Runtime dependencies include the embedded LangGraph/checkpointer packages and `yaml` for one-time legacy OKF migration; normal knowledge storage uses JSON columns and CAS rather than YAML parsing.

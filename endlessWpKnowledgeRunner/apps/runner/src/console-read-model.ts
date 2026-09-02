@@ -7,6 +7,7 @@ import type {
   KnowledgeVersion,
 } from '../../../packages/domain/src/index.ts';
 import type { NodeCheckpoint } from '../../../packages/contracts/src/index.ts';
+import type { AgentId, WorkflowNodeProjection } from '../../../packages/contracts/src/index.ts';
 
 export interface RunEvaluationRecord {
   report: EvaluationReport;
@@ -87,6 +88,7 @@ export class ConsoleReadModel {
       versions: versions.filter((version) => version.moduleId === run.moduleId),
       evaluations,
       checkpoints: this.listCheckpoints(runId),
+      workflowNodes: this.listWorkflowNodes(runId),
       events: this.listSequencedEvents(runId),
       latestDecision: evaluations.at(-1)?.decision ?? null,
     };
@@ -123,5 +125,25 @@ export class ConsoleReadModel {
       SELECT * FROM checkpoints WHERE run_id = ? ORDER BY updated_at, rowid
     `).all(runId) as Record<string, unknown>[];
     return rows.map(checkpointFromRow);
+  }
+
+  private listWorkflowNodes(runId: string): WorkflowNodeProjection[] {
+    const rows = this.database.prepare(`
+      SELECT * FROM workflow_node_projections
+      WHERE run_id = ? ORDER BY iteration, updated_at, node_id, attempt
+    `).all(runId) as Record<string, unknown>[];
+    return rows.map((row) => ({
+      runId: String(row.run_id),
+      nodeId: String(row.node_id),
+      agentId: row.agent_id === null ? null : String(row.agent_id) as AgentId,
+      status: String(row.status) as WorkflowNodeProjection['status'],
+      iteration: Number(row.iteration),
+      attempt: Number(row.attempt),
+      detail: String(row.detail),
+      error: row.error === null ? null : String(row.error),
+      startedAt: row.started_at === null ? null : String(row.started_at),
+      completedAt: row.completed_at === null ? null : String(row.completed_at),
+      updatedAt: String(row.updated_at),
+    }));
   }
 }

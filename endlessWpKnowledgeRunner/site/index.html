@@ -269,7 +269,7 @@
         <div class="section-intro reveal">
           <p class="eyebrow">ARCHITECTURE</p>
           <h2>一个核心，<br>多种入口。</h2>
-          <p>CLI、HTTP、Web Console 和 DSH Adapter 都委托给同一个 Application Core。没有第二套状态机、Registry 或发布权威。</p>
+          <p>CLI、HTTP、Web Console 和 DSH Adapter 都委托给同一个 Application Core。内嵌的 domain-knowledge 用 LangGraph 负责节点、并行、循环和恢复，wpKnowledge 仍是知识、评测与发布的唯一业务事实源。</p>
           <a class="text-link" href="https://github.com/linlisWorkTeam/wpKnowledge/blob/main/endlessWpKnowledgeRunner/docs/ARCHITECTURE.md">阅读架构说明 <span aria-hidden="true">↗</span></a>
         </div>
 
@@ -281,7 +281,12 @@
           <i class="arch-arrow" aria-hidden="true">↓</i>
           <div class="arch-layer application-layer">
             <span>APPLICATION</span>
-            <strong>Use cases · Workflow · Ports</strong>
+            <strong>Knowledge use cases · Governance · Ports</strong>
+          </div>
+          <i class="arch-arrow" aria-hidden="true">↓</i>
+          <div class="arch-layer application-layer">
+            <span>INFRASTRUCTURE</span>
+            <strong>domain-knowledge · LangGraph · Agent nodes</strong>
           </div>
           <i class="arch-arrow" aria-hidden="true">↓</i>
           <div class="arch-layer domain-layer">
@@ -308,6 +313,7 @@
           <p><span>02</span>deterministic fixture 证明编排，不证明 live 模型质量。</p>
           <p><span>03</span>Web Console 默认只读，普通 Agent 没有自行发布权限。</p>
           <p><span>04</span>Publication Gate 只接受完整、匹配且可校验的独立证据。</p>
+          <p><span>05</span>Agent 只能追加提示词；职责、输入输出、拓扑与工具权限不可替换。</p>
         </div>
       </div>
     </section>

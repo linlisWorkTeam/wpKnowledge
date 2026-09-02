@@ -1,6 +1,6 @@
 # 用户用例与交互时序
 
-**状态：Accepted｜版本：1.0.0｜基线日期：2026-09-01**
+**状态：Accepted｜版本：1.1.0｜基线日期：2026-09-02**
 
 本文把需求、验收场景和用户入口连接成可执行的交互视图。时序图中的“必须 / 不得”具有规范性；具体能力是否已经落地，以[追踪矩阵](../13-verification/traceability-matrix.md)为准。
 
@@ -15,6 +15,7 @@
 | UC-KF-003 | 工程师（启动与异常治理） | 启动由 Workflow Service 自动驱动的失败归因、局部修订与 fresh 再生成 | KF-SYS-001、KF-SYS-007、KF-SYS-008；AC-FLOW-001、AC-FLOW-002、AC-FLOW-003 |
 | UC-KF-004 | 发布验收者 | 对固定 commit 完成可复验的真实源码闭环 | KF-SYS-017、NFR-011；AC-E2E-001 |
 | UC-KF-005 | 旧 Runner 调用方 | 保持旧命令可用且不产生第二套事实源 | KF-SYS-016；AC-COMPAT-001 |
+| UC-KF-006 | 受信操作者 | 查阅全部 Agent 和节点状态，并只追加提示词 | KF-SYS-020、KF-SYS-021；AC-OBS-002、AC-AGENT-003 |
 
 ## 参与者与责任
 
@@ -29,6 +30,7 @@
 | EvalRunner | 独立执行构建与测试，提交不可变执行证据。 |
 | Deterministic Gate | 根据固化策略和证据产生 `PASS / ITERATE / ROLLBACK / STOPPED`。 |
 | Knowledge Publisher | 在一个事务中更新知识、Run、事件和 publication receipt。 |
+| 受信操作者 | 查看固定 Agent 契约和执行状态；只能追加提示词，不能改职责、Schema、拓扑或工具权限。 |
 
 ## UC-KF-001：查询已验证知识并反馈
 
@@ -321,6 +323,49 @@ sequenceDiagram
 
 旧 `verified` 查询状态映射到 `VERIFIED`，旧 `draft` 映射到 `CANDIDATE`；旧 `eval` 不得映射到新发布流程，因为它缺少完整行为证据和 Gate 权威。
 
+## UC-KF-006：查阅 Agent、节点状态和受限提示词定制
+
+### 前置条件与结果
+
+- Console 必须展示 Orchestrator、DocGen、DocWorker、TestGen、Code、Check、Review 七个固定角色。
+- 所有人可以查看职责、输入、输出、基础提示词、工具权限和运行节点投影。
+- 只有配置写 token 的受信操作者可以维护 `promptAddon`；未知 Agent、额外字段、超长或含空字符的内容必须拒绝。
+- 修改只影响后续 Agent 调用，不改变基础提示词、职责、Schema、拓扑、输入输出或工具权限。
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as 使用者
+    actor Operator as 受信操作者
+    participant Console as Web Console
+    participant API as HTTP API
+    participant Catalog as AgentCatalogService
+    participant Registry as SQLite Registry
+    participant Graph as domain-knowledge / LangGraph
+
+    User->>Console: 打开 Agents 页面
+    Console->>API: GET /api/v1/agents
+    API->>Catalog: listAgents()
+    Catalog->>Registry: 读取 prompt revisions
+    Catalog-->>Console: 固定契约 + promptAddon
+
+    Operator->>Console: 输入追加提示词
+    Console->>API: PUT /api/v1/agents/doc-gen/prompt + Bearer token
+    API->>Catalog: configurePrompt(promptAddon)
+    Catalog->>Registry: 保存 revision + AgentPromptConfigured
+    Registry-->>Console: 新 revision
+
+    Operator->>Console: 启动固定 ohMyWorkPanel Run
+    Console->>API: POST /api/v1/run-commands/start
+    API->>Graph: start(runId, fixed scenario)
+    loop 每个节点变化
+        Graph->>Registry: WorkflowNodeProjection(runId, node, status, attempt)
+        Console->>API: GET /api/v1/runs/:id
+        API-->>Console: FlywheelRun + workflowNodes
+    end
+    Note over Console,Graph: Console 不读取 graph checkpoint，<br/>也不能修改节点契约
+```
+
 ## 接口与权限约束
 
 | 接口 | 适用用户 | 能力边界 |
@@ -331,12 +376,14 @@ sequenceDiagram
 | DSH Adapter | Agent 消费者 | 查询、状态、扫描、候选录入和反馈；不能发布。 |
 | Legacy facade | 旧自动化 | 只映射保留命令；不能恢复旧评分或发布语义。 |
 | Project acceptance | 发布验收者 | 仅用于固定 commit、受信源码和白名单命令。 |
+| Agents / workflow commands | 受信操作者 | 公开读取固定 Agent 和节点投影；写 token 只允许追加提示词、启动/恢复/取消固定工作流。 |
 
 所有写入口最终必须经过同一 Application Service、Registry 和 CAS。入口差异不得改变 `CANDIDATE → EvaluationReport → GateDecision → VERIFIED` 的权威链。
 
 ## 当前实现边界
 
 - UC-KF-001、UC-KF-002 的核心存储、查询、评测录入和发布路径已实现；通用评测的进程执行仍由独立受信评测器负责。
-- UC-KF-003 的状态、Correction 薄切片、增量修订、fresh 再生成和 PASS 后发布已在固定场景自动编排；通用 CLI 仍需人工逐步推进。自动 historical-best `ROLLBACK`、完整 TestGen/oracle、真实 AgentProvider 和生产 Orchestrator 仍按追踪矩阵标为 `Partial` 或 `Planned`。
+- UC-KF-003 的状态、Correction 薄切片、增量修订、fresh 再生成和 PASS 后发布已由内嵌 LangGraph 在固定场景自动编排；通用候选的 CLI 仍支持人工逐步治理。自动 historical-best `ROLLBACK`、真实 AgentProvider 和生产沙箱仍按追踪矩阵标为 `Partial` 或 `Planned`。
 - UC-KF-004 已以确定性 Scenario Agent 和受信 ProjectEvaluator 实现，不得外推为真实 GLM 质量或敌对代码隔离证明。
 - UC-KF-005 已实现为兼容门面，且不拥有发布能力。
+- UC-KF-006 已实现固定 Agent 目录、提示词 revision/audit、工作流节点投影和 Console 页面；它不允许可变拓扑或替换节点契约。

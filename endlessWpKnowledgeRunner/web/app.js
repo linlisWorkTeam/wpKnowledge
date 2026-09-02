@@ -45,6 +45,7 @@ const PAGE_META = {
   knowledge: ['Knowledge', '检索候选与已验证知识，查看来源、版本和行为门禁。'],
   governance: ['Governance', '集中处理停止、低置信和基础设施失败；正常迭代无需人工遥控。'],
   evidence: ['Evidence', '审计 EvaluationReport、GateDecision、工具链和不可变证据引用。'],
+  agents: ['Agents', '查看固定节点契约，并为后续执行设置受限的追加提示词。'],
   settings: ['Settings', '查看本地运行时能力、安全边界和产品化状态。'],
 }
 
@@ -56,6 +57,7 @@ const state = {
   capabilities: null,
   runs: [],
   knowledge: [],
+  agents: [],
   token: '',
   operatorMode: false,
   selectedRun: null,
@@ -186,7 +188,15 @@ function renderRuns() {
         <button data-run-filter="VERIFIED">VERIFIED</button>
         <button data-run-filter="attention">需要治理</button>
       </div>
-      <button class="primary-button" data-unavailable="start-run">＋ 创建自动 Run</button>
+      <span>${badge(state.capabilities?.automatedWorkflow ? 'VERIFIED' : 'LOW_CONFIDENCE', state.capabilities?.automatedWorkflow ? 'LANGGRAPH READY' : 'WORKFLOW OFFLINE')}</span>
+    </section>
+    <section class="panel workflow-start-panel">
+      <div><p class="eyebrow">FIXED ACCEPTANCE PROFILE</p><h2>启动 ohMyWorkPanel 自动 Run</h2><p>使用固定场景、LangGraph 节点和 wpKnowledge 发布门禁。源码仍按受信项目执行，不是敌对代码沙箱。</p></div>
+      <form id="workflow-start-form" class="workflow-start-form">
+        <label>ohMyWorkPanel 仓库路径<input name="repositoryRoot" placeholder="/absolute/path/to/ohMyWorkPanel" required></label>
+        <label>DocWorker 数量<input name="workerCount" type="number" min="0" max="5" value="1"></label>
+        <button class="primary-button" type="submit" ${state.operatorMode ? '' : 'disabled'}>启动自动 Run</button>
+      </form>
     </section>
     <section class="panel">
       <div class="table-head run-grid"><span>Module / Run</span><span>状态</span><span>迭代</span><span>更新时间</span><span></span></div>
@@ -195,7 +205,8 @@ function renderRuns() {
 }
 
 function renderRunWorkspace(snapshot) {
-  const { run, events = [], checkpoints = [], evaluations = [], versions = [], latestDecision } = snapshot
+  const { run, events = [], checkpoints = [], workflowNodes = [], evaluations = [], versions = [], latestDecision } = snapshot
+  const automationNodes = workflowNodes.length ? workflowNodes : checkpoints
   const primaryStates = ['CREATED', 'PLANNED', 'GENERATING', 'EVALUATING', 'REVIEWING', 'PUBLISHING', 'VERIFIED']
   const currentIndex = primaryStates.indexOf(run.state)
   const steps = primaryStates.map((item, index) => {
@@ -216,11 +227,11 @@ function renderRunWorkspace(snapshot) {
     </section>
     <div class="run-workspace-grid">
       <section class="panel">
-        <div class="section-heading"><div><p class="eyebrow">AUTOMATION NODES</p><h2>节点与 Checkpoint</h2></div><span class="counter">${checkpoints.length}</span></div>
-        <div class="node-list">${checkpoints.length ? checkpoints.map((node) => `
+        <div class="section-heading"><div><p class="eyebrow">LANGGRAPH EXECUTION PROJECTION</p><h2>自动化节点</h2><p>节点状态来自 wpKnowledge 投影；FlywheelRun 仍是业务状态事实源。</p></div><span class="counter">${automationNodes.length}</span></div>
+        <div class="node-list">${automationNodes.length ? automationNodes.map((node) => `
           <article class="node-card">
-            <div><span class="node-icon">${node.status === 'COMMITTED' ? '✓' : node.status === 'FAILED' ? '!' : '●'}</span><div><b>${escapeHtml(node.nodeId)}</b><small>${escapeHtml(shortId(node.generationKey, 28))}</small></div></div>
-            <div>${badge(node.status)}<small>重试 ${escapeHtml(node.retryCount)}</small></div>
+            <div><span class="node-icon">${['COMMITTED', 'COMPLETED'].includes(node.status) ? '✓' : node.status === 'FAILED' ? '!' : '●'}</span><div><b>${escapeHtml(node.nodeId)}</b><small>${escapeHtml(node.agentId ? `${node.agentId} · ${node.detail || '等待详情'}` : node.generationKey || node.detail || 'deterministic node')}</small></div></div>
+            <div>${badge(node.status)}<small>第 ${escapeHtml(node.iteration ?? run.iteration)} 轮 · attempt ${escapeHtml(node.attempt ?? ((node.retryCount ?? 0) + 1))}</small></div>
           </article>`).join('') : emptyState('暂无节点记录', '该 Run 可能由通用 CLI 创建，或尚未执行 Agent 节点。')}</div>
       </section>
       <aside class="panel gate-summary">
@@ -371,6 +382,31 @@ function renderSettings() {
     </div>`
 }
 
+function renderAgents() {
+  const canEdit = Boolean(state.operatorMode && state.capabilities?.writeEnabled)
+  content.innerHTML = `
+    <section class="agent-boundary panel">
+      <div><p class="eyebrow">FIXED CONTRACT · LIMITED CUSTOMIZATION</p><h2>Agent 可以调语气，不能改职责</h2><p>拓扑、职责、输入输出、工具权限和基础提示词由代码固定。这里保存的内容只会作为追加提示词用于后续节点执行。</p></div>
+      ${badge(canEdit ? 'VERIFIED' : 'CANDIDATE', canEdit ? '可编辑提示词' : '只读查看')}
+    </section>
+    <section class="agent-grid">${state.agents.map((agent) => `<article class="agent-card panel">
+      <div class="card-heading"><div><p class="eyebrow">${escapeHtml(agent.nodeId)}</p><h2>${escapeHtml(agent.displayName)}</h2></div>${badge('CANDIDATE', agent.agentId)}</div>
+      <p class="agent-responsibility">${escapeHtml(agent.responsibility)}</p>
+      <dl class="agent-contract">
+        <div><dt>输入</dt><dd>${agent.inputContract.map((item) => `<code>${escapeHtml(item)}</code>`).join('')}</dd></div>
+        <div><dt>输出</dt><dd>${agent.outputContract.map((item) => `<code>${escapeHtml(item)}</code>`).join('')}</dd></div>
+        <div><dt>工具</dt><dd>${agent.tools.length ? agent.tools.map((item) => `<code>${escapeHtml(item)}</code>`).join('') : '<span>无工具</span>'}</dd></div>
+      </dl>
+      <details><summary>查看固定基础提示词</summary><pre>${escapeHtml(agent.basePrompt)}</pre></details>
+      <form class="agent-prompt-form" data-agent-id="${escapeHtml(agent.agentId)}">
+        <label>追加提示词 <small>${escapeHtml(agent.configuration.promptAddon.length)} / 4000 · revision ${escapeHtml(agent.configuration.revision)}</small>
+          <textarea name="promptAddon" maxlength="4000" rows="5" ${canEdit ? '' : 'disabled'}>${escapeHtml(agent.configuration.promptAddon)}</textarea>
+        </label>
+        <div><span>仅影响后续执行</span><button class="secondary-button" type="submit" ${canEdit ? '' : 'disabled'}>保存提示词</button></div>
+      </form>
+    </article>`).join('')}</section>`
+}
+
 async function navigate(page) {
   if (!PAGE_META[page]) return
   state.page = page
@@ -382,6 +418,7 @@ async function navigate(page) {
   if (page === 'knowledge') renderKnowledge()
   if (page === 'governance') renderGovernance()
   if (page === 'evidence') await renderEvidence()
+  if (page === 'agents') renderAgents()
   if (page === 'settings') renderSettings()
   content.focus({ preventScroll: true })
 }
@@ -455,6 +492,41 @@ async function submitFeedback(form) {
   form.reset()
 }
 
+async function saveAgentPrompt(form) {
+  if (!state.operatorMode || !state.token) {
+    showToast('请先进入治理模式。', 'warning')
+    return
+  }
+  const data = new FormData(form)
+  const agentId = form.dataset.agentId
+  await request(`/api/v1/agents/${encodeURIComponent(agentId)}/prompt`, {
+    method: 'PUT',
+    body: JSON.stringify({ promptAddon: String(data.get('promptAddon') || '') }),
+  })
+  state.agents = (await request('/api/v1/agents')).agents
+  renderAgents()
+  showToast(`${agentId} 的追加提示词已保存，只影响后续执行。`, 'success')
+}
+
+async function startWorkflow(form) {
+  if (!state.operatorMode || !state.token) {
+    showToast('请先进入治理模式后再启动自动 Run。', 'warning')
+    return
+  }
+  const data = new FormData(form)
+  const handle = await request('/api/v1/run-commands/start', {
+    method: 'POST',
+    body: JSON.stringify({
+      profile: 'ohmyworkpanel',
+      repositoryRoot: String(data.get('repositoryRoot') || ''),
+      workerCount: Number(data.get('workerCount') || 1),
+    }),
+  })
+  state.runs = (await request('/api/v1/runs')).runs
+  showToast(`自动 Run ${shortId(handle.runId, 16)} 已启动。`, 'success')
+  await openRun(handle.runId)
+}
+
 nav.addEventListener('click', (event) => {
   const button = event.target.closest('[data-page]')
   if (button) navigate(button.dataset.page).catch(showFatal)
@@ -505,6 +577,14 @@ content.addEventListener('submit', (event) => {
   if (event.target.id === 'feedback-form') {
     event.preventDefault()
     submitFeedback(event.target).catch((error) => showToast(error.message, 'danger'))
+  }
+  if (event.target.classList.contains('agent-prompt-form')) {
+    event.preventDefault()
+    saveAgentPrompt(event.target).catch((error) => showToast(error.message, 'danger'))
+  }
+  if (event.target.id === 'workflow-start-form') {
+    event.preventDefault()
+    startWorkflow(event.target).catch((error) => showToast(error.message, 'danger'))
   }
 })
 
@@ -585,6 +665,8 @@ function updateMode() {
     modePill.className = `status-pill ${state.capabilities?.writeEnabled ? '' : 'disabled'}`
     operatorButton.textContent = '治理模式'
   }
+  if (state.page === 'agents') renderAgents()
+  if (state.page === 'runs') renderRuns()
 }
 
 function showFatal(error) {
@@ -594,17 +676,18 @@ function showFatal(error) {
 }
 
 async function boot() {
-  const [statusPayload, capabilityPayload, runPayload, knowledgePayload] = await Promise.all([
-    request('/api/v1/status'), request('/api/v1/capabilities'), request('/api/v1/runs'), request('/api/v1/knowledge'),
+  const [statusPayload, capabilityPayload, runPayload, knowledgePayload, agentPayload] = await Promise.all([
+    request('/api/v1/status'), request('/api/v1/capabilities'), request('/api/v1/runs'), request('/api/v1/knowledge'), request('/api/v1/agents'),
   ])
   state.status = statusPayload
   state.capabilities = capabilityPayload
   state.runs = runPayload.runs
   state.knowledge = knowledgePayload.knowledge
+  state.agents = agentPayload.agents
   registryIndicator.className = 'health-dot healthy'
   registryLabel.textContent = '运行正常'
   governanceCount.textContent = state.runs.filter(needsAttention).length || ''
-  runtimeFooter.innerHTML = `<span><i class="health-dot healthy"></i>Registry</span><span><i class="health-dot healthy"></i>CAS</span><span><i class="health-dot pending"></i>Workflow planned</span><span>${escapeHtml(state.runs.length)} Runs · ${escapeHtml(state.knowledge.length)} Knowledge versions</span>`
+  runtimeFooter.innerHTML = `<span><i class="health-dot healthy"></i>Registry</span><span><i class="health-dot healthy"></i>CAS</span><span><i class="health-dot healthy"></i>LangGraph infrastructure</span><span>${escapeHtml(state.runs.length)} Runs · ${escapeHtml(state.knowledge.length)} Knowledge versions</span>`
   updateMode()
   renderOverview()
 }

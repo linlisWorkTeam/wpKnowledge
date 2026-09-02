@@ -1,8 +1,15 @@
 # Checkpoint 与恢复
 
+## 两层 checkpoint
+
+- LangGraph Checkpointer 保存 `GraphState`，用于恢复当前节点、并行 worker、轮次、尝试和路由上下文。
+- wpKnowledge Registry 保存 `FlywheelRun`、GenerationKey、Artifact、Event、EvaluationReport 与 Publication，负责业务事实、幂等副作用和审计。
+
+两层使用同一个 `runId/thread_id`。前台只能读取 Registry 中的 `WorkflowNodeProjection`，不得读取或解释 LangGraph checkpoint 表。恢复执行不等于重放业务事实：节点即使被再次调用，仍必须经过 GenerationKey 和 publication key 去重。
+
 ## 提交协议
 
-每个节点执行 `读取 checkpoint → 认领 GenerationKey → 执行 → 临时写 Artifact → 摘要校验/原子提交 → 追加事件 → 提交节点 checkpoint`。checkpoint 不得引用未提交 Artifact。
+每个有业务副作用的节点执行 `读取 graph checkpoint → 认领 GenerationKey → 执行 → 临时写 Artifact → 摘要校验/原子提交 → 追加业务事件/节点投影 → 提交 graph checkpoint`。checkpoint 不得成为 Artifact 或业务状态的唯一引用。
 
 ## 恢复语义
 
@@ -20,4 +27,3 @@
 ## 崩溃注入点
 
 验收必须覆盖：模型返回后/Artifact 提交前、Artifact 提交后/事件前、事件后/checkpoint 前、发布 CAS 前后。每个点均验证无悬空引用、无重复发布、状态单调。
-

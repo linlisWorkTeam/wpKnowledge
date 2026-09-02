@@ -312,4 +312,7 @@ export class KnowledgeFlywheelService {
 export { DeterministicQualityPolicy } from './quality-policy.ts';
 export { KnowledgeQueryService } from './query-service.ts';
 export { runRealSourceFlow } from './project-flow.ts';
+export { AgentCatalogService, RegistryWorkflowObserver } from './workflow-control.ts';
+export { AutomatedProjectWorkflowService, OhMyWorkPanelWorkflowExecutor } from './automated-project-workflow.ts';
+export type { AutomatedProjectScenario } from './automated-project-workflow.ts';
 export type { RealSourceFlowReport, RealSourceScenario } from './project-flow.ts';

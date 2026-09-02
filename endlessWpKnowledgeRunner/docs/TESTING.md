@@ -22,6 +22,8 @@ CI 在 Node.js 24 的 Linux 环境重复执行相同门禁。PR 中应记录实�
 | Contract/Architecture | `npm run test:architecture` 与 `tests/contract/` | 依赖方向、目录归属、链接、Schema 和边界约束 |
 | Integration | `npm run test:integration` | SQLite/CAS、Application Service、HTTP 等组合行为 |
 | Acceptance | `npm run test:acceptance` | 从用户/系统边界观察的端到端闭环 |
+| LangGraph integration | `tests/integration/langgraph-infrastructure.test.ts` | 真实 StateGraph 并行、循环、提示词追加和节点投影 |
+| Automated flywheel | `tests/acceptance/automated-langgraph-flow.test.ts` | LangGraph 与 wpKnowledge 事实、真实项目评测和原子发布协同 |
 | Real-source acceptance | `npm run acceptance:ohmyworkpanel -- ...` | 固定受信源码的失败、Correction、再生成、独立执行和发布 |
 
 `npm test` 运行仓库当前全部 Node 测试，并固定测试并发以避免共享运行目录互相干扰。
@@ -32,6 +34,7 @@ CI 在 Node.js 24 的 Linux 环境重复执行相同门禁。PR 中应记录实�
 - Port 或序列化契约：写 contract，覆盖拒绝非法输入的 fail-closed 路径。
 - SQLite、CAS、HTTP 或文件系统交互：写 integration，并使用临时目录。
 - 用户可见工作流：写 acceptance，并映射到 `AC-*`。
+- LangGraph 节点变化：同时断言 graph 路由和稳定的 `WorkflowNodeProjection`，不要让浏览器测试依赖 checkpoint 内部结构。
 - 目录、文档入口或规范链接：扩展 `tests/contract/component-layout.test.ts`。
 
 行为变更需要至少覆盖成功路径和最重要的失败路径。涉及 retry、checkpoint、publication 或幂等键时，还要覆盖完全重放与冲突重放。

@@ -22,6 +22,11 @@
 | KF-SYS-016 | AC-COMPAT-001 | Implemented | endlessWpKnowledgeRunner compatibility facade | tests/integration/legacy-runner-compat.test.ts |
 | KF-SYS-017 | AC-E2E-001 | Implemented | packages/application/project-flow + project EvalRunner | tests/acceptance/real-source-flow.test.ts + ../knowledge/3.workpanel/证据/2026-09-01-ohMyWorkPanel真实源码验收.md |
 | KF-SYS-018 | AC-DOC-001 | Implemented | packages/application/src/knowledge-writing-guide.ts + quality-policy.ts + project-flow.ts | tests/unit/quality-policy.test.ts + tests/acceptance/real-source-flow.test.ts |
+| KF-SYS-019 | AC-ARCH-002 | Implemented | infrastructure/domain-knowledge + apps/runner/src/composition.ts | tests/contract/architecture.test.ts + tests/integration/langgraph-infrastructure.test.ts |
+| KF-SYS-020 | AC-OBS-002 | Implemented | packages/application/src/workflow-control.ts + apps/runner/src/console-read-model.ts | tests/integration/langgraph-infrastructure.test.ts + tests/acceptance/automated-langgraph-flow.test.ts |
+| KF-SYS-021 | AC-AGENT-003 | Implemented | infrastructure/domain-knowledge/src/agent-definitions.ts + packages/application/src/workflow-control.ts + web/app.js | tests/integration/server.test.ts + tests/contract/site.test.ts |
+| KF-SYS-022 | AC-E2E-002 | Implemented | packages/application/src/automated-project-workflow.ts + infrastructure/domain-knowledge/src/graph.ts | tests/acceptance/automated-langgraph-flow.test.ts |
+| KF-SYS-023 | AC-DOC-002 | Implemented | web + site + docs + specs + docs/DEVELOPMENT.md completion rule | tests/contract/site.test.ts + tests/contract/component-layout.test.ts |
 | NFR-001 | AC-SEC-002 | Partial | apps/runner/src/server.ts | tests/integration/server.test.ts |
 | NFR-002 | AC-REC-001 | Partial | checkpoints + publication transaction | tests/integration/sqlite-cas.test.ts |
 | NFR-003 | AC-REC-002 | Implemented | GenerationKey and publication key | tests/integration/sqlite-cas.test.ts + tests/acceptance/publication-flow.test.ts |
@@ -34,4 +39,4 @@
 | NFR-010 | AC-FLOW-004 | Planned | packages/application/scheduler | tests/acceptance/resource-claims.test.ts |
 | NFR-011 | AC-E2E-001 | Implemented | project acceptance report + CAS evidence | tests/acceptance/real-source-flow.test.ts + ../knowledge/3.workpanel/证据/2026-09-01-ohMyWorkPanel真实源码验收.md |
 
-Spike `SPK-001..005` 分别计划落在 `spikes/{dsh-provider,workflow-engine,glm-provider,artifact-store,cpp-sandbox}/`，各自用 `spikes/*/report.md` 与可重复脚本验收；它们不计为本 P0-A Spec 提交的实现。
+`SPK-002` 的 LangGraph 选型结果已由 ADR-006 和自动化测试固化；完整崩溃注入仍作为恢复加固项。其余 Spike 继续以独立报告和可重复脚本验收，不得用当前固定 fixture 或受信执行器代替 Provider、live 模型与敌对沙箱证据。

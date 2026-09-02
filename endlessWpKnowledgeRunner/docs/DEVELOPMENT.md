@@ -23,13 +23,15 @@ CLI / HTTP / DSH / Web projection
         ┌────────┴────────┐
         ▼                 ▼
       Domain            Ports
-                          ▲
-              SQLite / CAS / Agent / Evaluator adapters
+        ▲                 ▲
+ SQLite / CAS      domain-knowledge infrastructure
+                    (LangGraph / checkpoints)
 ```
 
 - `packages/domain`：领域实体、状态和纯规则；不能导入 Adapter、数据库或工作流 SDK。
 - `packages/application`：用例编排和 Port；不能直接依赖具体 SQLite、HTTP、模型或编译器。
 - `packages/adapters`：实现 Registry、CAS、Agent、DSH、项目评测等外部边界。
+- `infrastructure/domain-knowledge`：相对独立的 LangGraph 图、运行时和固定 Agent 定义；不能拥有 KnowledgeVersion、评测或发布事务。
 - `apps/runner/src`：组合根、CLI、HTTP Server 和 Console read model。
 - `web`：浏览器界面；不能复制状态机或发布判断。
 
@@ -58,12 +60,17 @@ CLI / HTTP / DSH / Web projection
 - Agent 输出必须先做 schema validation，再进入领域流程。
 - 独立评测器不能复用被评代码的自报结果作为通过证据。
 - 外部命令避免 shell，限制工具、环境、路径、超时和输出；这些限制仍不能替代 OS 沙箱。
+- 固定图节点只允许通过 `promptAddon` 定制。职责、输入输出、拓扑和工具权限的变化属于契约变更，必须修改 Spec、Schema、实现和测试，不能由前台配置绕过。
 
 ### 修改前台
 
 - 先对齐[前台产品设计](../specs/04-product/frontend-product-design.md)和[用户用例](../specs/05-workflows/user-use-cases.md)。
 - Console read model 位于 `apps/runner/src/console-read-model.ts`，写操作必须经过共享应用服务。
 - 未实现的自动化能力应呈现真实状态，不制作会绕过权限边界的假按钮。
+
+### 大规模特性
+
+任何跨层特性都要逐项检查 Console、GitHub Pages 静态网站、工程文档、Spec、追踪矩阵和验收证据。若某个界面不受影响，也要在 PR 说明原因；不能只更新代码，让对外说明与实现分叉。
 
 ## 配置与调试
 
@@ -86,6 +93,7 @@ CLI / HTTP / DSH / Web projection
 - Domain/Application/Adapter 实现；
 - 正常、失败、重试或权限边界测试；
 - 用户、开发或运维文档；
+- Console 与 GitHub Pages 的产品表达（适用时）；
 - PR 中可复现的实际验证结果。
 
 提交规则和评审标准见根目录[贡献指南](../../CONTRIBUTING.md)。

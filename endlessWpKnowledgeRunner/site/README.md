@@ -1,6 +1,6 @@
 # 项目官网
 
-这里是 wpKnowledge 的 GitHub Pages 源码。它只负责介绍项目、解释飞轮和引导上手，不读取本地 Registry，也不提供治理入口。
+这里是 wpKnowledge 的 GitHub Pages 源码。它介绍知识治理上层与内嵌 domain-knowledge/LangGraph 基础设施的边界、解释飞轮并引导上手，不读取本地 Registry，也不提供治理入口。Agent 列表、节点状态和提示词配置属于本地 Console，不属于静态站点。
 
 ## 本地预览
 

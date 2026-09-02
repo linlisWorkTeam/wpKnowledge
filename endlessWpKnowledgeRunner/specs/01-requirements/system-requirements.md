@@ -22,6 +22,11 @@
 | KF-SYS-016 | P0 | `endlessWpKnowledgeRunner` 的旧入口必须作为新 TypeScript 核心的兼容层保留；兼容层不得维护第二套知识状态、评分权威或写入路径。 | AC-COMPAT-001 |
 | KF-SYS-017 | P0 | 发布前必须以固定 commit 的真实可运行源码完成一次可复验闭环：参考门禁通过、首轮生成失败、Review 产生 Correction、DocGen 增量修订、CodeAgent fresh 再生成、独立 EvalRunner 全门禁通过、确定性发布并可按 runId 审计。 | AC-E2E-001 |
 | KF-SYS-018 | P1 | DocGenAgent 生成中文知识时必须遵循面向工程师的自然写作约束：直接说明结论和适用条件，用具体证据代替宣传或模糊归因，并保留术语、限定条件与不确定性；Quality Gate 应报告模板腔和超长段落，但文风不得覆盖事实、Schema 或行为门禁。 | AC-DOC-001 |
+| KF-SYS-019 | P0 | LangGraph 必须以内嵌 infrastructure 模块运行；wpKnowledge 仍是 Run、知识版本、评测和发布的唯一业务事实源。 | AC-ARCH-002 |
+| KF-SYS-020 | P0 | 每个 LangGraph Agent 节点必须向 Console 投影状态、轮次、尝试次数和时间；前台不得直接读取 graph checkpoint 数据库。 | AC-OBS-002 |
+| KF-SYS-021 | P0 | 系统必须展示全部 Agent 的固定职责、输入、输出和基础提示词，并只允许受信操作者修改追加提示词；拓扑、职责、Schema 和工具权限不得由前台替换。 | AC-AGENT-003 |
+| KF-SYS-022 | P0 | 自动工作流必须以 ohMyWorkPanel 固定场景证明 LangGraph 执行、节点可观察、失败迭代、真实项目评测与 KnowledgeVersion 原子发布协同有效。 | AC-E2E-002 |
+| KF-SYS-023 | P1 | 大规模特性变更必须同时评估并更新 Console、GitHub Pages、工程文档、Spec、追踪矩阵和验收证据。 | AC-DOC-002 |
 
 ## P0-B Spike（P0-A 后独立开展）
 

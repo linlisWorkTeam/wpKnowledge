@@ -68,6 +68,21 @@ npm run acceptance:ohmyworkpanel -- `
 
 The source repository must contain the exact commit pinned in `endlessWpKnowledgeRunner/acceptance/ohmyworkpanel/scenario.json`; a missing or non-exact object fails closed. The current branch may advance: the report distinguishes its checkout HEAD from the archived acceptance commit and never checks out or modifies either. The evaluator uses `git archive`, writes generated files only into a temporary directory, permits only `node`, `pnpm` and `cargo`, avoids shell execution, sanitizes inherited environment variables, enforces command timeout/output limits, and stores tool versions, redacted argv, exit status and redacted output in CAS. The checked-in Agent provider replays schema-validated fixtures, so this command validates orchestration and execution—not live GLM/DeepSeek quality. It is also not an OS sandbox; run it only against trusted source and generated code.
 
+## Embedded LangGraph workflow
+
+The production-shaped entrypoint uses the same fixed ohMyWorkPanel scenario but runs it through the embedded `domain-knowledge` LangGraph infrastructure:
+
+```bash
+npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
+npm run knowledge -- workflow-status --run <run-id>
+npm run knowledge -- workflow-resume --run <run-id>
+npm run knowledge -- workflow-cancel --run <run-id>
+```
+
+LangGraph stores execution checkpoints under `$WP_FLYWHEEL_HOME/workflow/checkpoints.sqlite`. Do not treat this file as a business registry or expose it to the browser. The wpKnowledge SQLite Registry remains authoritative for `FlywheelRun`, Agent prompt revisions, node projections, knowledge versions, evaluation reports, events and publication receipts. Both layers correlate on `runId`.
+
+The fixed graph always owns role duties, input/output contracts, topology and tools. Operators can inspect all roles with `npm run knowledge -- agents` and change only an appended prompt with `set-agent-prompt`. The HTTP equivalent is `PUT /api/v1/agents/:agentId/prompt` with the normal bearer token and the exact body `{ "promptAddon": "..." }`; extra fields fail closed.
+
 ## Legacy Runner compatibility
 
 Existing automation can invoke `node endlessWpKnowledgeRunner/fw.mjs`. Supported commands delegate directly to the new CLI and share `WP_FLYWHEEL_HOME`; `--root` is rejected so callers cannot accidentally select a parallel store. Removed score/eval/harvest semantics fail explicitly. See `endlessWpKnowledgeRunner/README.md` for the mapping.
@@ -89,7 +104,7 @@ WP_KNOWLEDGE_HOST=0.0.0.0 WP_KNOWLEDGE_PORT=80 npm run knowledge:serve
 
 Then open `http://<server-public-ip>/`. The cloud security group must allow inbound TCP traffic to the selected port. Prefer restricting the source CIDR to the operator's IP; do not expose mutation endpoints over plain HTTP. Use a TLS reverse proxy before enabling `WP_KNOWLEDGE_WRITE_TOKEN` on any non-local interface.
 
-The product console provides Overview, Runs, Knowledge, Governance, Evidence and Settings views. Run observation uses `GET /api/v1/runs`, `GET /api/v1/runs/:runId` and the ordered event tail at `GET /api/v1/runs/:runId/events?after=<event-seq>`. The browser remains read-only by default; the operator token is held only in current-page memory and is currently used by the feedback form. Generic automatic Run start is intentionally disabled until the server-side Workflow Command API exists; the browser never simulates orchestration by chaining raw transition calls.
+The product console provides Overview, Runs, Knowledge, Governance, Evidence, Agents and Settings views. Run observation uses `GET /api/v1/runs`, `GET /api/v1/runs/:runId`, `GET /api/v1/runs/:runId/workflow-nodes` and the ordered event tail at `GET /api/v1/runs/:runId/events?after=<event-seq>`. Agent metadata is available at `GET /api/v1/agents`. The browser remains read-only by default; the operator token is held only in current-page memory. With that token it can start the fixed ohMyWorkPanel workflow and edit `promptAddon`; it never simulates orchestration by chaining raw transitions or edits graph contracts.
 
 The stable local API prefix is `/api/v1`. `/health` remains unversioned for process probes.
 
