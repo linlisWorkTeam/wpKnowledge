@@ -13,7 +13,7 @@ Quick start: install Node.js 24+, run `npm ci`, `npm run typecheck`, `npm run va
 
 [![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
-[项目网站](https://linlisworkteam.github.io/wpKnowledge/) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
+[项目网站](https://linlisworkteam.github.io/wpKnowledge/?v=6a5ed800) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
 
 很多知识库收下文档就算完成。wpKnowledge 会多问一句：这条经验真的跑通过吗？候选知识要经过质量检查、独立行为评测和确定性发布门禁。证据完整、Gate 返回 `PASS` 后，它才会成为可查询的 `VERIFIED` 知识。
 
@@ -107,7 +107,7 @@ npm run knowledge:serve
 | 报告安全问题 | [安全策略](SECURITY.md) |
 | 查阅全部规范 | [Spec 总入口](endlessWpKnowledgeRunner/specs/README.md) |
 | 浏览研究资料 | [知识库目录](knowledge/知识库目录.md) |
-| 浏览项目官网 | [GitHub Pages](https://linlisworkteam.github.io/wpKnowledge/) |
+| 浏览项目官网 | [GitHub Pages](https://linlisworkteam.github.io/wpKnowledge/?v=6a5ed800) |
 
 全部工程文档入口见 [`endlessWpKnowledgeRunner/docs/README.md`](endlessWpKnowledgeRunner/docs/README.md)。
 
