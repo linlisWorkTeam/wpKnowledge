@@ -43,10 +43,12 @@ export interface DeepSeekHarnessAgentOptions {
   args?: string[];
   env?: NodeJS.ProcessEnv;
   timeoutMs?: number;
+  terminationGraceMs?: number;
   maxOutputBytes?: number;
   allowedWorkspaceRoots: string[];
   clock?: () => Date;
   onAudit?: (record: DeepSeekHarnessAuditRecord) => void | Promise<void>;
+  spawnProcess?: typeof spawn;
 }
 
 export interface DeepSeekHarnessSdkAgentOptions {
@@ -391,10 +393,12 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
   readonly args: string[];
   readonly env: NodeJS.ProcessEnv;
   readonly timeoutMs: number;
+  readonly terminationGraceMs: number;
   readonly maxOutputBytes: number;
   readonly allowedWorkspaceRoots: string[];
   readonly clock: () => Date;
   readonly onAudit?: DeepSeekHarnessAgentOptions['onAudit'];
+  readonly spawnProcess: typeof spawn;
 
   constructor(options: DeepSeekHarnessAgentOptions) {
     if (options.allowedWorkspaceRoots.length === 0) throw new Error('DSH_AGENT_ALLOWED_ROOT_REQUIRED');
@@ -402,10 +406,12 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
     this.args = options.args ?? ['--profile', 'headless'];
     this.env = { ...process.env, DSH_TELEMETRY_MODE: 'DISABLED', ...options.env };
     this.timeoutMs = options.timeoutMs ?? 300_000;
+    this.terminationGraceMs = options.terminationGraceMs ?? 2_000;
     this.maxOutputBytes = options.maxOutputBytes ?? 2 * 1024 * 1024;
     this.allowedWorkspaceRoots = [...options.allowedWorkspaceRoots];
     this.clock = options.clock ?? (() => new Date());
     this.onAudit = options.onAudit;
+    this.spawnProcess = options.spawnProcess ?? spawn;
   }
 
   async run(request: AgentRequest, signal?: AbortSignal): Promise<Record<string, unknown>> {
@@ -422,7 +428,7 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
     let errorCode: string | null = null;
     try {
       const stdout = await new Promise<string>((resolveOutput, reject) => {
-        const child = spawn(this.command, [...this.args, prompt], {
+        const child = this.spawnProcess(this.command, [...this.args, prompt], {
           cwd: workspaceRoot,
           env: this.env,
           shell: false,
@@ -432,21 +438,34 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
         const stdoutChunks: Buffer[] = [];
         const stderrChunks: Buffer[] = [];
         let settled = false;
+        let closed = false;
+        let killTimer: NodeJS.Timeout | undefined;
         const terminate = () => {
-          if (!child.killed) child.kill('SIGTERM');
-          const killTimer = setTimeout(() => {
-            if (!child.killed) child.kill('SIGKILL');
-          }, 2_000);
+          if (closed) return;
+          try { child.kill('SIGTERM'); } catch { /* process already exited */ }
+          if (killTimer) return;
+          killTimer = setTimeout(() => {
+            if (!closed) {
+              try { child.kill('SIGKILL'); } catch { /* process already exited */ }
+            }
+          }, this.terminationGraceMs);
           killTimer.unref();
+        };
+        const rejectOnce = (error: Error) => {
+          if (settled) return;
+          settled = true;
+          reject(error);
         };
         const timeout = setTimeout(() => {
           timedOut = true;
           terminate();
+          rejectOnce(new Error('DSH_AGENT_TIMEOUT'));
         }, this.timeoutMs);
         timeout.unref();
         const abort = () => {
           cancelled = true;
           terminate();
+          rejectOnce(new Error('AGENT_CANCELLED'));
         };
         signal?.addEventListener('abort', abort, { once: true });
         const collect = (target: Buffer[], chunk: Buffer, stream: 'stdout' | 'stderr') => {
@@ -454,9 +473,8 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
           if (stream === 'stdout') stdoutBytes += chunk.byteLength;
           else stderrBytes += chunk.byteLength;
           if (stdoutBytes + stderrBytes > this.maxOutputBytes) {
-            settled = true;
             terminate();
-            reject(new Error('DSH_AGENT_OUTPUT_LIMIT_EXCEEDED'));
+            rejectOnce(new Error('DSH_AGENT_OUTPUT_LIMIT_EXCEEDED'));
             return;
           }
           target.push(chunk);
@@ -464,13 +482,17 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
         child.stdout.on('data', (chunk: Buffer) => collect(stdoutChunks, chunk, 'stdout'));
         child.stderr.on('data', (chunk: Buffer) => collect(stderrChunks, chunk, 'stderr'));
         child.on('error', (error) => {
-          if (settled) return;
-          settled = true;
-          reject(new Error(`DSH_AGENT_SPAWN_FAILED: ${(error as NodeJS.ErrnoException).code ?? 'UNKNOWN'}`));
+          closed = true;
+          clearTimeout(timeout);
+          if (killTimer) clearTimeout(killTimer);
+          signal?.removeEventListener('abort', abort);
+          rejectOnce(new Error(`DSH_AGENT_SPAWN_FAILED: ${(error as NodeJS.ErrnoException).code ?? 'UNKNOWN'}`));
         });
         child.on('close', (code) => {
+          closed = true;
           exitCode = code;
           clearTimeout(timeout);
+          if (killTimer) clearTimeout(killTimer);
           signal?.removeEventListener('abort', abort);
           if (settled) return;
           settled = true;

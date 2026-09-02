@@ -1,8 +1,11 @@
 import assert from 'node:assert/strict';
+import { EventEmitter } from 'node:events';
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { PassThrough } from 'node:stream';
 import test from 'node:test';
+import type { spawn } from 'node:child_process';
 import {
   DeepSeekHarnessHeadlessAgent, DeepSeekHarnessSdkAgent, type DeepSeekHarnessAuditRecord,
 } from '../../src/infrastructure/agents/deepseek-harness/index.ts';
@@ -188,6 +191,38 @@ process.stdout.write(JSON.stringify({ answer: 'validated' }));
     assert.equal(audits[0]?.role, 'doc-gen');
     assert.match(audits[0]?.promptSha256 ?? '', /^[a-f0-9]{64}$/);
     assert.equal(JSON.stringify(audits[0]).includes('生成结构化结果'), false);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('DeepSeek Harness headless provider escalates to SIGKILL when SIGTERM does not close the child', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-timeout-'));
+  const signals: NodeJS.Signals[] = [];
+  class IgnoringChild extends EventEmitter {
+    readonly stdout = new PassThrough();
+    readonly stderr = new PassThrough();
+    killed = false;
+
+    kill(signal: NodeJS.Signals = 'SIGTERM'): boolean {
+      signals.push(signal);
+      this.killed = true;
+      if (signal === 'SIGKILL') setImmediate(() => this.emit('close', null, signal));
+      return true;
+    }
+  }
+  const child = new IgnoringChild();
+  try {
+    const provider = new DeepSeekHarnessHeadlessAgent({
+      command: 'fake-dsh',
+      allowedWorkspaceRoots: [workspace],
+      timeoutMs: 5,
+      terminationGraceMs: 5,
+      spawnProcess: (() => child) as unknown as typeof spawn,
+    });
+    await assert.rejects(provider.run(request(workspace)), /DSH_AGENT_TIMEOUT/);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
