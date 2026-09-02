@@ -27,6 +27,9 @@
 | 14 | soul 与 DSH 怎么合流？ | **soul = DSH 与 omp 的人格交换格式**：persona 行即 SOUL.md 宿主；`soul2dsh` / `dsh2soul` 双向导出（取证 linlis-super-harness 预设） | [14 合流：soul × DSH 的 agent-preset 映射](14-合流：soul×DSH的agent-preset映射.md) |
 | 15 | 对外怎么讲？ | 介绍稿（草稿）："值得共事的队伍"叙事 + 评测/合规口径红线 | [15 对外：ohMyAGI 与 soul 介绍稿](15-对外：ohMyAGI与soul介绍稿.md) |
 | 16 | 假设怎么验证？ | **预注册 P0 对照实验**：A 注入 / B 无 soul / C 皮肤安慰剂三组，30 天留存主指标、判定阈值写死、结果联动路线升降级 | [16 验证：soul 假设的 P0 对照实验设计](16-验证：soul假设的P0对照实验设计.md) |
+| 17 | ohMyAGI 的主目标是什么？ | **两大方向**：①给 agentTeam 赋予 souls（1–16 章体系收拢）②humanlike 主动式交互（19 章骨架）；与 04/07 章优先级衔接 | [17 愿景：ohMyAGI 的两大主目标](17-愿景：ohMyAGI的两大主目标.md) |
+| 18 | 业界怎么定义 AGI？ | 定义谱系（OpenAI 五级/DeepMind 性能×泛化矩阵/METR 量化/中文语境）+ **八项特性清单**；策略：不做 AGI，做"团队协作相关"子集（自主性/社交智能/持续学习/对齐） | [18 调研：业界如何定义 AGI 与 AGI 特性](18-调研：业界如何定义AGI与AGI特性.md) |
+| 19 | humanlike 主动式交互怎么做？ | **四层主动性（汇报→提醒→提问→行动）× 打扰预算（自适应/忽略回流）× 人设风格（soul.proactivity）× 真实数据与审计**；落地 P1 心跳并入既有路线 | [19 设计：humanlike 主动式交互](19-设计：humanlike主动式交互.md) |
 
 > 概念已入飞轮：`omp-soul` 知识卡 score 93.0，verified，v2（2026-08-23 交叉评审后修订入卡；`knowledge/concepts/omp-soul.md`。注：机器评分，未含独立评审；usage 信号缺位）。
 >
