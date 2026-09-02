@@ -33,6 +33,8 @@ export interface EvaluationInput {
   testsTotal: number;
   stability: number;
   infrastructureFailure?: boolean;
+  checkBlocking?: boolean;
+  reviewBlocking?: boolean;
 }
 
 export class KnowledgeFlywheelService {
@@ -157,7 +159,9 @@ export class KnowledgeFlywheelService {
         && existing.report.testsPassed === input.testsPassed
         && existing.report.testsTotal === input.testsTotal
         && existing.report.stability === input.stability
-        && existing.report.infrastructureFailure === (input.infrastructureFailure ?? false),
+        && existing.report.infrastructureFailure === (input.infrastructureFailure ?? false)
+        && (existing.report.checkBlocking ?? false) === (input.checkBlocking ?? false)
+        && (existing.report.reviewBlocking ?? false) === (input.reviewBlocking ?? false),
         'evaluation replay input collision',
       );
       return existing;
@@ -173,6 +177,8 @@ export class KnowledgeFlywheelService {
       testsTotal: input.testsTotal,
       stability: input.stability,
       infrastructureFailure: input.infrastructureFailure ?? false,
+      checkBlocking: input.checkBlocking ?? false,
+      reviewBlocking: input.reviewBlocking ?? false,
       createdAt: now,
     };
     const decision = decideGate(run, report, policy, now);

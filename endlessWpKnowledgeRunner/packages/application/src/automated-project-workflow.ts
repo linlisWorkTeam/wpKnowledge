@@ -43,6 +43,17 @@ interface CodeOutput {
   files: GeneratedProjectFile[];
 }
 
+interface CheckOutput {
+  blocking: boolean;
+  findings: string[];
+}
+
+interface ReviewOutput {
+  blocking: boolean;
+  recommendation: 'PASS' | 'ITERATE';
+  correction: Record<string, unknown> | null;
+}
+
 function contextKey(nodeId: string, iteration: number, workerId?: string): string {
   return `${nodeId}:${iteration}${workerId ? `:${workerId}` : ''}`;
 }
@@ -131,7 +142,7 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     let output: Record<string, unknown>;
     if (agentId === 'doc-gen') {
       output = {
-        body: this.asset(input.iteration === 1 ? scenario.assets.knowledgeV1 : scenario.assets.knowledgeV2),
+        body: this.asset(input.iteration === 0 ? scenario.assets.knowledgeV1 : scenario.assets.knowledgeV2),
         title: scenario.assets.title,
         description: scenario.assets.description,
         writingGuide: KNOWLEDGE_WRITING_GUIDE,
@@ -139,10 +150,19 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     } else if (agentId === 'code') {
       output = { files: [{
         path: scenario.assets.generatedPath,
-        content: this.asset(input.iteration === 1 ? scenario.assets.codeV1 : scenario.assets.codeV2),
+        content: this.asset(input.iteration === 0 ? scenario.assets.codeV1 : scenario.assets.codeV2),
       }] };
     } else if (agentId === 'review') {
-      output = { correction: JSON.parse(this.asset(scenario.assets.correction)) as Record<string, unknown> };
+      const evaluationRef = input.context[contextKey('evaluationEvidenceRef', input.iteration)] as ArtifactRef | undefined;
+      if (!evaluationRef) throw new Error('WORKFLOW_REVIEW_EVALUATION_MISSING');
+      const evaluation = await this.readJson<ProjectEvaluation>(evaluationRef);
+      output = {
+        blocking: false,
+        recommendation: evaluation.passed ? 'PASS' : 'ITERATE',
+        correction: evaluation.passed
+          ? null
+          : JSON.parse(this.asset(scenario.assets.correction)) as Record<string, unknown>,
+      };
     } else if (agentId === 'test-gen') {
       output = { candidateCommands: scenario.finalCommands, oracleRequired: true };
     } else if (agentId === 'check') {
@@ -243,7 +263,11 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     const codeRef = input.context[contextKey('code', input.iteration)] as ArtifactRef | undefined;
     const bodyRef = input.context[contextKey('candidateBodyRef', input.iteration)] as ArtifactRef | undefined;
     const versionId = input.context[contextKey('candidateVersionId', input.iteration)];
-    if (!codeRef || !bodyRef || typeof versionId !== 'string') throw new Error('WORKFLOW_EVALUATION_INPUT_MISSING');
+    const checkRef = input.context[contextKey('check', input.iteration)] as ArtifactRef | undefined;
+    const oracleRef = input.context[contextKey('oracleEvidenceRef', input.iteration)] as ArtifactRef | undefined;
+    if (!codeRef || !bodyRef || !checkRef || !oracleRef || typeof versionId !== 'string') {
+      throw new Error('WORKFLOW_EVALUATION_INPUT_MISSING');
+    }
     const code = await this.readJson<CodeOutput>(codeRef);
     for (const file of code.files) {
       if (!scenario.allowedGeneratedPaths.includes(file.path)) throw new Error(`PROJECT_PATH_DENIED: ${file.path}`);
@@ -252,14 +276,14 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
       runId: input.runId,
       nodeId: input.nodeId,
       generationKey: `${input.runId}:${input.nodeId}:${input.iteration}`,
-      inputRefs: [scenarioRef, snapshot.manifestRef, bodyRef, codeRef],
+      inputRefs: [scenarioRef, snapshot.manifestRef, bodyRef, codeRef, oracleRef, checkRef],
     }, async () => {
       const evaluation = await this.evaluator.evaluate({
         label: `generated-iteration-${input.iteration}`,
         snapshot,
         generatedFiles: code.files,
         prepareCommands: scenario.prepareCommands,
-        commands: input.iteration === 1 ? scenario.firstIterationCommands : scenario.finalCommands,
+        commands: input.iteration === 0 ? scenario.firstIterationCommands : scenario.finalCommands,
       }, input.signal);
       return [evaluation.evidenceRef];
     });
@@ -268,51 +292,86 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     const evaluation = await this.readJson<ProjectEvaluation>(evidenceRef);
     const run = this.service.repository.getRun(input.runId);
     if (run?.state === 'GENERATING') this.service.transition(input.runId, 'EVALUATING');
+    if (evaluation.infrastructureFailure) {
+      const decision = await this.recordGateDecision(input, evaluation);
+      return {
+        detail: `evaluation infrastructure failed; gate ${decision.outcome}`,
+        context: {
+          [contextKey('evaluationEvidenceRef', input.iteration)]: evidenceRef,
+          [contextKey('gateDecision', input.iteration)]: decision,
+        },
+        route: routeFor(decision.outcome),
+      };
+    }
+    return {
+      detail: `evaluation ${evaluation.passed ? 'passed' : 'failed'}; awaiting review and gate`,
+      context: { [contextKey('evaluationEvidenceRef', input.iteration)]: evidenceRef },
+    };
+  }
+
+  private async route(input: WorkflowStageInput): Promise<WorkflowStageResult> {
+    const existing = input.context[contextKey('gateDecision', input.iteration)] as GateDecision | undefined;
+    const evaluationRef = input.context[contextKey('evaluationEvidenceRef', input.iteration)] as ArtifactRef | undefined;
+    if (!evaluationRef) throw new Error('WORKFLOW_EVALUATION_EVIDENCE_MISSING');
+    const evaluation = await this.readJson<ProjectEvaluation>(evaluationRef);
+    const decision = existing ?? await this.recordGateDecision(input, evaluation);
+    const route = routeFor(decision.outcome);
+    const run = this.service.repository.getRun(input.runId);
+    if (route === 'ITERATE' && run?.state === 'REVIEWING') {
+      this.service.transition(input.runId, 'ITERATING');
+    } else if (route === 'ROLLBACK' && run?.state === 'REVIEWING') {
+      this.service.transition(input.runId, 'ROLLING_BACK');
+    } else if (route === 'STOPPED' && run?.state === 'REVIEWING') {
+      this.service.transition(input.runId, 'LOW_CONFIDENCE');
+    }
+    return {
+      detail: `workflow route ${route}`,
+      route,
+      context: { [contextKey('gateDecision', input.iteration)]: decision },
+    };
+  }
+
+  private async recordGateDecision(
+    input: WorkflowStageInput,
+    evaluation: ProjectEvaluation,
+  ): Promise<GateDecision> {
+    const snapshot = input.context.snapshot as ProjectSnapshot;
+    const scenarioRef = input.context.scenarioRef as ArtifactRef;
+    const bodyRef = input.context[contextKey('candidateBodyRef', input.iteration)] as ArtifactRef | undefined;
+    const codeRef = input.context[contextKey('code', input.iteration)] as ArtifactRef | undefined;
+    const checkRef = input.context[contextKey('check', input.iteration)] as ArtifactRef | undefined;
+    const oracleRef = input.context[contextKey('oracleEvidenceRef', input.iteration)] as ArtifactRef | undefined;
+    const reviewRef = input.context[contextKey('review', input.iteration)] as ArtifactRef | undefined;
+    const versionId = input.context[contextKey('candidateVersionId', input.iteration)];
+    if (!bodyRef || !codeRef || !checkRef || !oracleRef || typeof versionId !== 'string') {
+      throw new Error('WORKFLOW_GATE_INPUT_MISSING');
+    }
+    const check = await this.readJson<CheckOutput>(checkRef);
+    const review = reviewRef ? await this.readJson<ReviewOutput>(reviewRef) : null;
+    const evaluationRef = input.context[contextKey('evaluationEvidenceRef', input.iteration)] as ArtifactRef | undefined;
+    if (!evaluationRef) throw new Error('WORKFLOW_EVALUATION_EVIDENCE_MISSING');
+    const inputRefs = [scenarioRef, snapshot.manifestRef, bodyRef, codeRef, oracleRef, checkRef];
+    if (reviewRef) inputRefs.push(reviewRef);
     const { decision } = await this.service.recordEvaluation({
       runId: input.runId,
       versionId,
-      inputRefs: [scenarioRef, snapshot.manifestRef, bodyRef, codeRef],
-      evidenceRefs: [evidenceRef],
+      inputRefs,
+      evidenceRefs: [evaluationRef],
       toolchainFingerprint: evaluation.toolchainFingerprint,
       criticalFailures: evaluation.passed ? 0 : 1,
       testsPassed: evaluation.testsPassed,
       testsTotal: evaluation.testsTotal,
       stability: evaluation.stability,
       infrastructureFailure: evaluation.infrastructureFailure,
+      checkBlocking: check.blocking,
+      reviewBlocking: review?.blocking ?? false,
     }, {
       policyId: this.service.repository.getRun(input.runId)?.policyId ?? 'local-v1',
       minimumStability: 1,
       requireAllTests: true,
       maxIterations: input.maxIterations,
     });
-    if (evaluation.infrastructureFailure) {
-      this.service.transition(input.runId, 'FAILED');
-      return { detail: 'evaluation infrastructure failed', route: 'FAILED' };
-    }
-    return {
-      detail: `evaluation ${evaluation.passed ? 'passed' : 'failed'}; gate ${decision.outcome}`,
-      context: {
-        [contextKey('evaluationEvidenceRef', input.iteration)]: evidenceRef,
-        [contextKey('gateDecision', input.iteration)]: decision,
-      },
-      route: routeFor(decision.outcome),
-    };
-  }
-
-  private async route(input: WorkflowStageInput): Promise<WorkflowStageResult> {
-    const decision = input.context[contextKey('gateDecision', input.iteration)] as GateDecision | undefined;
-    if (!decision) throw new Error('WORKFLOW_GATE_DECISION_MISSING');
-    let route = routeFor(decision.outcome);
-    const run = this.service.repository.getRun(input.runId);
-    if (route === 'ITERATE' && input.iteration < input.maxIterations && run?.state === 'REVIEWING') {
-      this.service.transition(input.runId, 'ITERATING');
-    } else if (route === 'ROLLBACK' && run?.state === 'REVIEWING') {
-      this.service.transition(input.runId, 'ROLLING_BACK');
-    } else if ((route === 'STOPPED' || (route === 'ITERATE' && input.iteration >= input.maxIterations)) && run?.state === 'REVIEWING') {
-      this.service.transition(input.runId, 'LOW_CONFIDENCE');
-      route = 'STOPPED';
-    }
-    return { detail: `workflow route ${route}`, route };
+    return decision;
   }
 
   private async rollback(input: WorkflowStageInput): Promise<WorkflowStageResult> {

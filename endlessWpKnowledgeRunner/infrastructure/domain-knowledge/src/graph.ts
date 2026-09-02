@@ -106,7 +106,9 @@ function createNode(deps: GraphDependencies, nodeId: string) {
 export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: BaseCheckpointSaver) {
   const node = (nodeId: string) => createNode(deps, nodeId);
   const graph = new StateGraph(InfrastructureStateAnnotation)
-    .addNode('orchestrator', node('orchestrator'))
+    .addNode('orchestrator', async (state: InfrastructureState): Promise<InfrastructureStateUpdate> => ({
+      ...await node('orchestrator')(state), route: null,
+    }))
     .addNode('doc_worker', node('doc_worker'))
     .addNode('doc_gen', node('doc_gen'))
     .addNode('test_gen', node('test_gen'))
@@ -153,8 +155,11 @@ export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: 
     .addEdge('code', 'check')
     .addEdge('test_gen', 'oracle_validation')
     .addEdge(['check', 'oracle_validation'], 'evaluation')
-    .addConditionalEdges('evaluation', (state: InfrastructureState) =>
-      state.route === 'FAILED' ? 'failed' : 'review', ['failed', 'review'])
+    .addConditionalEdges('evaluation', (state: InfrastructureState) => {
+      if (state.route === 'FAILED') return 'failed';
+      if (state.route === 'STOPPED') return 'workflow_router';
+      return 'review';
+    }, ['failed', 'workflow_router', 'review'])
     .addEdge('review', 'workflow_router')
     .addConditionalEdges('workflow_router', (state: InfrastructureState) => {
       if (state.route === 'PASS') return 'publication';

@@ -51,6 +51,27 @@ test('deterministic gate iterates on behavioral failure', () => {
   assert.ok(decision.reasonCodes.includes('CRITICAL_TEST_FAILURE'));
 });
 
+test('check and review blockers participate in the deterministic gate', () => {
+  const run = createRun('module-a', 'policy-a', '2026-08-31T00:00:00.000Z');
+  const decision = decideGate(run, {
+    reportId: 'report', runId: run.runId, versionId: 'version', inputRefs: [], evidenceRefs: [],
+    toolchainFingerprint: 'fake@1', criticalFailures: 0, testsPassed: 10, testsTotal: 10,
+    stability: 1, infrastructureFailure: false, checkBlocking: true, reviewBlocking: true,
+    createdAt: '2026-08-31T00:00:01.000Z',
+  }, { policyId: 'policy-a', minimumStability: 1, requireAllTests: true, maxIterations: 3 }, '2026-08-31T00:00:02.000Z');
+  assert.equal(decision.outcome, 'ITERATE');
+  assert.ok(decision.reasonCodes.includes('CHECK_BLOCKING'));
+  assert.ok(decision.reasonCodes.includes('REVIEW_BLOCKING'));
+  assert.equal(decision.reasonCodes.includes('ALL_DETERMINISTIC_GATES_PASSED'), false);
+  const stopped = decideGate({ ...run, iteration: 3 }, {
+    reportId: 'report-at-limit', runId: run.runId, versionId: 'version', inputRefs: [], evidenceRefs: [],
+    toolchainFingerprint: 'fake@1', criticalFailures: 0, testsPassed: 10, testsTotal: 10,
+    stability: 1, infrastructureFailure: false, checkBlocking: false, reviewBlocking: true,
+    createdAt: '2026-08-31T00:00:03.000Z',
+  }, { policyId: 'policy-a', minimumStability: 1, requireAllTests: true, maxIterations: 3 }, '2026-08-31T00:00:04.000Z');
+  assert.equal(stopped.outcome, 'STOPPED');
+});
+
 test('infrastructure failure remains STOPPED when behavioral checks also fail', () => {
   const run = createRun('module-a', 'policy-a', '2026-08-31T00:00:00.000Z');
   const decision = decideGate(run, {

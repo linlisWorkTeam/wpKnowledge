@@ -69,7 +69,7 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
       const promise = this.graph.invoke({
         runId,
         executionStatus: 'PENDING',
-        iteration: 1,
+        iteration: 0,
         maxIterations: command.maxIterations,
         workerCount: command.workerCount,
         context: command.context ?? {},

@@ -68,6 +68,8 @@ export interface EvaluationReport {
   testsTotal: number;
   stability: number;
   infrastructureFailure: boolean;
+  checkBlocking?: boolean;
+  reviewBlocking?: boolean;
   createdAt: string;
 }
 
@@ -166,6 +168,14 @@ export function decideGate(
   if (report.infrastructureFailure) {
     outcome = 'STOPPED';
     reasons.push('INFRASTRUCTURE_FAILURE');
+  }
+  if (report.checkBlocking) {
+    if (outcome !== 'STOPPED') outcome = run.iteration >= policy.maxIterations ? 'STOPPED' : 'ITERATE';
+    reasons.push('CHECK_BLOCKING');
+  }
+  if (report.reviewBlocking) {
+    if (outcome !== 'STOPPED') outcome = run.iteration >= policy.maxIterations ? 'STOPPED' : 'ITERATE';
+    reasons.push('REVIEW_BLOCKING');
   }
   if (report.criticalFailures > 0) {
     if (outcome !== 'STOPPED') outcome = run.iteration >= policy.maxIterations ? 'STOPPED' : 'ITERATE';

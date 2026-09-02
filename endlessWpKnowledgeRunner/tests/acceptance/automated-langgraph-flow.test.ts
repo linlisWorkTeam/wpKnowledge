@@ -95,9 +95,26 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
     assert.equal(projections.some((projection) => projection.nodeId === 'publication' && projection.status === 'COMPLETED'), true);
     assert.equal(composition.repository.listEvents(handle.runId).at(-1)?.eventType, 'WorkflowNodeStateChanged');
     const versions = composition.service.listKnowledgeVersions();
-    assert.equal(versions.filter((version) => version.moduleId === scenario.moduleId).length, 2);
-    assert.equal(versions.find((version) => version.status === 'VERIFIED')?.parentVersionId,
-      versions.find((version) => version.status === 'CANDIDATE')?.versionId);
+    const moduleVersions = versions.filter((version) => version.moduleId === scenario.moduleId);
+    assert.equal(moduleVersions.length, 2);
+    const candidate = moduleVersions.find((version) => version.status === 'CANDIDATE');
+    const verified = moduleVersions.find((version) => version.status === 'VERIFIED');
+    assert.equal(verified?.parentVersionId, candidate?.versionId);
+    assert.equal(composition.repository.getEvaluationAndDecision(handle.runId, candidate?.versionId ?? '')?.decision.outcome, 'ITERATE');
+    const finalGate = composition.repository.getEvaluationAndDecision(handle.runId, verified?.versionId ?? '');
+    assert.equal(finalGate?.decision.outcome, 'PASS');
+    assert.equal(finalGate?.report.checkBlocking, false);
+    assert.equal(finalGate?.report.reviewBlocking, false);
+    const finalInputIds = new Set(finalGate?.report.inputRefs.map((ref) => ref.artifactId));
+    for (const generationKey of [
+      `${handle.runId}:oracle_validation:1`,
+      `${handle.runId}:check:1:main`,
+      `${handle.runId}:review:1:main`,
+    ]) {
+      const outputRef = composition.repository.getCheckpoint(generationKey)?.outputRefs[0];
+      assert.ok(outputRef, `checkpoint output missing: ${generationKey}`);
+      assert.equal(finalInputIds.has(outputRef.artifactId), true, `gate input missing: ${generationKey}`);
+    }
   } finally {
     composition.close();
     rmSync(repositoryRoot, { recursive: true, force: true });
