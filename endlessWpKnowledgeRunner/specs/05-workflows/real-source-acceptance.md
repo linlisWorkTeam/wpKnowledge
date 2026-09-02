@@ -8,6 +8,7 @@
 
 - 参考仓库必须是 Git 工作区；报告分别记录 remote、绝对本地路径、当前 checkout HEAD、被验收的固定 commit 与脏状态。
 - 验收从 `git archive <fixed-commit>` 得到仓库外快照，不要求当前分支退回旧 commit，不修改参考工作区，也不继承未跟踪文件。
+- Node 依赖安装使用固定锁文件、已安装的固定 pnpm 运行时与内容寻址缓存离线完成，避免把 registry 的可用性或可变元数据混入行为判据；缓存不完整时必须在准备阶段明确失败。
 - 模块薄切片使用 `src/chat/mentions.ts`、公开 `Member` 契约和仓库自己的 `src/chat/mentions.test.ts`。
 - Agent 输出使用版本化 Schema 校验后才进入 CAS；可复验场景允许确定性 Scenario Provider，报告必须明确它不是在线 GLM 质量证明。
 - 真实 Provider 演示使用 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`，通过官方 SDK、角色工作区与 Bubblewrap 运行；旧 Headless 入口只作迁移对照，两条路径的完整 Prompt 都只能通过标准输入传输，不得进入进程参数。质量不合格的候选先反馈给下一轮 DocGen 并跳过 CodeAgent；Schema/进程错误可在同一 `runId/thread_id` 上从失败 task checkpoint 恢复。

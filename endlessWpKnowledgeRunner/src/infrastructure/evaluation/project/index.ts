@@ -15,6 +15,7 @@ import type {
 interface ResolvedTool {
   executable: string;
   prefixArgs: string[];
+  env?: NodeJS.ProcessEnv;
 }
 
 interface CapturedProcess {
@@ -74,7 +75,7 @@ function assertNoSymlink(root: string, path: string): void {
 }
 
 function pnpmScript(): string {
-  const candidates: string[] = [join(dirname(process.execPath), 'node_modules', 'corepack', 'dist', 'pnpm.js')];
+  const candidates: string[] = [];
   const pathDirs = (process.env.PATH ?? '').split(delimiter).filter(Boolean);
   for (const pathDir of pathDirs) {
     const pathEntry = join(pathDir, process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm');
@@ -84,15 +85,46 @@ function pnpmScript(): string {
   }
   if (process.env.APPDATA) candidates.push(join(process.env.APPDATA, 'npm', 'node_modules', 'pnpm', 'bin', 'pnpm.cjs'));
   if (process.env.PNPM_HOME) candidates.push(join(process.env.PNPM_HOME, 'pnpm.cjs'));
+  // Corepack may query pnpm/latest when a target repository has no
+  // packageManager field. Prefer an already installed standalone runtime so a
+  // frozen-lockfile evaluation does not gain an unrelated network dependency.
+  candidates.push(join(dirname(process.execPath), 'node_modules', 'corepack', 'dist', 'pnpm.js'));
   const found = candidates.find((candidate) => existsSync(candidate));
   if (!found) throw new Error('PROJECT_TOOL_UNAVAILABLE: pnpm.cjs');
   return realpathSync(found);
 }
 
-function resolveTool(tool: ProjectTool): ResolvedTool {
+function installedRustTool(name: 'cargo' | 'rustc' | 'rustdoc'): string {
+  const result = spawnSync('rustup', ['which', name], {
+    env: process.env, encoding: 'utf8', shell: false, windowsHide: true,
+  });
+  if (result.error || result.status !== 0 || !result.stdout.trim()) {
+    throw new Error(`PROJECT_TOOL_UNAVAILABLE: rustup which ${name}`);
+  }
+  return realpathSync(result.stdout.trim());
+}
+
+function installedPnpmStore(script: string): string | null {
+  const result = spawnSync(process.execPath, [script, 'store', 'path'], {
+    env: process.env, encoding: 'utf8', shell: false, windowsHide: true,
+  });
+  return result.status === 0 && result.stdout.trim() ? realpathSync(result.stdout.trim()) : null;
+}
+
+function resolveTool(tool: ProjectTool, usePackageStore = false): ResolvedTool {
   if (tool === 'node') return { executable: process.execPath, prefixArgs: [] };
-  if (tool === 'pnpm') return { executable: process.execPath, prefixArgs: [pnpmScript()] };
-  if (tool === 'cargo') return { executable: 'cargo', prefixArgs: [] };
+  if (tool === 'pnpm') {
+    const script = pnpmScript();
+    const store = installedPnpmStore(script);
+    return {
+      executable: process.execPath,
+      prefixArgs: [script, ...(usePackageStore && store ? ['--store-dir', store] : [])],
+    };
+  }
+  if (tool === 'cargo') return {
+    executable: installedRustTool('cargo'), prefixArgs: [],
+    env: { RUSTC: installedRustTool('rustc'), RUSTDOC: installedRustTool('rustdoc') },
+  };
   throw new Error(`PROJECT_TOOL_DENIED: ${String(tool)}`);
 }
 
@@ -122,6 +154,8 @@ function executionEnvironment(isolationRoot?: string): NodeJS.ProcessEnv {
       XDG_CONFIG_HOME: join(home, '.config'),
       XDG_CACHE_HOME: join(home, '.cache'),
       XDG_DATA_HOME: join(home, '.local', 'share'),
+      CARGO_HOME: join(isolationRoot, 'cargo-home'),
+      RUSTUP_HOME: join(isolationRoot, 'rustup-home'),
     });
   }
   return env;
@@ -175,7 +209,7 @@ async function capture(
   return new Promise<CapturedProcess>((resolvePromise, reject) => {
     const child = spawn(tool.executable, [...tool.prefixArgs, ...args], {
       cwd,
-      env: executionEnvironment(isolationRoot),
+      env: { ...executionEnvironment(isolationRoot), ...(tool.env ?? {}) },
       shell: false,
       windowsHide: true,
       detached: process.platform !== 'win32',
@@ -364,7 +398,7 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
         const commandCwd = command.cwd ? pathInside(workspace, command.cwd) : workspace;
         if (command.cwd) assertNoSymlink(workspace, command.cwd);
         const captured = await capture(
-          resolveTool(command.tool), command.args, commandCwd,
+          resolveTool(command.tool, phase === 'prepare'), command.args, commandCwd,
           timeoutMs, maxOutputBytes,
           redactionRoots, tempRoot, signal,
         );

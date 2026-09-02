@@ -7,7 +7,7 @@
   "publicInterfacePaths": ["src/types.ts", "package.json", "pnpm-lock.yaml"],
   "allowedGeneratedPaths": ["src/chat/mentions.ts"],
   "prepareCommands": [
-    {"tool": "pnpm", "purpose": "setup", "args": ["install", "--frozen-lockfile", "--prefer-offline"], "timeoutMs": 120000}
+    {"tool": "pnpm", "purpose": "setup", "args": ["install", "--frozen-lockfile", "--offline"], "timeoutMs": 120000}
   ],
   "referenceCommands": [
     {"tool": "pnpm", "purpose": "test", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
