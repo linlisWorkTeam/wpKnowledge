@@ -24,6 +24,8 @@
 
 自动化整合验收使用 `src/infrastructure/workflow/langgraph` 的真实 StateGraph 执行同一多轮语义，并要求七个 Agent 均留下节点投影。LangGraph 的 `pass` 路由只调度 publication 阶段，最终 `VERIFIED` 和 receipt 仍由 wpKnowledge Publication Gate 与 Registry 事务产生。2026-09-02 的 live 样例见 [`knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md`](../../../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md)。
 
+场景中的每条命令必须声明为 `setup`、`test` 或 `check`。只有 `test` 命令可以贡献测试计数；其输出必须能解析出大于零的真实测试总数，否则即使退出码为零也不得形成 PASS 证据。构建、语法检查和空输出命令不得伪造测试通过数。
+
 ## 信任边界
 
 ohMyWorkPanel 是同组织的受信源码。Agent Adapter 通过 SDK stdin、角色工作区、Bubblewrap、wall time、输出上限和取消约束模型进程；ProjectEvaluator 另外负责固定 argv、禁用 shell、临时工作区与进程树终止。两者不能合并解释为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。

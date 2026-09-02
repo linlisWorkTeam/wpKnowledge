@@ -146,6 +146,7 @@ export type ProjectTool = 'node' | 'pnpm' | 'cargo';
 
 export interface ProjectCommand {
   tool: ProjectTool;
+  purpose: 'setup' | 'test' | 'check';
   args: string[];
   cwd?: string;
   repetitions?: number;
@@ -172,6 +173,7 @@ export interface ProjectSnapshot {
 export interface ProjectCommandResult {
   phase: 'prepare' | 'gate';
   tool: ProjectTool;
+  purpose: ProjectCommand['purpose'];
   args: string[];
   cwd: string;
   attempt: number;
@@ -183,6 +185,7 @@ export interface ProjectCommandResult {
   stderr: string;
   testsPassed: number;
   testsTotal: number;
+  testCountsParsed: boolean;
 }
 
 export interface ProjectEvaluation {

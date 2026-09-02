@@ -64,7 +64,7 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
       checkpoint: { kind: 'memory' },
     });
     const workflow = new AutomatedProjectWorkflowService(composition.service, infrastructure.engine);
-    const command = (args: string[]) => ({ tool: 'node' as const, args });
+    const command = (args: string[]) => ({ tool: 'node' as const, purpose: 'test' as const, args });
     const scenario: AutomatedProjectScenario = {
       schemaVersion: '1.0', name: 'automated-two-iteration', moduleId: 'automated-module',
       repositoryRoot, expectedCommit: commit,

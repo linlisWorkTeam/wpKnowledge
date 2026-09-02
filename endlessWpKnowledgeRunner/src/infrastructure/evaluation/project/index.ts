@@ -219,16 +219,29 @@ async function capture(
   });
 }
 
-function countTests(output: string, exitCode: number | null): { passed: number; total: number } {
+export function parseTestCounts(output: string): { passed: number; total: number; parsed: boolean } {
   const cargo = output.match(/test result:\s+(?:ok|FAILED)\.\s+(\d+) passed;\s+(\d+) failed/i);
-  if (cargo) return { passed: Number(cargo[1]), total: Number(cargo[1]) + Number(cargo[2]) };
+  if (cargo) {
+    return { passed: Number(cargo[1]), total: Number(cargo[1]) + Number(cargo[2]), parsed: true };
+  }
+  const jestSummary = output.match(/^Tests:\s*(.+)$/im)?.[1];
+  if (jestSummary) {
+    const passed = Number(jestSummary.match(/(\d+)\s+passed\b/i)?.[1] ?? 0);
+    const totalMatch = jestSummary.match(/(\d+)\s+total\b/i);
+    if (totalMatch) return { passed, total: Number(totalMatch[1]), parsed: true };
+  }
   const passedMatch = output.match(/\bTests\s+(\d+) passed\b/i);
   const failedMatch = output.match(/\bTests\s+(\d+) failed\b/i);
   if (passedMatch || failedMatch) {
     const passed = Number(passedMatch?.[1] ?? 0);
-    return { passed, total: passed + Number(failedMatch?.[1] ?? 0) };
+    return { passed, total: passed + Number(failedMatch?.[1] ?? 0), parsed: true };
   }
-  return { passed: exitCode === 0 ? 1 : 0, total: 1 };
+  const nodeTotal = output.match(/^[\s#\u2139]*tests\s+(\d+)\s*$/im);
+  const nodePassed = output.match(/^[\s#\u2139]*pass\s+(\d+)\s*$/im);
+  if (nodeTotal && nodePassed) {
+    return { passed: Number(nodePassed[1]), total: Number(nodeTotal[1]), parsed: true };
+  }
+  return { passed: 0, total: 0, parsed: false };
 }
 
 export class TrustedProjectEvaluator implements ProjectEvaluator {
@@ -336,10 +349,13 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
           timeoutMs, maxOutputBytes,
           redactionRoots, signal,
         );
-        const counts = countTests(`${captured.stdout}\n${captured.stderr}`, captured.exitCode);
+        const counts = command.purpose === 'test'
+          ? parseTestCounts(`${captured.stdout}\n${captured.stderr}`)
+          : { passed: 0, total: 0, parsed: false };
         return {
-          phase, tool: command.tool, args: redactArgs(command.args, redactionRoots), cwd: command.cwd ?? '.', attempt,
-          ...captured, testsPassed: counts.passed, testsTotal: counts.total,
+          phase, tool: command.tool, purpose: command.purpose,
+          args: redactArgs(command.args, redactionRoots), cwd: command.cwd ?? '.', attempt,
+          ...captured, testsPassed: counts.passed, testsTotal: counts.total, testCountsParsed: counts.parsed,
         };
       };
 
@@ -373,13 +389,16 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
       );
       const expectedExecutions = input.commands.reduce((sum, command) => sum + (command.repetitions ?? 1), 0);
       const gateResults = results.filter((result) => result.phase === 'gate');
+      const testResults = gateResults.filter((result) => result.purpose === 'test');
       const passedExecutions = gateResults.filter((result) =>
         result.exitCode === 0 && !result.timedOut && !result.outputLimitExceeded,
       ).length;
       const passed = !prepareFailed && gateResults.length >= expectedExecutions
-        && gateResults.every((result) => result.exitCode === 0 && !result.timedOut && !result.outputLimitExceeded);
-      const testsPassed = gateResults.reduce((sum, result) => sum + result.testsPassed, 0);
-      const testsTotal = Math.max(1, gateResults.reduce((sum, result) => sum + result.testsTotal, 0));
+        && gateResults.every((result) => result.exitCode === 0 && !result.timedOut && !result.outputLimitExceeded)
+        && testResults.length > 0
+        && testResults.every((result) => result.testCountsParsed && result.testsTotal > 0);
+      const testsPassed = testResults.reduce((sum, result) => sum + result.testsPassed, 0);
+      const testsTotal = testResults.reduce((sum, result) => sum + result.testsTotal, 0);
       const stability = expectedExecutions > 0 ? Math.min(1, passedExecutions / expectedExecutions) : 0;
       const evidence = {
         schemaVersion: '1.0', label: input.label, commit: input.snapshot.commit,

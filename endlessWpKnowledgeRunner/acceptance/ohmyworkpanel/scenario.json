@@ -7,19 +7,19 @@
   "publicInterfacePaths": ["src/types.ts", "package.json", "pnpm-lock.yaml"],
   "allowedGeneratedPaths": ["src/chat/mentions.ts"],
   "prepareCommands": [
-    {"tool": "pnpm", "args": ["install", "--frozen-lockfile", "--prefer-offline"], "timeoutMs": 120000}
+    {"tool": "pnpm", "purpose": "setup", "args": ["install", "--frozen-lockfile", "--prefer-offline"], "timeoutMs": 120000}
   ],
   "referenceCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
+    {"tool": "pnpm", "purpose": "test", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
   ],
   "firstIterationCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
+    {"tool": "pnpm", "purpose": "test", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "timeoutMs": 120000}
   ],
   "finalCommands": [
-    {"tool": "pnpm", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "repetitions": 5, "timeoutMs": 120000},
-    {"tool": "pnpm", "args": ["test"], "timeoutMs": 120000},
-    {"tool": "pnpm", "args": ["build"], "timeoutMs": 120000},
-    {"tool": "cargo", "args": ["test", "--no-default-features", "--lib"], "cwd": "src-tauri", "timeoutMs": 300000}
+    {"tool": "pnpm", "purpose": "test", "args": ["exec", "vitest", "run", "src/chat/mentions.test.ts"], "repetitions": 5, "timeoutMs": 120000},
+    {"tool": "pnpm", "purpose": "test", "args": ["test"], "timeoutMs": 120000},
+    {"tool": "pnpm", "purpose": "check", "args": ["build"], "timeoutMs": 120000},
+    {"tool": "cargo", "purpose": "test", "args": ["test", "--no-default-features", "--lib"], "cwd": "src-tauri", "timeoutMs": 300000}
   ],
   "assets": {
     "knowledgeV1": "knowledge-v1.md",

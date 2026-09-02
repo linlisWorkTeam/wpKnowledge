@@ -64,12 +64,12 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
         sourcePaths: ['src/module.js', 'src/module.test.js'],
         publicInterfacePaths: ['src/contract.js', 'package.json'],
         allowedGeneratedPaths: ['src/module.js'], prepareCommands: [],
-        referenceCommands: [{ tool: 'node', args: ['--test', 'src/module.test.js'] }],
-        firstIterationCommands: [{ tool: 'node', args: ['--test', 'src/module.test.js'] }],
+        referenceCommands: [{ tool: 'node', purpose: 'test', args: ['--test', 'src/module.test.js'] }],
+        firstIterationCommands: [{ tool: 'node', purpose: 'test', args: ['--test', 'src/module.test.js'] }],
         finalCommands: [
-          { tool: 'node', args: ['--test', 'src/module.test.js'], repetitions: 2 },
-          { tool: 'node', args: ['--check', 'src/module.js'] },
-          { tool: 'node', args: ['-e', 'if (!(process.env.HOME || process.env.USERPROFILE)) process.exit(1)'] },
+          { tool: 'node', purpose: 'test', args: ['--test', 'src/module.test.js'], repetitions: 2 },
+          { tool: 'node', purpose: 'check', args: ['--check', 'src/module.js'] },
+          { tool: 'node', purpose: 'check', args: ['-e', 'if (!(process.env.HOME || process.env.USERPROFILE)) process.exit(1)'] },
         ],
       },
       service: composition.service,
@@ -143,15 +143,16 @@ test('project evaluator rejects generated paths outside its archived workspace',
       evaluator.evaluate({
         label: 'path-safety', snapshot,
         generatedFiles: [{ path: '../escape.js', content: 'export default true;\n' }],
-        prepareCommands: [], commands: [{ tool: 'node', args: ['--version'] }],
+        prepareCommands: [], commands: [{ tool: 'node', purpose: 'check', args: ['--version'] }],
       }),
       /PROJECT_PATH_DENIED/,
     );
     const redacted = await evaluator.evaluate({
       label: 'argument-redaction', snapshot, generatedFiles: [], prepareCommands: [],
-      commands: [{ tool: 'node', args: ['-e', 'process.exit(0)', '--', '--token', 'super-secret-value'] }],
+      commands: [{ tool: 'node', purpose: 'check', args: ['-e', 'process.exit(0)', '--', '--token', 'super-secret-value'] }],
     });
-    assert.equal(redacted.passed, true);
+    assert.equal(redacted.passed, false);
+    assert.equal(redacted.testsTotal, 0);
     assert.deepEqual(redacted.results[0]?.args.slice(-2), ['--token', '<redacted>']);
     assert.equal(JSON.stringify(redacted).includes('super-secret-value'), false);
   } finally {
