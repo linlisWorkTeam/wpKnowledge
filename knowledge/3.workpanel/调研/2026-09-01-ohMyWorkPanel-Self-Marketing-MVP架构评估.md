@@ -1010,4 +1010,3 @@ GET  /api/content-campaigns/:campaignId/export
 先做 Source Snapshot 与 Content Brief contract，再接 Writer；先让 `no_content` 和 unsupported-claim 测试通过，再追求文案好看；最后才做 UI 和 GitHub PR 增强。
 
 这个顺序能让 MVP 保持小，同时把真正决定可信度的部分做扎实。
-

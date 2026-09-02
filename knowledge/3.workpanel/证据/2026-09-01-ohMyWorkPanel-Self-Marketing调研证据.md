@@ -85,4 +85,3 @@ gh release view v2.1.2 --repo linlisWorkTeam/ohMyWorkPanel ...
 - 没有运行模型生成质量 benchmark；schema、validator 和 golden fixture 属于建议实现。
 - 没有验证 `gh` 在 ohMyWorkPanel 的所有目标部署环境均可用，因此 GitHub Provider 被定义为 optional/fail-open。
 - 没有修改 ohMyWorkPanel 源码、数据库或运行服务。
-
