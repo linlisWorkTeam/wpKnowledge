@@ -117,7 +117,7 @@ export function createKnowledgeServer(input: {
           agentPromptTransport: composition.agentProviderMode === 'deepseek-harness'
             ? 'sdk-stdio-json-rpc'
             : composition.agentProviderMode === 'deepseek-harness-headless'
-              ? 'argv-legacy'
+              ? 'headless-stdin'
               : 'in-process-fixture',
           agentWorkspaceView: composition.agentProviderMode === 'fixture'
             ? 'not-applicable'
@@ -260,6 +260,12 @@ export function createKnowledgeServer(input: {
             loadOhMyWorkPanelScenario(repositoryRoot),
             {
               policyId: String(payload.policyId ?? composition.config.publicationGate.policyId),
+              minimumStability: Number(
+                payload.minimumStability ?? composition.config.publicationGate.minimumStability,
+              ),
+              requireAllTests: payload.requireAllTests === undefined
+                ? composition.config.publicationGate.requireAllTests
+                : payload.requireAllTests === true,
               maxIterations: Number(payload.maxIterations ?? composition.config.publicationGate.maxIterations),
               workerCount: Number(payload.workerCount ?? 1),
             },

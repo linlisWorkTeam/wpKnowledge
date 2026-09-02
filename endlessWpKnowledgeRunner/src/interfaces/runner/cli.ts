@@ -218,6 +218,8 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
         loadOhMyWorkPanelScenario(required(args, 'repository')),
         {
           policyId: option(args, 'policy', composition.config.publicationGate.policyId),
+          minimumStability: composition.config.publicationGate.minimumStability,
+          requireAllTests: composition.config.publicationGate.requireAllTests,
           maxIterations: numberOption(args, 'max-iterations', composition.config.publicationGate.maxIterations),
           workerCount: numberOption(args, 'workers', 1),
         },

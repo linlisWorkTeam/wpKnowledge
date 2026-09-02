@@ -64,6 +64,12 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
       checkpoint: { kind: 'memory' },
     });
     const workflow = new AutomatedProjectWorkflowService(composition.service, infrastructure.engine);
+    const observedPolicies: Parameters<typeof composition.service.recordEvaluation>[1][] = [];
+    const recordEvaluation = composition.service.recordEvaluation.bind(composition.service);
+    composition.service.recordEvaluation = async (evaluation, policy) => {
+      observedPolicies.push(structuredClone(policy));
+      return recordEvaluation(evaluation, policy);
+    };
     const command = (args: string[]) => ({ tool: 'node' as const, purpose: 'test' as const, args });
     const scenario: AutomatedProjectScenario = {
       schemaVersion: '1.0', name: 'automated-two-iteration', moduleId: 'automated-module',
@@ -81,7 +87,11 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
         description: 'LangGraph-driven knowledge verification fixture.',
       },
     };
-    const handle = await workflow.start(scenario, { policyId: 'local-v1', maxIterations: 3, workerCount: 1 });
+    const policy = {
+      policyId: 'custom-acceptance-v1', minimumStability: 0.73,
+      requireAllTests: false, maxIterations: 3,
+    };
+    const handle = await workflow.start(scenario, { ...policy, workerCount: 1 });
     const result = await workflow.wait(handle.runId);
 
     assert.equal(result.executionStatus, 'COMPLETED');
@@ -103,6 +113,8 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
     assert.equal(composition.repository.getEvaluationAndDecision(handle.runId, candidate?.versionId ?? '')?.decision.outcome, 'ITERATE');
     const finalGate = composition.repository.getEvaluationAndDecision(handle.runId, verified?.versionId ?? '');
     assert.equal(finalGate?.decision.outcome, 'PASS');
+    assert.ok(observedPolicies.length >= 2);
+    assert.deepEqual(observedPolicies, observedPolicies.map(() => policy));
     assert.equal(finalGate?.report.checkBlocking, false);
     assert.equal(finalGate?.report.reviewBlocking, false);
     const finalInputIds = new Set(finalGate?.report.inputRefs.map((ref) => ref.artifactId));

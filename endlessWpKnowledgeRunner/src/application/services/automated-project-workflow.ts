@@ -17,7 +17,9 @@ import type {
   WorkflowExecutionView,
   WorkflowHandle,
 } from '../ports/index.ts';
-import { assertInvariant, type ArtifactRef, type GateDecision } from '../../domain/index.ts';
+import {
+  assertInvariant, type ArtifactRef, type GateDecision, type GatePolicy,
+} from '../../domain/index.ts';
 import type { KnowledgeFlywheelService } from './index.ts';
 import type { RealSourceScenario } from './project-flow.ts';
 import { KNOWLEDGE_WRITING_GUIDE } from './knowledge-writing-guide.ts';
@@ -602,6 +604,11 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     }
     const check = await this.readJson<CheckOutput>(checkRef);
     const review = reviewRef ? await this.readJson<ReviewOutput>(reviewRef) : null;
+    const policy = input.context.gatePolicy as GatePolicy | undefined;
+    const run = this.service.repository.getRun(input.runId);
+    if (!policy || !run) throw new Error('WORKFLOW_GATE_POLICY_MISSING');
+    assertInvariant(policy.policyId === run.policyId, 'workflow gate policy does not match run');
+    assertInvariant(policy.maxIterations === input.maxIterations, 'workflow iteration policy changed after start');
     const evaluationRef = input.context[contextKey('evaluationEvidenceRef', input.iteration)] as ArtifactRef | undefined;
     if (!evaluationRef) throw new Error('WORKFLOW_EVALUATION_EVIDENCE_MISSING');
     const inputRefs = [scenarioRef, snapshot.manifestRef, bodyRef, codeRef, oracleRef, checkRef];
@@ -619,12 +626,7 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
       infrastructureFailure: evaluation.infrastructureFailure,
       checkBlocking: check.blocking,
       reviewBlocking: review?.blocking ?? false,
-    }, {
-      policyId: this.service.repository.getRun(input.runId)?.policyId ?? 'local-v1',
-      minimumStability: 1,
-      requireAllTests: true,
-      maxIterations: input.maxIterations,
-    });
+    }, policy);
     return decision;
   }
 
@@ -732,8 +734,13 @@ export class AutomatedProjectWorkflowService {
 
   async start(
     scenario: AutomatedProjectScenario,
-    input: { policyId: string; maxIterations: number; workerCount?: number },
+    input: GatePolicy & { workerCount?: number },
   ): Promise<WorkflowHandle> {
+    assertInvariant(input.policyId.trim().length > 0, 'workflow policyId is required');
+    assertInvariant(Number.isFinite(input.minimumStability)
+      && input.minimumStability >= 0 && input.minimumStability <= 1,
+    'workflow minimumStability must be between zero and one');
+    assertInvariant(typeof input.requireAllTests === 'boolean', 'workflow requireAllTests must be boolean');
     assertInvariant(Number.isSafeInteger(input.maxIterations) && input.maxIterations >= 1,
       'workflow maxIterations must be a positive integer');
     assertInvariant(Number.isSafeInteger(input.workerCount ?? 1) && (input.workerCount ?? 1) >= 0 && (input.workerCount ?? 1) <= 5,
@@ -744,7 +751,15 @@ export class AutomatedProjectWorkflowService {
       runId: run.runId,
       maxIterations: input.maxIterations,
       workerCount: input.workerCount ?? 1,
-      context: { scenario },
+      context: {
+        scenario,
+        gatePolicy: {
+          policyId: input.policyId,
+          minimumStability: input.minimumStability,
+          requireAllTests: input.requireAllTests,
+          maxIterations: input.maxIterations,
+        },
+      },
     });
   }
 
