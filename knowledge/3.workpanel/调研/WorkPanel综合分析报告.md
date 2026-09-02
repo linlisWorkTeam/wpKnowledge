@@ -4,7 +4,11 @@
 
 本文件是 `knowledge/3.workpanel/调研/` 的长期维护入口，汇总会影响 WorkPanel 知识系统架构、实现边界和后续路线的正式结论。一次性命令、CAS 哈希和审查过程放在相邻的 `证据/`；特定阶段的完整论证保留为独立日期报告。
 
-最后更新：2026-09-01。
+最后更新：2026-09-02。
+
+## Connecter Remote Provider 验收更新
+
+Windows 本机 Codex 已通过单一 Connecter Host 接入 ECS ohMyWorkPanel canary，完成群任务创建、跨站路由、runner 执行、签名结果回程和单条 Agent 回复闭环。正式结论见[本机 Codex 通过 Connecter Host 接入 ECS WorkPanel](2026-09-02-本机Codex-Connecter-Provider接入验收.md)，原始命令与 ID 见[联调证据](../证据/2026-09-02-本机Codex-Provider联调证据.md)。该结果不外推为多 Host HA 或生产发布完成。
 
 ## 当前结论
 
@@ -135,6 +139,8 @@ wpKnowledge 的 Knowledge Flywheel 已从“只有 P0-A 规格和多套旧实现
 
 ## 相关报告
 
+- [本机 Codex 通过 Connecter Host 接入 ECS WorkPanel](2026-09-02-本机Codex-Connecter-Provider接入验收.md)
+- [本机 Codex Provider 联调证据](../证据/2026-09-02-本机Codex-Provider联调证据.md)
 - [PR #11 Verified Knowledge Flywheel 交付与全项目测评报告](2026-09-01-PR11知识飞轮交付测评.md)
 - [P0-A Knowledge Flywheel MR 可行性评审](2026-08-31-P0-A知识飞轮可行性评审.md)
 - [PR #11 开发、复验与审查记录](../证据/2026-09-01-PR11开发复验记录.md)
