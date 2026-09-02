@@ -220,9 +220,9 @@ function renderRuns() {
       <span>${badge(state.capabilities?.automatedWorkflow ? 'VERIFIED' : 'LOW_CONFIDENCE', state.capabilities?.automatedWorkflow ? '工作流可用' : '工作流未连接')}</span>
     </section>
     <section class="panel workflow-start-panel">
-      <div><p class="eyebrow">固定验收场景</p><h2>启动 ohMyWorkPanel 自动运行</h2><p>系统将按固定场景完成编排、评测和发布门禁。这里只适合运行受信项目，不能用来隔离来路不明的代码。</p></div>
+      <div><p class="eyebrow">固定验收场景</p><h2>启动示例项目自动运行</h2><p>系统将按固定场景完成编排、评测和发布门禁。这里只适合运行受信项目，不能用来隔离来路不明的代码。</p></div>
       <form id="workflow-start-form" class="workflow-start-form">
-        <label>ohMyWorkPanel 仓库路径<input name="repositoryRoot" placeholder="/absolute/path/to/ohMyWorkPanel" required></label>
+        <label>示例项目仓库路径<input name="repositoryRoot" placeholder="请输入项目仓库的绝对路径" required></label>
         <label>文档智能体数量<input name="workerCount" type="number" min="0" max="5" value="1"></label>
         <button class="primary-button" type="submit" ${state.operatorMode ? '' : 'disabled'}>启动自动运行</button>
       </form>

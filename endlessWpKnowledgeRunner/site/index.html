@@ -5,17 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark light">
   <meta name="theme-color" content="#090c11">
-  <meta name="description" content="wpKnowledge 会把工程经验先当候选，跑过独立评测、留下完整证据后，再决定它能不能进入正式知识库。">
+  <meta name="description" content="知识飞轮会把工程经验先当候选，跑过独立评测、留下完整证据后，再决定它能不能进入正式知识库。">
   <meta name="robots" content="index, follow">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="zh_CN">
-  <meta property="og:title" content="wpKnowledge · 可验证的知识飞轮">
+  <meta property="og:title" content="WORKPANEL · KNOWLEDGE FLYWHEEL">
   <meta property="og:description" content="文档写得像答案还不够。让知识跑一次，再决定要不要相信它。">
   <meta property="og:url" content="https://linlisworkteam.github.io/wpKnowledge/">
   <meta property="og:image" content="https://linlisworkteam.github.io/wpKnowledge/social-card.svg">
   <meta name="twitter:card" content="summary_large_image">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; connect-src 'none'; base-uri 'none'; form-action 'none'">
-  <title>wpKnowledge · 可验证的知识飞轮</title>
+  <title>WORKPANEL · KNOWLEDGE FLYWHEEL</title>
   <link rel="canonical" href="https://linlisworkteam.github.io/wpKnowledge/">
   <link rel="icon" href="./mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="./styles.css">
@@ -25,11 +25,11 @@
 
   <header class="site-header" data-header>
     <div class="nav-shell">
-      <a class="brand" href="#top" aria-label="wpKnowledge 首页">
+      <a class="brand" href="#top" aria-label="知识飞轮首页">
         <img src="./mark.svg" width="38" height="38" alt="">
         <span>
-          <strong>wpKnowledge</strong>
-          <small>知识飞轮</small>
+          <strong>知识飞轮</strong>
+          <small>可验证的工程知识</small>
         </span>
       </a>
 
@@ -74,7 +74,7 @@
           关键能力实现验收
         </div>
         <h1>这次踩过的坑，<br><em>下次别再踩。</em></h1>
-        <p class="hero-lead">wpKnowledge 会先把工程经验当作候选知识，不急着宣布它是正确答案。智能体根据候选知识生成实现，独立评测器负责找错。只有测试结果和证据都经得起核对，这份知识才会进入正式知识库。</p>
+        <p class="hero-lead">知识飞轮会先把工程经验当作候选知识，不急着宣布它是正确答案。智能体根据候选知识生成实现，独立评测器负责找错。只有测试结果和证据都经得起核对，这份知识才会进入正式知识库。</p>
         <div class="hero-actions">
           <a class="button primary" href="#quickstart">五分钟开始 <span aria-hidden="true">→</span></a>
           <a class="button secondary" href="https://github.com/linlisWorkTeam/wpKnowledge">查看源码 <span aria-hidden="true">↗</span></a>
@@ -93,7 +93,7 @@
         <div class="run-window">
           <div class="window-bar">
             <div class="window-dots" aria-hidden="true"><i></i><i></i><i></i></div>
-            <span>运行 / ohmyworkpanel-mentions</span>
+            <span>运行 / 示例项目</span>
             <span class="live-label"><i></i> 实时证据</span>
           </div>
           <div class="run-body">
@@ -154,7 +154,7 @@
       <div class="section-intro reveal">
         <p class="eyebrow">为什么需要知识飞轮</p>
         <h2>写得像答案，<br>不代表真的能用。</h2>
-        <p>wpKnowledge 不只保存结论。它还记下结论怎么被验证、失败后改了哪里，以及最后是谁按规则放行。</p>
+        <p>知识飞轮不只保存结论。它还记下结论怎么被验证、失败后改了哪里，以及最后是谁按规则放行。</p>
       </div>
 
       <div class="comparison-grid">
@@ -313,7 +313,7 @@
         <div class="section-intro reveal">
           <p class="eyebrow">技术架构</p>
           <h2>一个核心，<br>多种入口。</h2>
-          <p>命令行、服务接口、网页控制台和外部适配器都调用同一个应用核心。内嵌的工作流基础设施负责节点、并行、循环和恢复；wpKnowledge 仍是知识、评测与发布状态的唯一业务依据。</p>
+          <p>命令行、服务接口、网页控制台和外部适配器都调用同一个应用核心。内嵌的工作流基础设施负责节点、并行、循环和恢复；知识飞轮仍是知识、评测与发布状态的唯一业务依据。</p>
           <a class="text-link" href="https://github.com/linlisWorkTeam/wpKnowledge/blob/main/endlessWpKnowledgeRunner/docs/ARCHITECTURE.md">阅读架构说明 <span aria-hidden="true">↗</span></a>
         </div>
 
@@ -390,7 +390,7 @@
             <div class="terminal">
               <div class="terminal-head">
                 <span><i></i><i></i><i></i></span>
-                <b>命令行 · wpKnowledge</b>
+                <b>命令行 · 知识飞轮</b>
                 <button type="button" data-copy-target="#user-quickstart-command" data-copy-label="启动命令已复制" aria-label="复制快速启动命令">复制</button>
               </div>
               <pre><code id="user-quickstart-command">git clone https://github.com/linlisWorkTeam/wpKnowledge.git
@@ -419,10 +419,10 @@ npm run knowledge:serve</code></pre>
             <div class="terminal agent-terminal">
               <div class="terminal-head">
                 <span><i></i><i></i><i></i></span>
-                <b>智能体任务 · 配置 wpKnowledge</b>
+                <b>智能体任务 · 配置知识飞轮</b>
                 <button type="button" data-copy-target="#agent-setup-prompt" data-copy-label="智能体任务说明已复制" aria-label="复制智能体任务说明">复制任务说明</button>
               </div>
-              <pre><code id="agent-setup-prompt">请从 0 到 1 配置并启动 wpKnowledge。你需要实际执行命令、处理可安全修复的问题，并在最后给出可核对的结果。
+              <pre><code id="agent-setup-prompt">请从 0 到 1 配置并启动知识飞轮。你需要实际执行命令、处理可安全修复的问题，并在最后给出可核对的结果。
 
 仓库：https://github.com/linlisWorkTeam/wpKnowledge
 
@@ -462,7 +462,7 @@ npm run knowledge:serve</code></pre>
     <div class="section-shell footer-grid">
       <div class="footer-brand">
         <img src="./mark.svg" width="34" height="34" alt="">
-        <div><strong>wpKnowledge</strong><small>可验证的知识飞轮</small></div>
+        <div><strong>知识飞轮</strong><small>经得起复验的工程知识</small></div>
       </div>
       <div class="footer-links">
         <a href="https://github.com/linlisWorkTeam/wpKnowledge">源码仓库</a>
