@@ -6,6 +6,7 @@ import Ajv2020Import from 'ajv/dist/2020.js';
 import addFormatsImport from 'ajv-formats';
 import { createArtifactRef, createEvent } from '../../src/domain/index.ts';
 import { AGENT_IDS, type AgentId } from '../../src/application/ports/index.ts';
+import { validateTraceabilityMatrix } from './traceability-validator.ts';
 
 const specRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const schemaRoot = join(specRoot, 'schemas');
@@ -183,6 +184,7 @@ function validateMarkdown(): number {
     requirements.push(...[...text.matchAll(pattern)].map((match) => match[1]));
   }
   const trace = readFileSync(join(specRoot, '13-verification', 'traceability-matrix.md'), 'utf8');
+  validateTraceabilityMatrix(trace, resolve(specRoot, '..'));
   for (const requirement of requirements) {
     const count = trace.split('\n').filter((line) => line.startsWith(`| ${requirement} |`)).length;
     invariant(count === 1, `${requirement} must appear exactly once in traceability matrix; got ${count}`);
