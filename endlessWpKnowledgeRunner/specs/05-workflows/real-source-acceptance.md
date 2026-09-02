@@ -28,7 +28,7 @@
 
 ## 信任边界
 
-ohMyWorkPanel 是同组织的受信源码。Agent Adapter 通过 SDK stdin、角色工作区、Bubblewrap、wall time、输出上限和取消约束模型进程；ProjectEvaluator 另外负责固定 argv、禁用 shell、临时工作区与进程树终止。两者不能合并解释为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。
+ohMyWorkPanel 是同组织的受信源码。Agent Adapter 通过 SDK stdin、角色工作区、Bubblewrap、wall time、输出上限和取消约束模型进程；ProjectEvaluator 另外负责固定 argv、禁用 shell、临时工作区与进程树终止。评测子进程不得继承真实用户的 `HOME`、`USERPROFILE`、`APPDATA`、`LOCALAPPDATA`、`TEMP`、`TMP` 或语言包管理器主目录；这些目录必须指向本次评测的临时隔离根。两者不能合并解释为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。
 
 ## 完成证据
 

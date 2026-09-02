@@ -38,6 +38,14 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
   git(repositoryRoot, ['add', '.']);
   git(repositoryRoot, ['commit', '-m', 'fixture']);
   const commit = git(repositoryRoot, ['rev-parse', 'HEAD']);
+  const realUserDirectories = [
+    process.env.HOME, process.env.USERPROFILE, process.env.APPDATA, process.env.LOCALAPPDATA,
+  ].filter((value): value is string => Boolean(value));
+  const isolationProbe = [
+    `const forbidden = ${JSON.stringify(realUserDirectories)};`,
+    "const keys = ['HOME', 'USERPROFILE', 'APPDATA', 'LOCALAPPDATA', 'TEMP', 'TMP'];",
+    "if (keys.some((key) => !process.env[key] || forbidden.includes(process.env[key]))) process.exit(2);",
+  ].join(' ');
 
   const composition = createComposition({ runtimeDir });
   const agent = new SchemaValidatedScenarioAgent([
@@ -69,7 +77,7 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
         finalCommands: [
           { tool: 'node', purpose: 'test', args: ['--test', 'src/module.test.js'], repetitions: 2 },
           { tool: 'node', purpose: 'check', args: ['--check', 'src/module.js'] },
-          { tool: 'node', purpose: 'check', args: ['-e', 'if (!(process.env.HOME || process.env.USERPROFILE)) process.exit(1)'] },
+          { tool: 'node', purpose: 'check', args: ['-e', isolationProbe] },
         ],
       },
       service: composition.service,
@@ -93,6 +101,7 @@ test('generated behavior matches the public contract', () => assert.equal(calcul
     assert.equal(report.firstEvaluation.passed, false);
     assert.equal(report.firstDecision.outcome, 'ITERATE');
     assert.equal(report.finalEvaluation.passed, true);
+    assert.equal(JSON.stringify(report.finalEvaluation).includes(realUserDirectories[0] ?? '\0'), false);
     assert.equal(report.finalDecision.outcome, 'PASS');
     assert.equal(report.finalVersion.parentVersionId, report.firstVersion.versionId);
     assert.equal(composition.service.getKnowledgeVersion(report.firstVersion.versionId)?.status, 'CANDIDATE');

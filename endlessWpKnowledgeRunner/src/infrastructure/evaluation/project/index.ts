@@ -96,15 +96,33 @@ function resolveTool(tool: ProjectTool): ResolvedTool {
   throw new Error(`PROJECT_TOOL_DENIED: ${String(tool)}`);
 }
 
-function executionEnvironment(): NodeJS.ProcessEnv {
+function executionEnvironment(isolationRoot?: string): NodeJS.ProcessEnv {
   const allowed = new Set([
-    'PATH', 'Path', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT', 'TEMP', 'TMP', 'HOME', 'USERPROFILE',
-    'APPDATA', 'LOCALAPPDATA', 'ProgramFiles', 'ProgramFiles(x86)', 'ProgramData',
-    'RUSTUP_HOME', 'CARGO_HOME', 'PNPM_HOME', 'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE',
+    'PATH', 'Path', 'PATHEXT', 'SystemRoot', 'SYSTEMROOT',
+    'ProgramFiles', 'ProgramFiles(x86)', 'ProgramData',
+    'NUMBER_OF_PROCESSORS', 'PROCESSOR_ARCHITECTURE',
   ]);
   const env: NodeJS.ProcessEnv = { CI: '1', NO_COLOR: '1', FORCE_COLOR: '0' };
   for (const [key, value] of Object.entries(process.env)) {
     if (allowed.has(key) && value !== undefined) env[key] = value;
+  }
+  if (isolationRoot) {
+    const home = join(isolationRoot, 'home');
+    const appData = join(isolationRoot, 'appdata');
+    const localAppData = join(isolationRoot, 'localappdata');
+    const temporary = join(isolationRoot, 'tmp');
+    for (const path of [home, appData, localAppData, temporary]) mkdirSync(path, { recursive: true });
+    Object.assign(env, {
+      HOME: home,
+      USERPROFILE: home,
+      APPDATA: appData,
+      LOCALAPPDATA: localAppData,
+      TEMP: temporary,
+      TMP: temporary,
+      XDG_CONFIG_HOME: join(home, '.config'),
+      XDG_CACHE_HOME: join(home, '.cache'),
+      XDG_DATA_HOME: join(home, '.local', 'share'),
+    });
   }
   return env;
 }
@@ -149,6 +167,7 @@ async function capture(
   timeoutMs: number,
   maxOutputBytes: number,
   roots: string[],
+  isolationRoot: string,
   signal?: AbortSignal,
 ): Promise<CapturedProcess> {
   if (signal?.aborted) throw new Error('PROJECT_EVALUATION_CANCELLED');
@@ -156,7 +175,7 @@ async function capture(
   return new Promise<CapturedProcess>((resolvePromise, reject) => {
     const child = spawn(tool.executable, [...tool.prefixArgs, ...args], {
       cwd,
-      env: executionEnvironment(),
+      env: executionEnvironment(isolationRoot),
       shell: false,
       windowsHide: true,
       detached: process.platform !== 'win32',
@@ -347,7 +366,7 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
         const captured = await capture(
           resolveTool(command.tool), command.args, commandCwd,
           timeoutMs, maxOutputBytes,
-          redactionRoots, signal,
+          redactionRoots, tempRoot, signal,
         );
         const counts = command.purpose === 'test'
           ? parseTestCounts(`${captured.stdout}\n${captured.stderr}`)
