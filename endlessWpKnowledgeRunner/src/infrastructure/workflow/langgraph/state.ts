@@ -1,7 +1,7 @@
 import { Annotation } from '@langchain/langgraph';
 import type { AgentId } from '../../../application/ports/index.ts';
 
-export type InfrastructureRoute = 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED' | 'FAILED';
+export type InfrastructureRoute = 'PASS' | 'ITERATE' | 'STOPPED' | 'FAILED';
 export type InfrastructureExecutionStatus = 'PENDING' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'STOPPED' | 'CANCELLED';
 
 export interface WorkerTask {

@@ -210,7 +210,6 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
       case 'oracle_validation': return this.validateOracle(input, scenario);
       case 'evaluation': return this.evaluate(input, scenario);
       case 'workflow_router': return this.route(input);
-      case 'rollback': return this.rollback(input);
       case 'publication': return this.publish(input);
       default: throw new Error(`WORKFLOW_STAGE_UNSUPPORTED: ${input.nodeId}`);
     }
@@ -576,8 +575,6 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     const run = this.service.repository.getRun(input.runId);
     if (route === 'ITERATE' && run?.state === 'REVIEWING') {
       this.service.transition(input.runId, 'ITERATING');
-    } else if (route === 'ROLLBACK' && run?.state === 'REVIEWING') {
-      this.service.transition(input.runId, 'ROLLING_BACK');
     } else if (route === 'STOPPED' && run?.state === 'REVIEWING') {
       this.service.transition(input.runId, 'LOW_CONFIDENCE');
     }
@@ -629,13 +626,6 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
       maxIterations: input.maxIterations,
     });
     return decision;
-  }
-
-  private async rollback(input: WorkflowStageInput): Promise<WorkflowStageResult> {
-    const run = this.service.repository.getRun(input.runId);
-    return {
-      detail: run?.bestVersionId ? `requested rollback to ${run.bestVersionId}` : 'rollback requested without historical best',
-    };
   }
 
   private async publish(input: WorkflowStageInput): Promise<WorkflowStageResult> {

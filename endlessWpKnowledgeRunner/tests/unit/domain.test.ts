@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  artifactIdFor, createArtifactRef, createRun, decideGate, transitionRun,
+  artifactIdFor, createArtifactRef, createRun, decideGate, GATE_OUTCOMES, transitionRun,
 } from '../../src/domain/index.ts';
 
 test('artifact ID is bound to content digest', () => {
@@ -31,6 +31,10 @@ test('a generation-quality rejection may iterate before behavioral evaluation', 
 
   assert.equal(iterating.iteration, 1);
   assert.equal(iterating.state, 'ITERATING');
+});
+
+test('gate outcomes expose only implemented deterministic routes', () => {
+  assert.deepEqual(GATE_OUTCOMES, ['PASS', 'ITERATE', 'STOPPED']);
 });
 
 test('deterministic gate passes only complete and stable evidence', () => {

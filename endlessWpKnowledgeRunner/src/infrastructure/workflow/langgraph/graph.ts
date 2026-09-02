@@ -23,7 +23,7 @@ const AGENT_BY_NODE: Readonly<Record<string, AgentId>> = {
 export const INFRASTRUCTURE_GRAPH_NODES = [
   'orchestrator', 'doc_worker', 'doc_gen', 'test_gen', 'candidate_knowledge',
   'oracle_validation', 'code', 'check', 'evaluation', 'review', 'workflow_router',
-  'rollback', 'publication', 'failed', 'stopped',
+  'publication', 'failed', 'stopped',
 ] as const;
 
 interface GraphDependencies {
@@ -126,11 +126,10 @@ export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: 
     .addNode('review', node('review'))
     .addNode('workflow_router', async (state: InfrastructureState): Promise<InfrastructureStateUpdate> => {
       const update = await node('workflow_router')(state);
-      return update.route === 'ITERATE' || update.route === 'ROLLBACK'
+      return update.route === 'ITERATE'
         ? { ...update, iteration: state.iteration + 1 }
         : update;
     })
-    .addNode('rollback', node('rollback'))
     .addNode('publication', async (state: InfrastructureState): Promise<InfrastructureStateUpdate> => ({
       ...await node('publication')(state), executionStatus: 'COMPLETED',
     }))
@@ -172,11 +171,9 @@ export function buildInfrastructureGraph(deps: GraphDependencies, checkpointer: 
     .addConditionalEdges('workflow_router', (state: InfrastructureState) => {
       if (state.route === 'PASS') return 'publication';
       if (state.route === 'ITERATE') return 'orchestrator';
-      if (state.route === 'ROLLBACK') return 'rollback';
       if (state.route === 'FAILED') return 'failed';
       return 'stopped';
-    }, ['publication', 'orchestrator', 'rollback', 'failed', 'stopped'])
-    .addEdge('rollback', 'orchestrator')
+    }, ['publication', 'orchestrator', 'failed', 'stopped'])
     .addEdge('publication', END)
     .addEdge('failed', END)
     .addEdge('stopped', END)

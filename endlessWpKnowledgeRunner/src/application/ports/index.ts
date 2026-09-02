@@ -275,7 +275,7 @@ export interface WorkflowExecutionView extends WorkflowHandle {
   currentNode: string | null;
   iteration: number;
   maxIterations: number;
-  route: 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED' | 'FAILED' | null;
+  route: 'PASS' | 'ITERATE' | 'STOPPED' | 'FAILED' | null;
   error: string | null;
 }
 
@@ -305,7 +305,7 @@ export interface WorkflowStageInput {
 export interface WorkflowStageResult {
   detail: string;
   context?: Record<string, unknown>;
-  route?: 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED' | 'FAILED';
+  route?: 'PASS' | 'ITERATE' | 'STOPPED' | 'FAILED';
 }
 
 export interface WorkflowStageExecutor {

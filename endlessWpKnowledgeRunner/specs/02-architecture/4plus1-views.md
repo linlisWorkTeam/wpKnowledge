@@ -2,7 +2,7 @@
 
 ## 场景视图（+1）
 
-`源码快照 → Doc/Test 两条独立链路 → 知识驱动 Code → Check → 确定性 Eval → Review → iterate/rollback/pass`。关键场景详见 `AC-FLOW-001`、`AC-SEC-001`、`AC-REC-001`；面向知识消费者、治理者、工程师、验收者和旧调用方的交互见[用户用例与交互时序](../05-workflows/user-use-cases.md)。
+`源码快照 → Doc/Test 两条独立链路 → 知识驱动 Code → Check → 确定性 Eval → Review → iterate/stopped/pass`。关键场景详见 `AC-FLOW-001`、`AC-SEC-001`、`AC-REC-001`；面向知识消费者、治理者、工程师、验收者和旧调用方的交互见[用户用例与交互时序](../05-workflows/user-use-cases.md)。
 
 ## 逻辑视图
 

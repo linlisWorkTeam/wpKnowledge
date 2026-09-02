@@ -7,7 +7,8 @@ export const RUN_STATES = [
 ] as const;
 
 export type RunState = typeof RUN_STATES[number];
-export type GateOutcome = 'PASS' | 'ITERATE' | 'ROLLBACK' | 'STOPPED';
+export const GATE_OUTCOMES = ['PASS', 'ITERATE', 'STOPPED'] as const;
+export type GateOutcome = typeof GATE_OUTCOMES[number];
 export type KnowledgeStatus = 'CANDIDATE' | 'VERIFIED' | 'LOW_CONFIDENCE' | 'SUPERSEDED';
 export type QualityOutcome = 'ACCEPTED' | 'REJECTED';
 export const DOMAIN_EVENT_TYPES = [
