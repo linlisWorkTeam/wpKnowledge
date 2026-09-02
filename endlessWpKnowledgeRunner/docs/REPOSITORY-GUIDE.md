@@ -41,7 +41,7 @@ ohMyWorkPanel 相关研究、PR 评审和证据统一放在 `knowledge/3.workpan
 
 ### 根目录和 `.github/`
 
-根目录只接收工作区配置和跨组件协作入口，例如 `package.json`、`tsconfig.json`、首页、贡献与安全策略。CI、PR 模板等 GitHub 协作配置放在 `.github/`。
+根目录只接收工作区配置和跨组件协作入口，例如 `package.json`、`tsconfig.json`、首页、贡献与安全策略。CI、PR 模板等 GitHub 协作配置放在 `.github/`。根目录 `index.html` 是分支/Jekyll Pages 的兼容入口，只在构建时嵌入 `endlessWpKnowledgeRunner/site/index.html`；站点内容和资产不得在根目录复制。
 
 ## 新文件决策表
 
