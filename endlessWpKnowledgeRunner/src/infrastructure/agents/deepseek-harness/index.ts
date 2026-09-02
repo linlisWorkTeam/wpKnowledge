@@ -213,6 +213,15 @@ function validateOutput(
   return output;
 }
 
+async function recordAuditWithoutAffectingResult(audit: () => Promise<void>): Promise<void> {
+  try {
+    await audit();
+  } catch {
+    // Audit persistence is observability, not execution authority. A failure
+    // here must never replace a valid Agent result or its original error.
+  }
+}
+
 /**
  * Production-facing DSH adapter. The full prompt travels over the official
  * stdio JSON-RPC SDK transport and never appears in the spawned process argv.
@@ -344,17 +353,17 @@ export class DeepSeekHarnessSdkAgent implements AgentProvider {
       stdoutBytes = Buffer.byteLength(result.finalResponse, 'utf8');
       if (stdoutBytes > this.maxOutputBytes) throw new Error('DSH_AGENT_OUTPUT_LIMIT_EXCEEDED');
       const output = validateOutput(result.finalResponse, request.outputSchema);
-      await this.audit(request, workspaceRoot, prompt, started, {
+      await recordAuditWithoutAffectingResult(() => this.audit(request, workspaceRoot, prompt, started, {
         timedOut, cancelled, stdoutBytes, notificationCount, status: 'SUCCEEDED', errorCode: null,
         providerAttempt,
-      });
+      }));
       return output;
     } catch (error) {
       errorCode = error instanceof Error ? error.message.split(':', 1)[0] ?? 'DSH_AGENT_FAILED' : 'DSH_AGENT_FAILED';
-      await this.audit(request, workspaceRoot, prompt, started, {
+      await recordAuditWithoutAffectingResult(() => this.audit(request, workspaceRoot, prompt, started, {
         timedOut, cancelled, stdoutBytes, notificationCount, status: 'FAILED', errorCode,
         providerAttempt,
-      });
+      }));
       throw error;
     } finally {
       if (timeout) clearTimeout(timeout);
@@ -503,15 +512,15 @@ export class DeepSeekHarnessHeadlessAgent implements AgentProvider {
         });
       });
       const output = validateOutput(stdout, request.outputSchema);
-      await this.audit(request, workspaceRoot, prompt, started, {
+      await recordAuditWithoutAffectingResult(() => this.audit(request, workspaceRoot, prompt, started, {
         exitCode, timedOut, cancelled, stdoutBytes, stderrBytes, status: 'SUCCEEDED', errorCode: null,
-      });
+      }));
       return output;
     } catch (error) {
       errorCode = error instanceof Error ? error.message.split(':', 1)[0] ?? 'DSH_AGENT_FAILED' : 'DSH_AGENT_FAILED';
-      await this.audit(request, workspaceRoot, prompt, started, {
+      await recordAuditWithoutAffectingResult(() => this.audit(request, workspaceRoot, prompt, started, {
         exitCode, timedOut, cancelled, stdoutBytes, stderrBytes, status: 'FAILED', errorCode,
-      });
+      }));
       throw error;
     }
   }

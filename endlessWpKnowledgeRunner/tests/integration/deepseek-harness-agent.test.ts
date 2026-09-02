@@ -134,6 +134,28 @@ test('DSH SDK provider transports prompts over stdin JSON-RPC and validates the 
   }
 });
 
+test('DSH SDK audit failure cannot replace a successful Agent result', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-audit-'));
+  const script = join(workspace, 'fake-sdk.mjs');
+  writeFakeSdkRuntime(script);
+  const statuses: DeepSeekHarnessAuditRecord['status'][] = [];
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      dshBin: script, allowedWorkspaceRoots: [workspace], timeoutMs: 2_000,
+      initializeTimeoutMs: 1_000, shutdownTimeoutMs: 100,
+      disposeEofGraceMs: 100, disposeGraceMs: 100,
+      onAudit: (record) => {
+        statuses.push(record.status);
+        throw new Error('AUDIT_WRITE_FAILED');
+      },
+    });
+    assert.deepEqual(await provider.run(request(workspace)), { answer: 'sdk-validated' });
+    assert.deepEqual(statuses, ['SUCCEEDED']);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
 test('DSH SDK provider closes a hung runtime at the overall turn deadline', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-timeout-'));
   const script = join(workspace, 'fake-sdk.mjs');
@@ -223,6 +245,32 @@ test('DeepSeek Harness headless provider escalates to SIGKILL when SIGTERM does 
     await assert.rejects(provider.run(request(workspace)), /DSH_AGENT_TIMEOUT/);
     await new Promise((resolve) => setTimeout(resolve, 20));
     assert.deepEqual(signals, ['SIGTERM', 'SIGKILL']);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('DeepSeek Harness headless audit failure cannot replace success or the original execution error', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-audit-'));
+  const successScript = join(workspace, 'success.mjs');
+  const failureScript = join(workspace, 'failure.mjs');
+  writeFileSync(successScript, `process.stdout.write(JSON.stringify({ answer: 'validated' }));\n`);
+  writeFileSync(failureScript, `process.stdout.write(JSON.stringify({ wrong: true }));\n`);
+  const statuses: DeepSeekHarnessAuditRecord['status'][] = [];
+  const options = {
+    command: process.execPath,
+    allowedWorkspaceRoots: [workspace],
+    onAudit: (record: DeepSeekHarnessAuditRecord) => {
+      statuses.push(record.status);
+      throw new Error('AUDIT_WRITE_FAILED');
+    },
+  };
+  try {
+    const successful = new DeepSeekHarnessHeadlessAgent({ ...options, args: [successScript] });
+    assert.deepEqual(await successful.run(request(workspace)), { answer: 'validated' });
+    const failing = new DeepSeekHarnessHeadlessAgent({ ...options, args: [failureScript] });
+    await assert.rejects(failing.run(request(workspace)), /AGENT_OUTPUT_INVALID/);
+    assert.deepEqual(statuses, ['SUCCEEDED', 'FAILED']);
   } finally {
     rmSync(workspace, { recursive: true, force: true });
   }
