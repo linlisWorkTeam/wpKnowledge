@@ -1,102 +1,196 @@
-# DeepSeek Harness 真实 Agent 治理 ohMyWorkPanel 演示
+# DeepSeek Harness 治理 ohMyWorkPanel：三次真实运行记录
 
 <details lang="en">
 <summary>English summary</summary>
 
-On 2026-09-02, the embedded LangGraph workflow governed the pinned ohMyWorkPanel commit with seven real Agent roles through DeepSeek Harness and OpenCode Go. The same run recovered from two implementation defects, turned a quality score of 65 into an automatic documentation iteration, produced a score-98 knowledge version, passed 295/295 deterministic checks, and published exactly one verified version. This is one successful engineering run, not yet a statistical model-quality or hostile-code isolation claim.
+On 2026-09-02, wpKnowledge ran three live governance exercises against the pinned ohMyWorkPanel commit. The legacy headless path completed a two-iteration quality loop (65 to 98) and passed 295/295 checks. The official DSH SDK path then exposed and preserved a fail-closed path violation. A clean isolated SDK run resumed after one malformed DocGen response and finished `VERIFIED / PASS`, with 1/1 deterministic behavior check, one publication, and 12/12 referenced artifacts verified. “Code role” means a fixed LangGraph responsibility executed by the configured provider; it is not a separately installed CodeAgent product or company CodeAgent CLI.
 
 </details>
 
-## 这次到底跑了什么
+## 先说结论
 
-本次不是 Scenario fixture。`wpKnowledge` 通过进程型 `DeepSeekHarnessHeadlessAgent` 调用 DeepSeek Harness `0.1.2-alpha.4`，Provider 指向 OpenCode Go，模型为 `deepseek-v4-flash`。参考项目是本地只读检出的 ohMyWorkPanel，场景固定到 commit `3b2e6073e01b42e2a595fca4de3acaad44715ddd`，知识主题是 `src/chat/mentions.ts` 的 @ 提及解析。
+这次打通的不是一条只在测试里成立的绿色路径。`wpKnowledge` 已经能够用内嵌 LangGraph 编排七类角色，通过 DeepSeek Harness 官方 SDK 调用 OpenCode Go / `deepseek-v4-flash`，把候选知识、代码生成、确定性评测、Review、Gate 和发布串成完整闭环。
 
-运行时目录为本机忽略路径 `.workpanel/live-ohmyworkpanel-v2`。密钥只通过 `OPENCODE_GO_API_KEY` 注入进程环境；仓库、Agent 审计和本文均不保存密钥值。
+这里容易混淆一个名字：图上的 `code` 是“代码生成角色”，不是另行安装的 CodeAgent 产品。它和 DocGen、TestGen、Check、Review 一样，由同一个 `DeepSeekHarnessSdkAgent` 执行，只是收到的基础提示词、可见文件和输出 Schema 不同。本次没有调用原 `domain-knowledge` 中面向公司环境的 `CompanyCodeAgentCliRunner`。
 
-最终 Run：
+参考项目固定为 ohMyWorkPanel commit `3b2e6073e01b42e2a595fca4de3acaad44715ddd`，治理对象是 `src/chat/mentions.ts` 的 `@` 提及解析。密钥只在运行进程环境里出现，没有写入仓库、Prompt 审计或导出的 Demo 报告。
 
-| 字段 | 值 |
-|---|---|
-| `runId` | `2d9d785d-9737-4bfd-bf0b-dac411efba3d` |
-| Flywheel 状态 | `VERIFIED` |
-| LangGraph 结果 | `COMPLETED / PASS` |
-| 最终轮次 | `1` |
-| 最终知识版本 | `kv_c700e868c87b221cd6437c95` |
-| 知识质量 | `98/100` |
-| 行为评测 | `295/295`，stability `1` |
-| publication key | `ohmyworkpanel-mentions:kv_c700e868c87b221cd6437c95:local-v1` |
+## 三次运行各自证明了什么
 
-## 端到端时间线
+| 运行 | Provider 路径 | 结果 | 这次留下的证据 |
+|---|---|---|---|
+| Headless 兼容性样例 | 旧 `DeepSeekHarnessHeadlessAgent` | `VERIFIED / PASS` | 质量 65→98，第二轮通过 295/295 行为检查并发布 |
+| SDK 隔离与失败样例 | 官方 stdio JSON-RPC SDK + 角色工作区 + Bubblewrap | Fail closed | 进入第 2 轮后，代码生成角色尝试输出未授权的 `src/chat/mentions.test.ts`，系统在评测前拒绝；0 次发布 |
+| SDK 完整样例 | 官方 stdio JSON-RPC SDK + 角色工作区 + Bubblewrap | `VERIFIED / PASS` | DocGen 首次返回非 JSON，同一 Run 恢复；1/1 行为检查通过；唯一发布；12/12 工件完整 |
 
-第 0 轮由 Orchestrator 启动。DocWorker 与 TestGen 并行读取固定源码，Oracle 在仓库外快照中验证参考实现。DocGen 的第一次输出多带了一个 Schema 外字段，工作流停在 `doc_gen`。修正输出扫描和顶层键提示后，同一 `runId/thread_id` 从最近失败 Checkpoint 恢复，先前已完成的节点没有重新执行。
+三次结果不能相互替代。Headless 样例证明了两轮质量反馈；失败样例证明路径白名单会真的拒绝越界输出；最后一次 SDK 样例证明官方传输、角色隔离、失败恢复、评测和发布可以在同一条真实路径上闭合。
 
-恢复后的候选知识可读性为 1，但没有 Markdown 二级标题，也没有可复现的验证命令。Quality Gate 给出 65 分，并返回两条具体 weak point：
+## Demo A：Headless 两轮知识迭代
+
+Run `2d9d785d-9737-4bfd-bf0b-dac411efba3d` 使用旧 Headless 兼容入口。第 0 轮候选知识只有正文，没有足够的结构和复现命令，Quality Gate 给出 65 分，并产生两条明确反馈：
 
 - `structure: add explanation and explicit sections`
 - `verifiability: add a reproducible command, metric, or evidence link`
 
-工作流没有把低质量文档交给 CodeAgent。`candidate_knowledge → workflow_router → orchestrator` 自动进入第 1 轮，DocGen 收到上一版正文和质量反馈。第二版知识得到 98 分，随后 Code、Check、确定性 Evaluation、Review 和 Publication 依次完成。
+图没有让低质量知识继续进入代码生成，而是自动回到下一轮 DocGen。第 1 轮知识得到 98 分，随后通过 295/295 行为检查并原子发布。
 
-| 轮次 | 节点 | Agent | 结果 | 约耗时 |
-|---:|---|---|---|---:|
-| 0 | orchestrator | Orchestrator | 完成 | 34 秒 |
-| 0 | doc_worker | DocWorker | 完成 | 18 秒 |
-| 0 | test_gen | TestGen | 完成 | 161 秒 |
-| 0 | doc_gen | DocGen | 一次格式失败，恢复后完成 | 66 秒 + 249 秒 |
-| 0 | candidate_knowledge | wpKnowledge Quality Gate | 65 分，进入知识迭代 | 立即判定 |
-| 1 | orchestrator | Orchestrator | 完成 | 57 秒 |
-| 1 | doc_worker | DocWorker | 完成 | 39 秒 |
-| 1 | test_gen | TestGen | 完成 | 130 秒 |
-| 1 | doc_gen | DocGen | 完成，质量 98 分 | 98 秒 |
-| 1 | code | CodeAgent | 完成 | 245 秒 |
-| 1 | check | CheckAgent | 完成 | 150 秒 |
-| 1 | evaluation | TrustedProjectEvaluator | 295/295 | 223 秒 |
-| 1 | review | ReviewAgent | 完成 | 116 秒 |
-| 1 | publication | wpKnowledge | 原子发布 | 约 5 毫秒 |
+| 字段 | 值 |
+|---|---|
+| 最终状态 | `VERIFIED / PASS` |
+| 最终轮次 | `1`（从 0 开始计数，共两轮） |
+| 最终知识版本 | `kv_c700e868c87b221cd6437c95` |
+| 最终知识质量 | `98/100` |
+| 行为评测 | `295/295`，stability `1` |
+| Registry Event | `72` |
+| publication key | `ohmyworkpanel-mentions:kv_c700e868c87b221cd6437c95:local-v1` |
 
-节点审计共写入 72 个 Registry Event。前台读取的是 `WorkflowNodeProjection`，不直接读取 LangGraph checkpoint 表。
-
-## 不可变证据索引
+关键工件：
 
 | 工件 | Artifact ID |
 |---|---|
 | 第 0 轮知识（质量 65） | `sha256:3b3626cb5462b9d8492d9f2ccf3fc75d86432e09e8d308adc456acb8c52d2675` |
-| 第 1 轮 VERIFIED 知识（质量 98） | `sha256:c4887d767f03cbcfbeb8b79b2f1e839211221393f4a046a06c75628d455d4788` |
+| 第 1 轮知识（质量 98） | `sha256:c4887d767f03cbcfbeb8b79b2f1e839211221393f4a046a06c75628d455d4788` |
 | 295/295 行为评测证据 | `sha256:c3b9f4d0906fe9d6ddc04a61e8b3690264b4cb34583c60e599f777f8307ea85e` |
 
-这些对象保存在本机 CAS，不提交 Git。本文固定 ID、语义和结果，其他机器重跑会产生新的 Run、时间戳和评测 Artifact。
+这个样例仍保留，是为了兼容性和两轮质量反馈演示；它不再代表推荐的生产接法。
 
-## 运行中撞到的问题
+## Demo B：SDK 隔离路径的失败与拒绝
 
-这次实跑很有价值，因为它没有一路绿灯。
+Run `4ffa31d0-3e91-4bfa-82a3-c221e5771481` 首次把官方 SDK、独立角色工作区和 Bubblewrap 放到一起。它经历了多次 JSON Schema 错误恢复，也跑到了第 2 轮，但最终停在 `evaluation`：代码生成角色除了允许的实现文件，还返回了 `src/chat/mentions.test.ts`。
 
-1. DSH Headless 输出可能带诊断文本，也可能连续给出多个 JSON。适配器现在扫描完整的顶层 JSON 对象，选择最后一个符合 Schema 的对象；找不到合法对象时仍 fail closed。
-2. 模型曾在合法对象中增加 `additionalProperties` 说明。提示现在明确列出允许的顶层键，Schema 校验没有被放宽。
-3. 旧恢复入口看到 `FAILED` 就直接返回。现在会在 LangGraph 历史中找到最近带错误的 task checkpoint，从该分支续跑。CAS GenerationKey 和 publication key 继续保护业务副作用。
-4. 候选知识只有正文，没有结构化质量反馈回路。现在质量不合格会跳过 CodeAgent，把 score、signals 和 weak points 交给下一轮 DocGen。
-5. 候选正文是 Markdown Artifact，早期上下文装配器误按 JSON 解析。现在按 `mediaType` 解码。
+系统没有删掉违规文件后继续，也没有绕过 Gate。动态输出 Schema 与应用层路径校验将其拒绝为 `PROJECT_PATH_DENIED`，所以本次运行没有 publication。
 
-这些问题和修复都属于 Demo 证据。删掉失败片段会让演示看起来干净，却无法说明系统为什么需要 Checkpoint、Schema 和确定性 Gate。
+| 字段 | 值 |
+|---|---|
+| 最终业务状态 | `GENERATING`（保留失败现场） |
+| 最后节点 | `evaluation`，`FAILED` |
+| 最终轮次 | `2` |
+| Agent 调用 | `28` |
+| 节点投影 | `45` |
+| Registry Event | `134` |
+| 已生成知识版本 | `3`，均未发布 |
+| 评测记录 | `2` |
+| publication | `0` |
+| 工件完整性 | `31/31` |
 
-## 还不能据此宣称什么
+完整的脱敏快照在 [`演示素材/03-SDK失败恢复-脱敏报告.json`](演示素材/03-SDK失败恢复-脱敏报告.json)。报告只保留角色、状态、耗时、错误码、摘要和业务证据，不保存 Prompt 正文、模型输出日志、会话内容或凭据。
 
-- 只有一次完整 live Run，尚不足以证明模型成功率、成本和输出稳定性；后续要在同一固定 commit 上重复运行并统计分布。
-- Headless 进程适配器把 Prompt 作为 argv 传入，宿主机同权限进程可能读取。生产版本应换成 DSH SDK 或 stdin/受保护 IPC。
-- 当前 Agent 工作目录仍可见完整受信源码。特别是 CodeAgent 尚未达到 `KF-SYS-003` 要求的“只看知识和公开接口”；下一阶段要为每个角色构建隔离视图。
-- `TrustedProjectEvaluator` 是受信项目执行器，不是敌对代码沙箱。
-- 第 1 轮 TestGen 在源码和测试策略未变化时仍重复运行，浪费约 130 秒。可以用输入 Artifact 哈希复用，但不能只凭轮次跳过。
-- 公网 DSH Web 目前是带连接 token 的临时 HTTP 演示。没有 TLS 和正式反向代理前，不应作为长期服务。
+## Demo C：官方 SDK 完整闭环
+
+Run `5503b6bc-0350-4b53-98cc-6fbf3a13aaa9` 从一个新的运行目录启动。DocGen 第一次调用返回了不能解析的内容，节点记录为 `FAILED / DSH_AGENT_OUTPUT_NOT_JSON`。随后用同一个 `runId` 恢复，已提交的 Orchestrator、DocWorker、TestGen 和 Oracle 副作用没有重复落库；DocGen 第二次成功，图继续完成代码生成、Check、Evaluation、Review 和 Publication。
+
+| 字段 | 值 |
+|---|---|
+| Flywheel 状态 | `VERIFIED` |
+| LangGraph 结果 | `COMPLETED / PASS` |
+| 知识版本 | `kv_1355064c2116a4e2d072c93f` |
+| 知识质量 | `96/100` |
+| 行为评测 | `1/1`，stability `1`，critical failures `0` |
+| Agent 调用 | `8`：7 次成功，1 次格式失败 |
+| 节点投影 | `14` |
+| Checkpoint | `10`，全部 `COMMITTED` |
+| Registry Event | `46` |
+| publication | `1` |
+| 工件完整性 | `12/12` |
+
+真实 Agent 调用耗时如下。这里的角色都由同一个 DSH SDK Provider 执行，并不是七个不同的 Agent 产品。
+
+| 角色 | 结果 | 耗时 |
+|---|---|---:|
+| orchestrator | 成功 | 35.761 秒 |
+| doc-worker | 成功 | 22.251 秒 |
+| test-gen | 成功 | 284.832 秒 |
+| doc-gen（首次） | `DSH_AGENT_OUTPUT_NOT_JSON` | 64.550 秒 |
+| doc-gen（恢复） | 成功 | 490.783 秒 |
+| code（代码生成角色） | 成功 | 164.774 秒 |
+| check | 成功 | 277.169 秒 |
+| review | 成功 | 189.179 秒 |
+
+关键业务证据：
+
+| 工件 | ID |
+|---|---|
+| 知识正文 | `sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551` |
+| 代码生成角色输出 | `sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953` |
+| 评测证据 | `sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e` |
+| Gate decision | `41be5fc5-e438-40fd-bd3d-657043d48d9e` |
+| publication key | `ohmyworkpanel-mentions:kv_1355064c2116a4e2d072c93f:local-v1` |
+
+可视化和完整脱敏报告：
+
+- [`演示素材/01-真实SDK运行-VERIFIED-深色.png`](演示素材/01-真实SDK运行-VERIFIED-深色.png)
+- [`演示素材/02-Agent有限定制-浅色.png`](演示素材/02-Agent有限定制-浅色.png)
+- [`演示素材/04-SDK成功运行-脱敏报告.json`](演示素材/04-SDK成功运行-脱敏报告.json)
+- [`演示素材/05-项目官网-深色首页.png`](演示素材/05-项目官网-深色首页.png)
+- [`演示素材/06-项目官网-真实演示区.png`](演示素材/06-项目官网-真实演示区.png)
+
+## 端到端数据怎么走
+
+```text
+固定 commit 的 ohMyWorkPanel
+  → SourceSnapshot + provenance
+  → Orchestrator 形成当前轮计划
+  → DocWorker 与 TestGen 并行
+  → DocGen 生成候选知识
+  → wpKnowledge Quality Gate
+      ├─ 不合格：携带 weak points 进入下一轮，跳过代码生成
+      └─ 合格：进入 code 角色节点
+  → DSH 启动新的受限模型会话，只给候选知识和公开接口
+  → 生成文件写入 CAS
+  → Check 只读检查
+  → TrustedProjectEvaluator 在独立副本中执行确定性命令
+  → Review 根据 Eval + Check 给出 PASS 或可验证 Correction
+  → wpKnowledge 确定性 Gate
+      ├─ ITERATE：修知识后重新生成、重新评测
+      └─ PASS：原子写 Publication，KnowledgeVersion 变为 VERIFIED
+```
+
+“重新生成”强调输入隔离和不沿用上一轮实现，不代表有一个名叫 Fresh 或 CodeAgent 的外部服务。
+
+## 运行中遇到的问题，以及代码如何收口
+
+1. **包管理器定位失败。** 隔离环境最初只看见 PATH 中的 `pnpm` 链接，执行器找不到真实脚本。现在先解析工具路径，再把必要运行文件带入受信评测环境。
+2. **并行失败覆盖状态。** 一个并行分支失败后，较晚完成的兄弟节点曾把图状态写回 RUNNING。runtime 现在对并行结果做失败归一化，并有恢复测试。
+3. **复用 DSH session 得到空结果。** 每次 Provider 尝试改用独立 session，Schema 重试也单独审计。
+4. **模型输出不是合法 JSON。** Provider 对闭合 JSON Schema 做严格校验，只对 `DSH_AGENT_OUTPUT_NOT_JSON` 和 `AGENT_OUTPUT_INVALID` 执行有上限的重试；超时、取消、权限和路径错误不重试。
+5. **代码角色越界生成测试文件。** `allowedGeneratedPaths` 现在直接进入动态 JSON Schema，应用层仍保留第二道重复路径和白名单校验。
+6. **Check/Review 误把工作区里没有生成代码当成缺陷。** 生成文件实际存于 CAS，并以内联受信上下文提供。基础提示词已明确这一点，评测事实仍以 `EvaluationReport` 为准。
+7. **角色隔离不等于敌对代码沙箱。** Bubblewrap 证明 code 角色的模型会话看不到参考源码；`TrustedProjectEvaluator` 仍只允许执行受信项目，不能据此运行任意不可信代码。
+
+这些失败没有从报告中抹掉。它们解释了为什么系统需要 Checkpoint、幂等 GenerationKey、Schema、路径白名单和确定性 Gate。
+
+## 公网 DSH 页面边界
+
+本机当前将 DSH Web 临时绑定到公网 `43.156.129.189:80`，未携带连接 token 的本机和公网请求均返回 `401`。为避免长期进程持有模型凭据，这次恢复的 Web 进程没有注入 OpenCode Go 密钥，只承担 Harness 调试壳；真实模型调用能力由上面的 SDK Run 证据证明。这个入口没有 TLS、正式域名、反向代理、速率限制或生产级密钥轮换，因此不应作为长期服务。知识飞轮 Console 与 DSH 调试页面是两个产品面，前者读取 wpKnowledge Registry，后者只负责 Harness 运行时调试。
+
+## 现在仍不能宣称什么
+
+- 三次工程运行只能证明接线、边界和代表性恢复路径，不能证明模型质量、成本或时延已经稳定。
+- SDK 成功样例只有一个行为命令（1/1）；Headless 样例的 295/295 可以补充覆盖证据，但不能代替在 SDK 隔离路径上的重复统计。
+- 角色工作区和 Bubblewrap 已阻断参考源码读取，但完整 `AccessDenied` 业务事件还没有覆盖所有 Harness 工具调用。
+- `TrustedProjectEvaluator` 不是敌对代码执行沙箱。没有资源限制和系统调用策略之前，只能运行明确受信的仓库与命令。
+- 当前 DocWorker 只有一个分块；面向大仓库的语义分块、动态 fan-out 和合并冲突处理仍是后续能力。
 
 ## 复现入口
 
-部署参数见 `endlessWpKnowledgeRunner/deploy/deepseek-harness/README.md`。运行时至少需要设置：
+部署参数见 [`endlessWpKnowledgeRunner/deploy/deepseek-harness/README.md`](../../../endlessWpKnowledgeRunner/deploy/deepseek-harness/README.md)。推荐入口：
 
 ```bash
 export OPENCODE_GO_API_KEY='<runtime-secret>'
 export WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness
 export WP_DSH_MODEL=deepseek-v4-flash
+export WP_DSH_PROCESS_ISOLATION=bubblewrap
 export WP_DSH_ALLOWED_ROOTS='/path/to/wpKnowledge:/path/to/ohMyWorkPanel'
-npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel --workers 1 --max-iterations 3
+npm run knowledge -- workflow-run \
+  --repository /path/to/ohMyWorkPanel \
+  --workers 1 \
+  --max-iterations 3
 ```
 
-不要把密钥写进 `.env` 示例、PPT、Issue 或命令历史。复验时应使用新的 runtime 目录，并保留失败率、Token、时延和最终 Gate 数据。
+导出脱敏证据：
+
+```bash
+npm run knowledge -- workflow-report --run '<run-id>' --output './demo-report.json'
+```
+
+密钥不要写进 `.env` 示例、PPT、Issue 或命令历史。复验时使用新的 runtime 目录，并记录失败率、Token、耗时、评测覆盖和最终 Gate 数据。

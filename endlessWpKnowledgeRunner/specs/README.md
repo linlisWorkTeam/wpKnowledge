@@ -34,4 +34,4 @@ This directory is the normative source for Knowledge Flywheel behavior. Requirem
 
 ## 阶段门
 
-P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等业务副作用、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和 DSH 查询适配器。LangGraph 已按 ADR-006 以内嵌 `domain-knowledge` infrastructure 接入；默认 Provider 仍是 deterministic fixture，另有进程型 DeepSeek Harness Provider 跑通 ohMyWorkPanel 单次 live 样例。该样例覆盖 Agent 输出失败恢复、候选质量 65→98 自动迭代、295/295 独立评测与发布，但不代表模型稳定性。CodeAgent 源码视图隔离、敌对 C++ 沙箱、SDK/受保护 IPC 和完整崩溃注入仍待完成。
+P0-A Spec 已进入实现验证。当前 P0-B 已落地纯领域边界、Artifact CAS、SQLite Registry、幂等业务副作用、确定性 Gate、原子发布、旧 OKF 迁移、产品控制台和 DSH 查询适配器。LangGraph 已按 ADR-006 以内嵌 `domain-knowledge` infrastructure 接入；默认 Provider 仍是 deterministic fixture，live 路径已切换到 DeepSeek Harness 官方 stdio JSON-RPC SDK，并为七个角色建立文件白名单工作区。Linux 上的 Bubblewrap 会让代码生成角色看不到参考源码，Prompt 也不再进入 argv。Headless 样例完成过候选质量 65→98、295/295 独立评测与发布；官方 SDK 样例完成了失败恢复、1/1 确定性评测、唯一发布和 12/12 工件校验。这里的 `code` 是图节点角色，不是独立的 CodeAgent CLI；一次成功样例也不能外推为模型稳定性。敌对代码执行沙箱、完整权限拒绝审计与四点崩溃注入仍待完成。

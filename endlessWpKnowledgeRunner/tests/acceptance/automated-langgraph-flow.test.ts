@@ -108,8 +108,8 @@ test('generated result matches contract', () => assert.equal(calculate(), expect
     const finalInputIds = new Set(finalGate?.report.inputRefs.map((ref) => ref.artifactId));
     for (const generationKey of [
       `${handle.runId}:oracle_validation:1`,
-      `${handle.runId}:check:1:main`,
-      `${handle.runId}:review:1:main`,
+      `${handle.runId}:check:1:main:contract-v4`,
+      `${handle.runId}:review:1:main:contract-v4`,
     ]) {
       const outputRef = composition.repository.getCheckpoint(generationKey)?.outputRefs[0];
       assert.ok(outputRef, `checkpoint output missing: ${generationKey}`);

@@ -13,7 +13,7 @@ Quick start: install Node.js 24+, run `npm ci`, `npm run typecheck`, `npm run va
 
 [![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
-[项目网站](https://linlisworkteam.github.io/wpKnowledge/) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
+[项目网站](https://linlisworkteam.github.io/wpKnowledge/?v=6a5ed800) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [真实运行 Demo](knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md) · [方案 PPT](knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.pptx) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
 
 很多知识库收下文档就算完成。wpKnowledge 会多问一句：这条经验真的跑通过吗？候选知识要经过质量检查、独立行为评测和确定性发布门禁。证据完整、Gate 返回 `PASS` 后，它才会成为可查询的 `VERIFIED` 知识。
 
@@ -27,8 +27,8 @@ Quick start: install Node.js 24+, run `npm ci`, `npm run typecheck`, `npm run va
 | 输入是什么？ | Markdown 知识候选、固定 commit 的受信项目源码、Agent 生成物和独立评测报告。 |
 | 输出是什么？ | CAS 中的不可变工件、SQLite 中可追踪的 Run/Event、Correction、GateDecision 与幂等发布回执。 |
 | 用户怎么使用？ | 通过 CLI 初始化/摄取/查询，通过 Web Console 查看运行、知识、治理和证据。 |
-| Agent 会自动学习吗？ | 内嵌 LangGraph 会驱动失败归因、Correction、增量修订和 fresh 再生成；当前固定 ohMyWorkPanel 路径使用 deterministic fixture，不允许浏览器或普通 Agent 绕过 Gate 自行发布。 |
-| 当前安全边界？ | 固定源码验收只面向受信代码；它限制命令、环境、时间和输出，但不是敌对代码的 OS 沙箱。 |
+| Agent 会自动学习吗？ | 内嵌 LangGraph 会驱动质量反馈、失败归因、Correction、知识修订和重新生成；固定 ohMyWorkPanel 路径既有 deterministic fixture，也可调用真实 DeepSeek Harness。Agent 不能绕过 Gate 自行发布。 |
+| 当前安全边界？ | Linux live Agent 使用角色文件白名单和 Bubblewrap 隔离参考源码；后续生成代码评测仍只面向受信项目，不是敌对代码执行沙箱。 |
 
 ## 工作方式
 
@@ -99,7 +99,9 @@ npm run knowledge:serve
 | 了解用户在前台如何完成任务 | [用户用例与交互时序](endlessWpKnowledgeRunner/specs/05-workflows/user-use-cases.md) |
 | 理解产品界面和权限边界 | [前台产品设计](endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md) |
 | 理解架构和知识生命周期 | [架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md) |
+| 查看真实 SDK 治理过程 | [三次 ohMyWorkPanel 运行记录](knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md)与[方案 PPT](knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.pptx) |
 | 修改代码或 Spec | [贡献指南](CONTRIBUTING.md)与[开发指南](endlessWpKnowledgeRunner/docs/DEVELOPMENT.md) |
+| 只定制某个 Agent 角色 | [Agent 角色定制指南](endlessWpKnowledgeRunner/docs/AGENT-CUSTOMIZATION.md) |
 | 编写或翻译文档 | [文档语言与 I18n 约定](endlessWpKnowledgeRunner/docs/DOCUMENTATION-I18N.md) |
 | 知道文件应该放在哪里 | [仓库目录规则](endlessWpKnowledgeRunner/docs/REPOSITORY-GUIDE.md) |
 | 运行分层测试 | [测试策略](endlessWpKnowledgeRunner/docs/TESTING.md) |
@@ -107,7 +109,7 @@ npm run knowledge:serve
 | 报告安全问题 | [安全策略](SECURITY.md) |
 | 查阅全部规范 | [Spec 总入口](endlessWpKnowledgeRunner/specs/README.md) |
 | 浏览研究资料 | [知识库目录](knowledge/知识库目录.md) |
-| 浏览项目官网 | [GitHub Pages](https://linlisworkteam.github.io/wpKnowledge/) |
+| 浏览项目官网 | [GitHub Pages](https://linlisworkteam.github.io/wpKnowledge/?v=6a5ed800) |
 
 全部工程文档入口见 [`endlessWpKnowledgeRunner/docs/README.md`](endlessWpKnowledgeRunner/docs/README.md)。
 
@@ -140,8 +142,8 @@ npm test
 
 ## 当前成熟度与限制
 
-- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等业务 checkpoint、确定性 Gate、原子发布、内嵌 domain-knowledge/LangGraph、七类 Agent 与节点前台投影、promptAddon-only 配置、DSH 查询适配器、DeepSeek Harness 进程型 AgentProvider，以及固定 commit 的 ohMyWorkPanel 自动验收。2026-09-02 的 live 样例完成质量 65→98 的自动知识迭代并通过 295/295 行为门禁。
-- 尚未宣称完成：CodeAgent 源码视图隔离、敌对代码 OS 级沙箱、任意项目/候选的通用自动 Run、完整 RBAC、多节点高可用、四点崩溃注入，以及 live 模型的重复稳定性/成本证明。进程型 DSH Provider 的 Prompt argv 暴露也需要在生产化前处理。
+- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等业务 checkpoint、确定性 Gate、原子发布、内嵌 domain-knowledge/LangGraph、七类 Agent 角色与节点前台投影、promptAddon-only 配置、DSH 查询适配器，以及固定 commit 的 ohMyWorkPanel 自动验收。真实 Agent 路径使用 DeepSeek Harness 官方 stdio JSON-RPC SDK；Linux 上通过角色工作区和 Bubblewrap 隔开代码生成角色与参考源码。图中的 `code` 只是职责固定的角色，不代表另行接入了 CodeAgent CLI。每条 Run 可用 `workflow-report` 导出脱敏 Demo 证据。
+- 尚未宣称完成：敌对代码执行沙箱、任意项目/候选的通用自动 Run、完整 RBAC、多节点高可用、四点崩溃注入，以及 live 模型的重复稳定性、成本和成功率证明。一次 Headless 或 SDK live Run 只证明对应样例。
 - `mvp-flywheel/` 只用于历史对照；旧 `score`、`eval`、`harvest` 语义已明确拒绝，避免形成第二套发布权威。
 
 ## License

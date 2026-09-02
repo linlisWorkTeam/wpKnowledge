@@ -4,6 +4,7 @@ import Ajv2020Import from 'ajv/dist/2020.js';
 import type {
   AgentId,
   AgentProvider,
+  AgentWorkspaceProvider,
   GeneratedProjectFile,
   ProjectEvaluation,
   ProjectEvaluator,
@@ -129,6 +130,41 @@ interface ReviewOutput {
   correction: Record<string, unknown> | null;
 }
 
+function outputSchemaFor(
+  agentId: AgentId,
+  scenario: AutomatedProjectScenario,
+): Record<string, unknown> {
+  if (agentId !== 'code') return AGENT_OUTPUT_SCHEMAS[agentId];
+  assertInvariant(scenario.allowedGeneratedPaths.length > 0,
+    'automated scenario must declare at least one allowed generated path');
+  return {
+    type: 'object', required: ['files'], additionalProperties: false,
+    properties: {
+      files: {
+        type: 'array', minItems: 1, maxItems: scenario.allowedGeneratedPaths.length,
+        items: {
+          type: 'object', required: ['path', 'content'], additionalProperties: false,
+          properties: {
+            path: { enum: scenario.allowedGeneratedPaths },
+            content: { type: 'string', minLength: 1 },
+          },
+        },
+      },
+    },
+  };
+}
+
+function assertAllowedGeneratedFiles(output: Record<string, unknown>, allowedPaths: string[]): void {
+  const files = (output as unknown as CodeOutput).files;
+  if (!Array.isArray(files)) throw new Error('AGENT_OUTPUT_INVALID: code.files must be an array');
+  const seen = new Set<string>();
+  for (const file of files) {
+    if (!allowedPaths.includes(file.path)) throw new Error(`PROJECT_PATH_DENIED: ${file.path}`);
+    if (seen.has(file.path)) throw new Error(`PROJECT_PATH_DUPLICATED: ${file.path}`);
+    seen.add(file.path);
+  }
+}
+
 function contextKey(nodeId: string, iteration: number, workerId?: string): string {
   return `${nodeId}:${iteration}${workerId ? `:${workerId}` : ''}`;
 }
@@ -142,17 +178,20 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
   readonly evaluator: ProjectEvaluator;
   readonly assetRoot: string;
   readonly agent?: AgentProvider;
+  readonly agentWorkspaces?: AgentWorkspaceProvider;
 
   constructor(input: {
     service: KnowledgeFlywheelService;
     evaluator: ProjectEvaluator;
     assetRoot: string;
     agent?: AgentProvider;
+    agentWorkspaces?: AgentWorkspaceProvider;
   }) {
     this.service = input.service;
     this.evaluator = input.evaluator;
     this.assetRoot = resolve(input.assetRoot);
     this.agent = input.agent;
+    this.agentWorkspaces = input.agentWorkspaces;
   }
 
   async execute(input: WorkflowStageInput): Promise<WorkflowStageResult> {
@@ -201,14 +240,13 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
         ...scenario, repositoryRoot: snapshot.repositoryRoot, expectedCommit: snapshot.commit,
       }, null, 2)), 'application/json');
     }
-    const output = this.agent
-      ? await this.runLiveAgent(input, scenario, 'orchestrator')
-      : {
-          strategy: 'fixed-knowledge-flywheel-v1',
-          iteration: input.iteration,
-          parallel: ['documentation', 'test-generation'],
-        };
-    const agent = await this.commitAgentOutput(input, output, AGENT_OUTPUT_SCHEMAS.orchestrator);
+    const agent = this.agent
+      ? await this.runLiveAgentCheckpoint(input, scenario, 'orchestrator')
+      : await this.commitAgentOutput(input, {
+        strategy: 'fixed-knowledge-flywheel-v1',
+        iteration: input.iteration,
+        parallel: ['documentation', 'test-generation'],
+      }, AGENT_OUTPUT_SCHEMAS.orchestrator);
     return {
       detail: `planned iteration ${input.iteration}`,
       context: { snapshot, scenarioRef, [contextKey(input.nodeId, input.iteration)]: agent },
@@ -221,8 +259,7 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     agentId: AgentId,
   ): Promise<WorkflowStageResult> {
     if (this.agent) {
-      const output = await this.runLiveAgent(input, scenario, agentId);
-      const ref = await this.commitAgentOutput(input, output, AGENT_OUTPUT_SCHEMAS[agentId]);
+      const ref = await this.runLiveAgentCheckpoint(input, scenario, agentId);
       return {
         detail: `${agentId} produced schema-validated DeepSeek Harness output`,
         context: { [contextKey(input.nodeId, input.iteration, input.workerId)]: ref },
@@ -271,18 +308,54 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     };
   }
 
+  private async runLiveAgentCheckpoint(
+    input: WorkflowStageInput,
+    scenario: AutomatedProjectScenario,
+    agentId: AgentId,
+  ): Promise<ArtifactRef> {
+    const outputSchema = outputSchemaFor(agentId, scenario);
+    const checkpoint = await this.service.executeNode({
+      runId: input.runId,
+      nodeId: input.workerId ? `${input.nodeId}:${input.workerId}` : input.nodeId,
+      generationKey: this.agentGenerationKey(input, agentId),
+      inputRefs: this.agentInputRefs(input, agentId),
+    }, async () => {
+      const output = await this.runLiveAgent(input, scenario, agentId);
+      this.validateAgentOutput(output, outputSchema);
+      if (agentId === 'code') assertAllowedGeneratedFiles(output, scenario.allowedGeneratedPaths);
+      return [await this.service.artifacts.put(
+        Buffer.from(JSON.stringify(output, null, 2)), 'application/json',
+      )];
+    });
+    const ref = checkpoint.outputRefs[0];
+    if (!ref) throw new Error(`WORKFLOW_AGENT_OUTPUT_MISSING: ${input.nodeId}`);
+    return ref;
+  }
+
   private async runLiveAgent(
     input: WorkflowStageInput,
     scenario: AutomatedProjectScenario,
     agentId: AgentId,
   ): Promise<Record<string, unknown>> {
     if (!this.agent) throw new Error('WORKFLOW_LIVE_AGENT_UNAVAILABLE');
+    if (!this.agentWorkspaces) throw new Error('WORKFLOW_AGENT_WORKSPACE_UNAVAILABLE');
+    const sourceReadable = ['doc-worker', 'doc-gen', 'test-gen'].includes(agentId);
+    const readablePaths = sourceReadable
+      ? [...scenario.sourcePaths, ...scenario.publicInterfacePaths]
+      : agentId === 'code' || agentId === 'check' || agentId === 'review'
+        ? scenario.publicInterfacePaths
+        : [];
+    const workspace = await this.agentWorkspaces.materialize({
+      isolationKey: `${input.runId}:${input.nodeId}:${input.iteration}:${input.workerId ?? 'main'}`,
+      role: agentId,
+      sourceRoot: scenario.repositoryRoot,
+      readablePaths,
+    });
     const evidence: Record<string, unknown> = {
       moduleId: scenario.moduleId,
       iteration: input.iteration,
       workerId: input.workerId ?? null,
-      sourcePaths: scenario.sourcePaths,
-      publicInterfacePaths: scenario.publicInterfacePaths,
+      readablePaths: workspace.readablePaths,
       allowedGeneratedPaths: scenario.allowedGeneratedPaths,
       writingGuide: agentId === 'doc-gen' ? KNOWLEDGE_WRITING_GUIDE : undefined,
     };
@@ -311,9 +384,14 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
       evidence.workerFragments = fragments;
     }
     const contextualRefs: Record<string, unknown> = {};
+    const contextAllowlist: Partial<Record<AgentId, string[]>> = {
+      code: ['candidateBodyRef'],
+      check: ['candidateBodyRef', 'code'],
+      review: ['candidateBodyRef', 'check', 'evaluationEvidenceRef'],
+    };
     for (const [key, value] of Object.entries(input.context)) {
       if (!key.endsWith(`:${input.iteration}`) || !value || typeof value !== 'object' || !('artifactId' in value)) continue;
-      if (['code', 'check', 'evaluationEvidenceRef', 'candidateBodyRef'].some((name) => key.startsWith(name))) {
+      if ((contextAllowlist[agentId] ?? []).some((name) => key.startsWith(name))) {
         contextualRefs[key] = await this.readArtifact(value as ArtifactRef);
       }
     }
@@ -321,12 +399,12 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     return this.agent.run({
       role: agentId,
       prompt: `${input.prompt}\n\n受信工作流上下文：\n${JSON.stringify(evidence)}`,
-      outputSchema: AGENT_OUTPUT_SCHEMAS[agentId],
+      outputSchema: outputSchemaFor(agentId, scenario),
       idempotencyKey: `${input.runId}:${input.nodeId}:${input.iteration}:${input.workerId ?? 'main'}`,
-      workspaceRoot: scenario.repositoryRoot,
+      workspaceRoot: workspace.workspaceRoot,
       metadata: {
         runId: input.runId, nodeId: input.nodeId, iteration: input.iteration,
-        workerId: input.workerId ?? null,
+        attempt: input.attempt, workerId: input.workerId ?? null,
       },
     }, input.signal);
   }
@@ -577,19 +655,12 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     output: Record<string, unknown>,
     schema: Record<string, unknown>,
   ): Promise<ArtifactRef> {
-    const ajv = new Ajv2020({ allErrors: true, strict: true });
-    const validate = ajv.compile(schema);
-    if (!validate(output)) {
-      throw new Error(`AGENT_OUTPUT_INVALID: ${ajv.errorsText(validate.errors)}`);
-    }
-    const inputRefs = Object.values(input.context)
-      .filter((value): value is ArtifactRef => Boolean(
-        value && typeof value === 'object' && 'artifactId' in value && 'sha256' in value,
-      ));
+    this.validateAgentOutput(output, schema);
+    const inputRefs = this.agentInputRefs(input, input.agentId as AgentId);
     const checkpoint = await this.service.executeNode({
       runId: input.runId,
       nodeId: input.workerId ? `${input.nodeId}:${input.workerId}` : input.nodeId,
-      generationKey: `${input.runId}:${input.nodeId}:${input.iteration}:${input.workerId ?? 'main'}`,
+      generationKey: this.agentGenerationKey(input, input.agentId as AgentId),
       inputRefs,
     }, async () => [await this.service.artifacts.put(
       Buffer.from(JSON.stringify(output, null, 2)), 'application/json',
@@ -597,6 +668,49 @@ export class OhMyWorkPanelWorkflowExecutor implements WorkflowStageExecutor {
     const ref = checkpoint.outputRefs[0];
     if (!ref) throw new Error(`WORKFLOW_AGENT_OUTPUT_MISSING: ${input.nodeId}`);
     return ref;
+  }
+
+  private validateAgentOutput(output: Record<string, unknown>, schema: Record<string, unknown>): void {
+    const ajv = new Ajv2020({ allErrors: true, strict: true });
+    const validate = ajv.compile(schema);
+    if (!validate(output)) throw new Error(`AGENT_OUTPUT_INVALID: ${ajv.errorsText(validate.errors)}`);
+  }
+
+  private agentGenerationKey(input: WorkflowStageInput, agentId: AgentId): string {
+    if (agentId === 'test-gen') return `${input.runId}:test_gen:stable-source:contract-v4`;
+    if (agentId === 'doc-worker') {
+      return `${input.runId}:doc_worker:${input.workerId ?? 'main'}:stable-source:contract-v4`;
+    }
+    return `${input.runId}:${input.nodeId}:${input.iteration}:${input.workerId ?? 'main'}:contract-v4`;
+  }
+
+  private agentInputRefs(input: WorkflowStageInput, agentId: AgentId): ArtifactRef[] {
+    const keys: string[] = [];
+    if (agentId !== 'orchestrator') keys.push('scenarioRef', 'snapshot.manifestRef');
+    if (agentId === 'doc-gen') {
+      keys.push(...Object.keys(input.context).filter((key) => key.startsWith(`doc_worker:${input.iteration}:`)));
+      if (input.iteration > 0) keys.push(
+        contextKey('doc_gen', input.iteration - 1),
+        contextKey('review', input.iteration - 1),
+      );
+    }
+    if (agentId === 'code' || agentId === 'check' || agentId === 'review') {
+      keys.push(contextKey('candidateBodyRef', input.iteration));
+    }
+    if (agentId === 'check') keys.push(contextKey('code', input.iteration));
+    if (agentId === 'review') keys.push(
+      contextKey('check', input.iteration),
+      contextKey('evaluationEvidenceRef', input.iteration),
+    );
+    const snapshot = input.context.snapshot as ProjectSnapshot | undefined;
+    const values: unknown[] = keys.map((key) => key === 'snapshot.manifestRef'
+      ? snapshot?.manifestRef
+      : input.context[key]);
+    const refs = values.filter((value): value is ArtifactRef => Boolean(
+      value && typeof value === 'object' && 'artifactId' in value && 'sha256' in value,
+    ));
+    return [...new Map(refs.map((ref) => [ref.artifactId, ref])).values()]
+      .sort((left, right) => left.artifactId.localeCompare(right.artifactId));
   }
 
   private asset(relativePath: string): string {

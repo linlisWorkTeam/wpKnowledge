@@ -120,6 +120,9 @@ test('site and Console expose the embedded workflow boundary and prompt-only Age
   assert.match(html, /domain-knowledge/);
   assert.match(html, /LangGraph/);
   assert.match(html, /Agent 只能追加提示词/);
+  assert.match(html, /id="evidence-demo"/);
+  assert.match(html, /官方 SDK 闭环/);
+  assert.match(html, /AGENT-CUSTOMIZATION\.md/);
   assert.match(consoleHtml, /data-page="agents"/);
   assert.match(consoleScript, /\/api\/v1\/agents/);
   assert.match(consoleScript, /promptAddon/);

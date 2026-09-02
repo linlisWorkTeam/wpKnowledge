@@ -112,7 +112,15 @@ npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
 
 命令会创建 wpKnowledge `FlywheelRun`，以内嵌 LangGraph 执行全部 Agent 节点，并等待失败迭代、独立评测和发布结束。另一个终端打开 Console，就能按同一 `runId` 查看节点状态。默认 Agent Provider 是可重复的 fixture，适合先确认环境与治理链路。
 
-需要接入真实 DeepSeek Harness 时，按 [`deploy/deepseek-harness/README.md`](../deploy/deepseek-harness/README.md) 配置 `OPENCODE_GO_API_KEY`、Provider patch 和工作区 allowlist，再设置 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`。密钥只放进运行时环境，不写配置文件。公开 Web 只是 DSH 自身的临时调试面，知识飞轮 Console 仍由 `knowledge:serve` 提供。
+需要接入真实 DeepSeek Harness 时，按 [`deploy/deepseek-harness/README.md`](../deploy/deepseek-harness/README.md) 安装 Bubblewrap，配置 `OPENCODE_GO_API_KEY`、Provider 和来源 allowlist，再设置 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`。Prompt 通过官方 SDK 的 stdin JSON-RPC 发送；每个 Agent 只得到角色允许的工作区。密钥只放进运行时环境，不写配置文件。公开 Web 只是 DSH 自身的临时调试面，知识飞轮 Console 仍由 `knowledge:serve` 提供。
+
+Run 结束后，可以把完整步骤导成一个脱敏 Demo 报告：
+
+```bash
+npm run knowledge -- workflow-report --run <run-id> --output /tmp/wpknowledge-run.json
+```
+
+报告包含业务状态、节点尝试、知识版本、评测、Gate、发布回执、Checkpoint、Event、Agent 调用摘要和 CAS 完整性结果，不包含 Prompt、模型正文、Harness Session 或凭据。
 
 查看 Agent 或为 DocGen 追加一段受信提示词：
 

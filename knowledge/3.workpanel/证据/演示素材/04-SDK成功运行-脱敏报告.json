@@ -1,0 +1,1751 @@
+{
+  "schemaVersion": "1.0",
+  "reportKind": "wpknowledge-governance-demo",
+  "generatedAt": "2026-09-02T08:21:17.365Z",
+  "evidenceBoundary": "报告只导出 Registry 业务事实、Artifact 完整性结果和脱敏 Agent 调用摘要；不包含 Prompt 正文、模型正文、Session 日志或凭据。",
+  "snapshot": {
+    "run": {
+      "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+      "moduleId": "ohmyworkpanel-mentions",
+      "policyId": "local-v1",
+      "state": "VERIFIED",
+      "iteration": 0,
+      "bestVersionId": "kv_1355064c2116a4e2d072c93f",
+      "createdAt": "2026-09-02T07:46:01.937Z",
+      "updatedAt": "2026-09-02T08:12:34.217Z"
+    },
+    "versions": [
+      {
+        "versionId": "kv_1355064c2116a4e2d072c93f",
+        "moduleId": "ohmyworkpanel-mentions",
+        "parentVersionId": null,
+        "bodyRef": {
+          "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+          "mediaType": "text/markdown; charset=utf-8",
+          "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+          "size": 5165
+        },
+        "provenance": [
+          {
+            "path": "src/chat/mentions.ts",
+            "commit": "3b2e6073e01b42e2a595fca4de3acaad44715ddd",
+            "pinned": true
+          },
+          {
+            "path": "src/chat/mentions.test.ts",
+            "commit": "3b2e6073e01b42e2a595fca4de3acaad44715ddd",
+            "pinned": true
+          }
+        ],
+        "status": "VERIFIED",
+        "qualityOutcome": "ACCEPTED",
+        "qualityScore": 96,
+        "gateDecisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e",
+        "title": "mentions.ts：@提到 解析与进行中查询（全名优先）",
+        "description": "聊天输入框 @提到 解析的两个纯函数：findMentionedMemberIds 按全名优先返回被 @ 的活跃成员 id，currentMentionQuery 返回末尾进行中的 @ 前缀；含边界、设计原因与验证方法。",
+        "category": "automated-ohmyworkpanel",
+        "tags": [
+          "ohmyworkpanel",
+          "langgraph"
+        ],
+        "metadata": {
+          "workflow": "embedded-domain-knowledge",
+          "iteration": 0
+        },
+        "createdAt": "2026-09-02T08:01:57.361Z"
+      }
+    ],
+    "evaluations": [
+      {
+        "report": {
+          "reportId": "8dbfe332-3aac-43d9-9620-3349ae75f9a4",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "versionId": "kv_1355064c2116a4e2d072c93f",
+          "inputRefs": [
+            {
+              "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+              "mediaType": "application/json",
+              "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+              "size": 2064
+            },
+            {
+              "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+              "mediaType": "application/json",
+              "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+              "size": 1230
+            },
+            {
+              "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+              "mediaType": "text/markdown; charset=utf-8",
+              "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+              "size": 5165
+            },
+            {
+              "artifactId": "sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+              "mediaType": "application/json",
+              "sha256": "9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+              "size": 1500
+            },
+            {
+              "artifactId": "sha256:dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+              "mediaType": "application/json",
+              "sha256": "dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+              "size": 2823
+            },
+            {
+              "artifactId": "sha256:3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+              "mediaType": "application/json",
+              "sha256": "3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+              "size": 725
+            },
+            {
+              "artifactId": "sha256:9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+              "mediaType": "application/json",
+              "sha256": "9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+              "size": 1122
+            }
+          ],
+          "evidenceRefs": [
+            {
+              "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+              "mediaType": "application/json",
+              "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+              "size": 2864
+            }
+          ],
+          "toolchainFingerprint": "sha256:c20ea0459a35d7b354af3bd2c2b5f72a5a3171ec5105c24b37d3c23eba2cbc38",
+          "criticalFailures": 0,
+          "testsPassed": 1,
+          "testsTotal": 1,
+          "stability": 1,
+          "infrastructureFailure": false,
+          "checkBlocking": false,
+          "reviewBlocking": false,
+          "createdAt": "2026-09-02T08:12:34.204Z"
+        },
+        "decision": {
+          "decisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "versionId": "kv_1355064c2116a4e2d072c93f",
+          "outcome": "PASS",
+          "reasonCodes": [
+            "ALL_DETERMINISTIC_GATES_PASSED"
+          ],
+          "evidenceRefs": [
+            {
+              "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+              "mediaType": "application/json",
+              "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+              "size": 2864
+            }
+          ],
+          "createdAt": "2026-09-02T08:12:34.204Z"
+        }
+      }
+    ],
+    "checkpoints": [
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:orchestrator:0:main:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "orchestrator",
+        "status": "COMMITTED",
+        "inputRefs": [],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:99aef489419ec160e9178be7a8e3e94888a374ab779bf96d3d45c9e0fef9c800",
+            "mediaType": "application/json",
+            "sha256": "99aef489419ec160e9178be7a8e3e94888a374ab779bf96d3d45c9e0fef9c800",
+            "size": 1461
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T07:46:37.965Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_worker:worker-1:stable-source:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_worker:worker-1",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+            "mediaType": "application/json",
+            "sha256": "5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+            "size": 1297
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T07:47:00.381Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:test_gen:stable-source:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "test_gen",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:55aec46350821366daa9f3febf59f949032de8c6d48ab796228bd54b6a9c88e7",
+            "mediaType": "application/json",
+            "sha256": "55aec46350821366daa9f3febf59f949032de8c6d48ab796228bd54b6a9c88e7",
+            "size": 14623
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T07:51:23.008Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:oracle_validation:0",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "oracle_validation",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+            "mediaType": "application/json",
+            "sha256": "dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+            "size": 2823
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T07:51:29.007Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_gen:0:main:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_gen",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          },
+          {
+            "artifactId": "sha256:5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+            "mediaType": "application/json",
+            "sha256": "5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+            "size": 1297
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+            "mediaType": "application/json",
+            "sha256": "baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+            "size": 5566
+          }
+        ],
+        "retryCount": 1,
+        "updatedAt": "2026-09-02T08:01:57.336Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:candidate_knowledge:0",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "candidate_knowledge",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+            "mediaType": "application/json",
+            "sha256": "baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+            "size": 5566
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "mediaType": "text/markdown; charset=utf-8",
+            "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "size": 5165
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T08:01:57.365Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:code:0:main:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "code",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          },
+          {
+            "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "mediaType": "text/markdown; charset=utf-8",
+            "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "size": 5165
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "mediaType": "application/json",
+            "sha256": "9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "size": 1500
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T08:04:42.329Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:check:0:main:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "check",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          },
+          {
+            "artifactId": "sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "mediaType": "application/json",
+            "sha256": "9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "size": 1500
+          },
+          {
+            "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "mediaType": "text/markdown; charset=utf-8",
+            "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "size": 5165
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "mediaType": "application/json",
+            "sha256": "3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "size": 725
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T08:09:19.663Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:evaluation:0",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "evaluation",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          },
+          {
+            "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "mediaType": "text/markdown; charset=utf-8",
+            "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "size": 5165
+          },
+          {
+            "artifactId": "sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "mediaType": "application/json",
+            "sha256": "9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+            "size": 1500
+          },
+          {
+            "artifactId": "sha256:dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+            "mediaType": "application/json",
+            "sha256": "dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+            "size": 2823
+          },
+          {
+            "artifactId": "sha256:3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "mediaType": "application/json",
+            "sha256": "3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "size": 725
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+            "mediaType": "application/json",
+            "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+            "size": 2864
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T08:09:24.806Z"
+      },
+      {
+        "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:review:0:main:contract-v4",
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "review",
+        "status": "COMMITTED",
+        "inputRefs": [
+          {
+            "artifactId": "sha256:3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "mediaType": "application/json",
+            "sha256": "3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+            "size": 725
+          },
+          {
+            "artifactId": "sha256:445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "mediaType": "application/json",
+            "sha256": "445367e439f810e1e1c914657b02200d3e7069509584f30d7b511ec5d1510a02",
+            "size": 2064
+          },
+          {
+            "artifactId": "sha256:5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "mediaType": "application/json",
+            "sha256": "5bed39656fd6c0722967d76dc9dd2c5716844339d6f690b90edce114f291f2a8",
+            "size": 1230
+          },
+          {
+            "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+            "mediaType": "application/json",
+            "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+            "size": 2864
+          },
+          {
+            "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "mediaType": "text/markdown; charset=utf-8",
+            "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+            "size": 5165
+          }
+        ],
+        "outputRefs": [
+          {
+            "artifactId": "sha256:9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+            "mediaType": "application/json",
+            "sha256": "9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+            "size": 1122
+          }
+        ],
+        "retryCount": 0,
+        "updatedAt": "2026-09-02T08:12:34.189Z"
+      }
+    ],
+    "workflowNodes": [
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "orchestrator",
+        "agentId": "orchestrator",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "planned iteration 0",
+        "error": null,
+        "startedAt": "2026-09-02T07:46:01.980Z",
+        "completedAt": "2026-09-02T07:46:37.969Z",
+        "updatedAt": "2026-09-02T07:46:37.969Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_worker:worker-1",
+        "agentId": "doc-worker",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "doc-worker produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T07:46:37.996Z",
+        "completedAt": "2026-09-02T07:47:00.384Z",
+        "updatedAt": "2026-09-02T07:47:00.384Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "test_gen",
+        "agentId": "test-gen",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "test-gen produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T07:46:37.983Z",
+        "completedAt": "2026-09-02T07:51:23.011Z",
+        "updatedAt": "2026-09-02T07:51:23.011Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "oracle_validation",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "reference oracle passed",
+        "error": null,
+        "startedAt": "2026-09-02T07:51:23.019Z",
+        "completedAt": "2026-09-02T07:51:29.025Z",
+        "updatedAt": "2026-09-02T07:51:29.025Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_gen",
+        "agentId": "doc-gen",
+        "status": "FAILED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "",
+        "error": "DSH_AGENT_OUTPUT_NOT_JSON",
+        "startedAt": "2026-09-02T07:51:23.017Z",
+        "completedAt": "2026-09-02T07:52:28.383Z",
+        "updatedAt": "2026-09-02T07:52:28.383Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "oracle_validation",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 2,
+        "detail": "reference oracle passed",
+        "error": null,
+        "startedAt": "2026-09-02T07:53:46.407Z",
+        "completedAt": "2026-09-02T07:53:46.412Z",
+        "updatedAt": "2026-09-02T07:53:46.412Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_gen",
+        "agentId": "doc-gen",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 2,
+        "detail": "doc-gen produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T07:53:46.389Z",
+        "completedAt": "2026-09-02T08:01:57.341Z",
+        "updatedAt": "2026-09-02T08:01:57.341Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "candidate_knowledge",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "candidate kv_1355064c2116a4e2d072c93f",
+        "error": null,
+        "startedAt": "2026-09-02T08:01:57.352Z",
+        "completedAt": "2026-09-02T08:01:57.368Z",
+        "updatedAt": "2026-09-02T08:01:57.368Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "code",
+        "agentId": "code",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "code produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T08:01:57.375Z",
+        "completedAt": "2026-09-02T08:04:42.343Z",
+        "updatedAt": "2026-09-02T08:04:42.343Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "check",
+        "agentId": "check",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "check produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T08:04:42.368Z",
+        "completedAt": "2026-09-02T08:09:19.666Z",
+        "updatedAt": "2026-09-02T08:09:19.666Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "evaluation",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "evaluation passed; awaiting review and gate",
+        "error": null,
+        "startedAt": "2026-09-02T08:09:19.674Z",
+        "completedAt": "2026-09-02T08:09:24.833Z",
+        "updatedAt": "2026-09-02T08:09:24.833Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "review",
+        "agentId": "review",
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "review produced schema-validated DeepSeek Harness output",
+        "error": null,
+        "startedAt": "2026-09-02T08:09:24.838Z",
+        "completedAt": "2026-09-02T08:12:34.192Z",
+        "updatedAt": "2026-09-02T08:12:34.192Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "workflow_router",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "workflow route PASS",
+        "error": null,
+        "startedAt": "2026-09-02T08:12:34.198Z",
+        "completedAt": "2026-09-02T08:12:34.208Z",
+        "updatedAt": "2026-09-02T08:12:34.208Z"
+      },
+      {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "publication",
+        "agentId": null,
+        "status": "COMPLETED",
+        "iteration": 0,
+        "attempt": 1,
+        "detail": "wpKnowledge publication ohmyworkpanel-mentions:kv_1355064c2116a4e2d072c93f:local-v1",
+        "error": null,
+        "startedAt": "2026-09-02T08:12:34.214Z",
+        "completedAt": "2026-09-02T08:12:34.219Z",
+        "updatedAt": "2026-09-02T08:12:34.219Z"
+      }
+    ],
+    "events": [
+      {
+        "eventSeq": 1,
+        "event": {
+          "eventId": "403af3a6-6de2-41e3-b77e-e6c0b61505e3",
+          "eventType": "RunCreated",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:01.937Z",
+          "causationId": null,
+          "payload": {
+            "moduleId": "ohmyworkpanel-mentions",
+            "policyId": "local-v1"
+          }
+        }
+      },
+      {
+        "eventSeq": 2,
+        "event": {
+          "eventId": "af369442-22d2-4556-9c53-6c723f72dd7d",
+          "eventType": "RunStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:01.944Z",
+          "causationId": null,
+          "payload": {
+            "from": "CREATED",
+            "to": "PLANNED",
+            "iteration": 0
+          }
+        }
+      },
+      {
+        "eventSeq": 3,
+        "event": {
+          "eventId": "bdbe60b6-6e46-4b13-ae49-5558130c132c",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:01.981Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "orchestrator",
+            "agentId": "orchestrator",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 4,
+        "event": {
+          "eventId": "f327f5c1-93d4-48c7-aa7e-cca5e8508ea8",
+          "eventType": "RunStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:01.983Z",
+          "causationId": null,
+          "payload": {
+            "from": "PLANNED",
+            "to": "GENERATING",
+            "iteration": 0
+          }
+        }
+      },
+      {
+        "eventSeq": 5,
+        "event": {
+          "eventId": "b2d7e67a-b45f-425d-b139-0cdfd7ed3730",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:37.965Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "orchestrator",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:orchestrator:0:main:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:99aef489419ec160e9178be7a8e3e94888a374ab779bf96d3d45c9e0fef9c800",
+                "mediaType": "application/json",
+                "sha256": "99aef489419ec160e9178be7a8e3e94888a374ab779bf96d3d45c9e0fef9c800",
+                "size": 1461
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 6,
+        "event": {
+          "eventId": "53eda911-11b9-4e2a-bb45-f5ebe4ebe979",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:37.969Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "orchestrator",
+            "agentId": "orchestrator",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 7,
+        "event": {
+          "eventId": "ef1ba32d-f3dd-4f8a-8887-8823cc6bab36",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:37.983Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "test_gen",
+            "agentId": "test-gen",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 8,
+        "event": {
+          "eventId": "da229d29-6c09-4911-8f1c-6e1a79c103ab",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:46:37.996Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_worker:worker-1",
+            "agentId": "doc-worker",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 9,
+        "event": {
+          "eventId": "bd276593-895c-4024-bad6-f068664c7f0d",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:47:00.381Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_worker:worker-1",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_worker:worker-1:stable-source:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+                "mediaType": "application/json",
+                "sha256": "5fbfb51ca301a36a3767102fb8b9adbb1adbba47609118b5ea9a9108822a4b40",
+                "size": 1297
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 10,
+        "event": {
+          "eventId": "394e451a-b216-4ae6-b9a0-b81c91fa5e1e",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:47:00.384Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_worker:worker-1",
+            "agentId": "doc-worker",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 11,
+        "event": {
+          "eventId": "dbe9d25f-52cb-4180-a044-d5b0ca558975",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:23.008Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "test_gen",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:test_gen:stable-source:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:55aec46350821366daa9f3febf59f949032de8c6d48ab796228bd54b6a9c88e7",
+                "mediaType": "application/json",
+                "sha256": "55aec46350821366daa9f3febf59f949032de8c6d48ab796228bd54b6a9c88e7",
+                "size": 14623
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 12,
+        "event": {
+          "eventId": "0c430105-db74-4d2d-b197-e03de606626e",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:23.011Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "test_gen",
+            "agentId": "test-gen",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 13,
+        "event": {
+          "eventId": "00355301-3c51-46f8-b3dd-e718d2c8aca2",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:23.017Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "agentId": "doc-gen",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 14,
+        "event": {
+          "eventId": "f7aa68f9-b152-4815-b024-fa0b6cfde0bf",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:23.019Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "oracle_validation",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 15,
+        "event": {
+          "eventId": "0e7b954b-305d-422e-aa8f-de8bbc510c89",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:29.007Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "oracle_validation",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:oracle_validation:0",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+                "mediaType": "application/json",
+                "sha256": "dc8b6388341ec756ce87ed2dff7783b1168590662e9023e5c23a76214e0781c7",
+                "size": 2823
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 16,
+        "event": {
+          "eventId": "e1d98eb9-8ef9-4ff4-beb2-cc5525320b4f",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:51:29.025Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "oracle_validation",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 17,
+        "event": {
+          "eventId": "526bf705-e4fc-4efa-b606-9b451c2d729e",
+          "eventType": "NodeFailed",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:52:28.378Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_gen:0:main:contract-v4",
+            "error": "DSH_AGENT_OUTPUT_NOT_JSON"
+          }
+        }
+      },
+      {
+        "eventSeq": 18,
+        "event": {
+          "eventId": "cf34804c-4690-49c7-be86-49471efb0b95",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:52:28.383Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "agentId": "doc-gen",
+            "status": "FAILED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 19,
+        "event": {
+          "eventId": "e81ef9d6-c05e-4219-b503-08995addd5fd",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:53:46.389Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "agentId": "doc-gen",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 2
+          }
+        }
+      },
+      {
+        "eventSeq": 20,
+        "event": {
+          "eventId": "c1d1377f-2e34-483d-b34c-addd9e93cbe4",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:53:46.407Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "oracle_validation",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 2
+          }
+        }
+      },
+      {
+        "eventSeq": 21,
+        "event": {
+          "eventId": "6c28eb7f-7f02-475d-8c61-f8a077faead9",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T07:53:46.412Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "oracle_validation",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 2
+          }
+        }
+      },
+      {
+        "eventSeq": 22,
+        "event": {
+          "eventId": "e7beb397-12e6-4c78-8b17-ce472dddc359",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.336Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_gen:0:main:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+                "mediaType": "application/json",
+                "sha256": "baaa434f604711f285b382a740c55bdc0976f45b02e26205dcb76b8a10113533",
+                "size": 5566
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 23,
+        "event": {
+          "eventId": "85a6c2a7-feaa-434f-ad42-25120b3379d3",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.341Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "doc_gen",
+            "agentId": "doc-gen",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 2
+          }
+        }
+      },
+      {
+        "eventSeq": 24,
+        "event": {
+          "eventId": "ad1dfea8-f9f1-4ff5-ae5e-1c5d0f904bfa",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.352Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "candidate_knowledge",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 25,
+        "event": {
+          "eventId": "fb5285b9-2565-469f-9c34-5b63d40a0f5c",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.365Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "candidate_knowledge",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:candidate_knowledge:0",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+                "mediaType": "text/markdown; charset=utf-8",
+                "sha256": "b1890c02ee8f4a26a159144f31fd2d2b575c03ee37c2867ebf2749de7de69551",
+                "size": 5165
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 26,
+        "event": {
+          "eventId": "0c6a1c17-22f9-41ab-8ed6-59959e52faed",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.368Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "candidate_knowledge",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 27,
+        "event": {
+          "eventId": "791f80e2-f157-4892-b433-baf184dc94f6",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:01:57.375Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "code",
+            "agentId": "code",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 28,
+        "event": {
+          "eventId": "68f8495b-a252-42a2-a028-33aaed7af717",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:04:42.329Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "code",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:code:0:main:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+                "mediaType": "application/json",
+                "sha256": "9adcd29a4dc9e05c1a217e933481faa3dc6ac49fbc6ef170c91294a771c38953",
+                "size": 1500
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 29,
+        "event": {
+          "eventId": "430eb9a2-4234-4d32-8a2f-5e57db1a5e39",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:04:42.343Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "code",
+            "agentId": "code",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 30,
+        "event": {
+          "eventId": "9befa15f-7fb4-4d49-9f1f-bb682f8a2522",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:04:42.368Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "check",
+            "agentId": "check",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 31,
+        "event": {
+          "eventId": "05f6f6f2-00ce-401e-9676-cdd15718f25a",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:19.663Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "check",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:check:0:main:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+                "mediaType": "application/json",
+                "sha256": "3c4fdb0fd4a6a5bb637e61bde5318d1d12ed443a03817987575139844b851222",
+                "size": 725
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 32,
+        "event": {
+          "eventId": "771df2a7-765d-4dce-8b3e-e7ba4d07a69a",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:19.666Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "check",
+            "agentId": "check",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 33,
+        "event": {
+          "eventId": "fd11f7e3-6319-43a5-99f9-97c1010d31d6",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:19.674Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "evaluation",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 34,
+        "event": {
+          "eventId": "569e8733-258e-4388-b248-b09d25ca3bf3",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:24.806Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "evaluation",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:evaluation:0",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+                "mediaType": "application/json",
+                "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+                "size": 2864
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 35,
+        "event": {
+          "eventId": "35ffdb74-5d64-4814-9b4e-be6460492be9",
+          "eventType": "RunStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:24.829Z",
+          "causationId": null,
+          "payload": {
+            "from": "GENERATING",
+            "to": "EVALUATING",
+            "iteration": 0
+          }
+        }
+      },
+      {
+        "eventSeq": 36,
+        "event": {
+          "eventId": "7965ae30-de8f-4c4f-a05b-f4153fa7b44c",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:24.833Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "evaluation",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 37,
+        "event": {
+          "eventId": "43e91fb6-b05b-4ff2-9627-6cc24be07db0",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:09:24.838Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "review",
+            "agentId": "review",
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 38,
+        "event": {
+          "eventId": "2949dcf9-cc4b-4b46-b3a1-070678e3e98c",
+          "eventType": "NodeCompleted",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.189Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "review",
+            "generationKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:review:0:main:contract-v4",
+            "outputRefs": [
+              {
+                "artifactId": "sha256:9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+                "mediaType": "application/json",
+                "sha256": "9cf1f0f1df5a68431751147583b44d2f19b2dd67217cac643fc0bb25883ad5d5",
+                "size": 1122
+              }
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 39,
+        "event": {
+          "eventId": "04985100-f78b-4cd4-88fd-a44506242c45",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.192Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "review",
+            "agentId": "review",
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 40,
+        "event": {
+          "eventId": "59eff539-9b54-4c2d-9394-5c08325a0ffd",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.198Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "workflow_router",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 41,
+        "event": {
+          "eventId": "609992ad-2ec3-4d09-b447-a7662eda95cb",
+          "eventType": "GateDecided",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.204Z",
+          "causationId": null,
+          "payload": {
+            "reportId": "8dbfe332-3aac-43d9-9620-3349ae75f9a4",
+            "decisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e",
+            "versionId": "kv_1355064c2116a4e2d072c93f",
+            "outcome": "PASS",
+            "reasonCodes": [
+              "ALL_DETERMINISTIC_GATES_PASSED"
+            ]
+          }
+        }
+      },
+      {
+        "eventSeq": 42,
+        "event": {
+          "eventId": "8f33fe9e-280a-4185-b21d-e1f09b5d51e9",
+          "eventType": "RunStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.204Z",
+          "causationId": null,
+          "payload": {
+            "from": "EVALUATING",
+            "to": "REVIEWING",
+            "iteration": 0
+          }
+        }
+      },
+      {
+        "eventSeq": 43,
+        "event": {
+          "eventId": "d4ab4a6c-d613-4d6c-9fe8-88ccb630d999",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.208Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "workflow_router",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 44,
+        "event": {
+          "eventId": "54c06699-11a9-4904-89da-32265373de6d",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.214Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "publication",
+            "agentId": null,
+            "status": "RUNNING",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      },
+      {
+        "eventSeq": 45,
+        "event": {
+          "eventId": "ffe786a3-3e74-446b-ae97-5b5815f445b2",
+          "eventType": "KnowledgePublished",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.217Z",
+          "causationId": null,
+          "payload": {
+            "publicationKey": "ohmyworkpanel-mentions:kv_1355064c2116a4e2d072c93f:local-v1",
+            "versionId": "kv_1355064c2116a4e2d072c93f",
+            "decisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e"
+          }
+        }
+      },
+      {
+        "eventSeq": 46,
+        "event": {
+          "eventId": "a8cf5ff6-9765-44c9-a7bb-25205731f4d1",
+          "eventType": "WorkflowNodeStateChanged",
+          "schemaVersion": "1.0",
+          "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+          "occurredAt": "2026-09-02T08:12:34.219Z",
+          "causationId": null,
+          "payload": {
+            "nodeId": "publication",
+            "agentId": null,
+            "status": "COMPLETED",
+            "iteration": 0,
+            "attempt": 1
+          }
+        }
+      }
+    ],
+    "publications": [
+      {
+        "publicationKey": "ohmyworkpanel-mentions:kv_1355064c2116a4e2d072c93f:local-v1",
+        "moduleId": "ohmyworkpanel-mentions",
+        "versionId": "kv_1355064c2116a4e2d072c93f",
+        "policyId": "local-v1",
+        "decisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e",
+        "publishedAt": "2026-09-02T08:12:34.217Z"
+      }
+    ],
+    "latestDecision": {
+      "decisionId": "41be5fc5-e438-40fd-bd3d-657043d48d9e",
+      "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+      "versionId": "kv_1355064c2116a4e2d072c93f",
+      "outcome": "PASS",
+      "reasonCodes": [
+        "ALL_DETERMINISTIC_GATES_PASSED"
+      ],
+      "evidenceRefs": [
+        {
+          "artifactId": "sha256:a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+          "mediaType": "application/json",
+          "sha256": "a4f7456b9a5682610f25c5de017357eacfff1086aabad399560fc69668099b9e",
+          "size": 2864
+        }
+      ],
+      "createdAt": "2026-09-02T08:12:34.204Z"
+    }
+  },
+  "agentCalls": [
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "orchestrator",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:orchestrator:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/c856c9420e1570ae52a642d1d3c27565",
+      "promptSha256": "1efe4509dab30a74c17f6ebb50579c0a1589d556bc7694ab7e0e0546c3992a76",
+      "schemaSha256": "b10fe2e0fffb70268090913365af122331e26c0fd2e38719375051d76ed72e63",
+      "startedAt": "2026-09-02T07:46:02.081Z",
+      "completedAt": "2026-09-02T07:46:37.842Z",
+      "durationMs": 35761,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 652,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "orchestrator",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "doc-worker",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_worker:0:worker-1",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/77588866165b64b19125f06fa05442dd",
+      "promptSha256": "c617bda5a49f7f4e05f970509390e10708c0f3029fb1c0cd408bcdac22e648d3",
+      "schemaSha256": "0fe408c6a854c5b0e533899fd43ccaa5dcb64043b66de19114cac8f1fff45c11",
+      "startedAt": "2026-09-02T07:46:38.021Z",
+      "completedAt": "2026-09-02T07:47:00.272Z",
+      "durationMs": 22251,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 534,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_worker",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": "worker-1"
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "test-gen",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:test_gen:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/63da085b6a4b9fd1ba6ba8a78ab652d3",
+      "promptSha256": "338407ff4d2c08aab13b77aa3724f85da479a90af4fa54ecf3e561b0c9e43f6e",
+      "schemaSha256": "cb71acde9b0fe3f8f2f016e0223e03f5fe9095bf3e3fed417418bc9404298f19",
+      "startedAt": "2026-09-02T07:46:38.028Z",
+      "completedAt": "2026-09-02T07:51:22.860Z",
+      "durationMs": 284832,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 4916,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "test_gen",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "doc-gen",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_gen:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/cec04b0277d21d93e7f0725641cb5a58",
+      "promptSha256": "a58a9ae0f171363a1f9a9679648efeb6964164f1e17cad59908a59b566423cb7",
+      "schemaSha256": "60fedf837782cc8a0c4111df82f99461dbffa7a3c1ab9a9f359d3a114d94b7c6",
+      "startedAt": "2026-09-02T07:51:23.738Z",
+      "completedAt": "2026-09-02T07:52:28.288Z",
+      "durationMs": 64550,
+      "status": "FAILED",
+      "errorCode": "DSH_AGENT_OUTPUT_NOT_JSON",
+      "notificationCount": 1735,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_gen",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "doc-gen",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:doc_gen:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/cec04b0277d21d93e7f0725641cb5a58",
+      "promptSha256": "a58a9ae0f171363a1f9a9679648efeb6964164f1e17cad59908a59b566423cb7",
+      "schemaSha256": "60fedf837782cc8a0c4111df82f99461dbffa7a3c1ab9a9f359d3a114d94b7c6",
+      "startedAt": "2026-09-02T07:53:46.433Z",
+      "completedAt": "2026-09-02T08:01:57.216Z",
+      "durationMs": 490783,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 7993,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "doc_gen",
+        "iteration": 0,
+        "attempt": 2,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "code",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:code:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/3e8d6f762cdba135335d970ebb182455",
+      "promptSha256": "c4ec74df2c4128fee55427c6840f8defbee3db930a67bc4e34c70a8079244b1b",
+      "schemaSha256": "f33da2cc7b90e1b034c1c5fa7a6053165e8fedfa4e7d34d0a1f42db82df01def",
+      "startedAt": "2026-09-02T08:01:57.411Z",
+      "completedAt": "2026-09-02T08:04:42.185Z",
+      "durationMs": 164774,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 1659,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "code",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "check",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:check:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/830dd7156c8bb7e842749798341f2ba6",
+      "promptSha256": "f181365ccb54572636ca3deab7baccfeb0af3db1a1671a8d95aeb3522c040f12",
+      "schemaSha256": "eaa1b8cdf8748b688e552edf5246be6461c6efa6f5b230d52945be0f77225f27",
+      "startedAt": "2026-09-02T08:04:42.382Z",
+      "completedAt": "2026-09-02T08:09:19.551Z",
+      "durationMs": 277169,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 4400,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "check",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    },
+    {
+      "provider": "deepseek-harness-sdk",
+      "role": "review",
+      "idempotencyKey": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9:review:0:main",
+      "workspaceRoot": "/root/projects/wpKnowledge/.workpanel/live-ohmyworkpanel-sdk-2/agent-workspaces/4bde98586ce70cc431d1ec8d4a0db83f",
+      "promptSha256": "3aae5d017979da297f986635b24ed3fb4b30580246200882fefaa955a68cf27e",
+      "schemaSha256": "96fd2b57190348051058a9696910a0f389937a5914cfcea95744382e3ca6e96c",
+      "startedAt": "2026-09-02T08:09:24.879Z",
+      "completedAt": "2026-09-02T08:12:34.058Z",
+      "durationMs": 189179,
+      "status": "SUCCEEDED",
+      "errorCode": null,
+      "notificationCount": 2050,
+      "metadata": {
+        "runId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
+        "nodeId": "review",
+        "iteration": 0,
+        "attempt": 1,
+        "workerId": null
+      }
+    }
+  ],
+  "ignoredAgentAuditLines": 0,
+  "artifactIntegrity": {
+    "total": 12,
+    "verified": 12,
+    "failed": []
+  }
+}

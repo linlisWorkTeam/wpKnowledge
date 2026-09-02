@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import {
-  DeepSeekHarnessHeadlessAgent, type DeepSeekHarnessAuditRecord,
+  DeepSeekHarnessHeadlessAgent, DeepSeekHarnessSdkAgent, type DeepSeekHarnessAuditRecord,
 } from '../../packages/adapters/deepseek-harness-agent/src/index.ts';
 
 const OUTPUT_SCHEMA = {
@@ -19,6 +19,153 @@ function request(workspaceRoot: string) {
     metadata: { runId: 'run-1', iteration: 0 },
   };
 }
+
+function writeFakeSdkRuntime(path: string, mode: 'success' | 'hang' | 'invalid-once' = 'success'): void {
+  writeFileSync(path, `
+import { createInterface } from 'node:readline';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+let sequence = 0;
+const write = (value) => process.stdout.write(JSON.stringify(value) + '\\n');
+const notify = (method, params) => write({ jsonrpc: '2.0', method, params });
+const event = (sessionId, type, data) => notify('session.event', {
+  sessionId, event: { type, seq: sequence++, time: 0, data },
+});
+createInterface({ input: process.stdin }).on('line', (line) => {
+  const frame = JSON.parse(line);
+  const respond = (result) => write({ jsonrpc: '2.0', id: frame.id, result });
+  if (frame.method === 'initialize') {
+    respond({ serverInfo: { name: 'deepseek-harness-sdk-runtime', version: 'test' } });
+    return;
+  }
+  if (frame.method === 'session/prompt') {
+    if (${JSON.stringify(mode)} === 'hang') return;
+    const sessionId = frame.params.sessionId;
+    const prompt = frame.params.contentBlocks[0].text;
+    if (process.argv.includes(prompt)) process.exit(19);
+    const messageId = 'fake-user-1';
+    event(sessionId, 'agent/inbox/spliced', {
+      target: 'next-turn', start: 0,
+      inserted: [{ id: messageId, role: 'user', content: [], source: { kind: 'user' } }],
+    });
+    notify('session.status', { sessionId, status: 'running' });
+    let procEnvironmentVisible = false;
+    try {
+      procEnvironmentVisible = Boolean(process.env.FAKE_SECRET_MARKER)
+        && readFileSync('/proc/self/environ').includes(Buffer.from(process.env.FAKE_SECRET_MARKER));
+    } catch {}
+    const retryMarker = '.fake-sdk-retried';
+    const responseText = ${JSON.stringify(mode)} === 'invalid-once' && !existsSync(retryMarker)
+      ? (writeFileSync(retryMarker, '1'), 'not-json')
+      : JSON.stringify({ answer:
+          procEnvironmentVisible || (process.env.FAKE_FORBIDDEN_PATH && existsSync(process.env.FAKE_FORBIDDEN_PATH))
+            ? 'sandbox-escaped' : 'sdk-validated' });
+    event(sessionId, 'assistant/message', {
+      turn: 0, step: 0,
+      message: { id: 'fake-assistant-1', role: 'assistant',
+        content: [{ type: 'text', text: responseText }],
+        source: { kind: 'model', provider: 'fake', model: 'fake' } },
+    });
+    event(sessionId, 'turn/end', { turn: 0, reason: { kind: 'completed' } });
+    notify('session.status', { sessionId, status: 'idle' });
+    respond({ messageId });
+    return;
+  }
+  if (frame.method === 'shutdown') {
+    respond({});
+    setImmediate(() => process.exit(0));
+  }
+});
+`);
+}
+
+test('DSH SDK bubblewrap runtime can see its role view but not sibling source files', {
+  skip: !existsSync('/usr/bin/bwrap'),
+}, async () => {
+  const root = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-sandbox-'));
+  const workspace = join(root, 'workspace');
+  const dshHome = join(root, 'dsh-home');
+  const forbidden = join(root, 'reference-source-secret.ts');
+  mkdirSync(workspace);
+  writeFileSync(forbidden, 'REFERENCE_SOURCE_MUST_NOT_BE_VISIBLE');
+  const script = join(workspace, 'fake-sdk.mjs');
+  writeFakeSdkRuntime(script);
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      dshBin: script,
+      processIsolation: 'bubblewrap',
+      dshHome,
+      env: {
+        ...process.env,
+        FAKE_FORBIDDEN_PATH: forbidden,
+        FAKE_SECRET_MARKER: 'do-not-expose-test-marker',
+      },
+      allowedWorkspaceRoots: [workspace], timeoutMs: 3_000,
+      initializeTimeoutMs: 1_000, shutdownTimeoutMs: 100,
+      disposeEofGraceMs: 100, disposeGraceMs: 100,
+    });
+    assert.deepEqual(await provider.run(request(workspace)), { answer: 'sdk-validated' });
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test('DSH SDK provider transports prompts over stdin JSON-RPC and validates the final response', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-agent-'));
+  const script = join(workspace, 'fake-sdk.mjs');
+  writeFakeSdkRuntime(script);
+  const audits: DeepSeekHarnessAuditRecord[] = [];
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      dshBin: script, allowedWorkspaceRoots: [workspace], timeoutMs: 2_000,
+      initializeTimeoutMs: 1_000, shutdownTimeoutMs: 100,
+      disposeEofGraceMs: 100, disposeGraceMs: 100,
+      onAudit: (record) => { audits.push(record); },
+    });
+    assert.deepEqual(await provider.run(request(workspace)), { answer: 'sdk-validated' });
+    assert.equal(audits[0]?.provider, 'deepseek-harness-sdk');
+    assert.equal(audits[0]?.status, 'SUCCEEDED');
+    assert.equal((audits[0]?.notificationCount ?? 0) > 0, true);
+    assert.equal(JSON.stringify(audits[0]).includes('生成结构化结果'), false);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('DSH SDK provider closes a hung runtime at the overall turn deadline', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-timeout-'));
+  const script = join(workspace, 'fake-sdk.mjs');
+  writeFakeSdkRuntime(script, 'hang');
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      dshBin: script, allowedWorkspaceRoots: [workspace], timeoutMs: 100,
+      initializeTimeoutMs: 100, shutdownTimeoutMs: 50,
+      disposeEofGraceMs: 50, disposeGraceMs: 50,
+    });
+    await assert.rejects(provider.run(request(workspace)), /DSH_AGENT_TIMEOUT/);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
+
+test('DSH SDK provider retries a schema failure once with a fresh runtime attempt', async () => {
+  const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-sdk-retry-'));
+  const script = join(workspace, 'fake-sdk.mjs');
+  writeFakeSdkRuntime(script, 'invalid-once');
+  const audits: DeepSeekHarnessAuditRecord[] = [];
+  try {
+    const provider = new DeepSeekHarnessSdkAgent({
+      dshBin: script, allowedWorkspaceRoots: [workspace], timeoutMs: 2_000,
+      maxSchemaAttempts: 2, initializeTimeoutMs: 1_000, shutdownTimeoutMs: 100,
+      disposeEofGraceMs: 100, disposeGraceMs: 100,
+      onAudit: (record) => { audits.push(record); },
+    });
+    assert.deepEqual(await provider.run(request(workspace)), { answer: 'sdk-validated' });
+    assert.deepEqual(audits.map((audit) => audit.status), ['FAILED', 'SUCCEEDED']);
+    assert.deepEqual(audits.map((audit) => audit.metadata.providerAttempt), [1, 2]);
+  } finally {
+    rmSync(workspace, { recursive: true, force: true });
+  }
+});
 
 test('DeepSeek Harness provider validates structured output and emits a redacted audit record', async () => {
   const workspace = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-'));

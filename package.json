@@ -21,6 +21,8 @@
     "validate:specs": "node endlessWpKnowledgeRunner/specs/13-verification/validate-specs.ts"
   },
   "dependencies": {
+    "@deepseek-ai/dsh": "0.1.2-alpha.4",
+    "@deepseek-ai/dsh-sdk-client": "0.1.2-alpha.4",
     "@langchain/langgraph": "1.4.13",
     "@langchain/langgraph-checkpoint-sqlite": "1.0.4",
     "ajv": "8.20.0",

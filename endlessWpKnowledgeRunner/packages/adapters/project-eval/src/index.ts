@@ -77,6 +77,8 @@ function pnpmScript(): string {
   const candidates: string[] = [join(dirname(process.execPath), 'node_modules', 'corepack', 'dist', 'pnpm.js')];
   const pathDirs = (process.env.PATH ?? '').split(delimiter).filter(Boolean);
   for (const pathDir of pathDirs) {
+    const pathEntry = join(pathDir, process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm');
+    if (existsSync(pathEntry)) candidates.push(realpathSync(pathEntry));
     candidates.push(join(pathDir, 'node_modules', 'pnpm', 'bin', 'pnpm.cjs'));
     candidates.push(join(pathDir, '..', '..', 'node', 'node_modules', 'pnpm', 'bin', 'pnpm.mjs'));
   }

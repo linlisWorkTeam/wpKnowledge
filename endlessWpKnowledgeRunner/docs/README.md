@@ -9,10 +9,13 @@
 | 第一次安装、初始化和打开 Console；或把完整配置 Prompt 交给 Agent | [GETTING_STARTED.md](GETTING_STARTED.md) | 使用者、Agent、评审者 |
 | 理解治理上层、domain-knowledge/LangGraph 基础设施和知识生命周期 | [ARCHITECTURE.md](ARCHITECTURE.md) | 开发者、架构师 |
 | 搭建开发环境和实现变更 | [DEVELOPMENT.md](DEVELOPMENT.md) | 贡献者、Agent |
+| 只调整某个 Agent 角色，或判断是否必须改核心合同 | [AGENT-CUSTOMIZATION.md](AGENT-CUSTOMIZATION.md) | Agent 定制者、节点开发者、评审者 |
 | 选择测试层级和提交证据 | [TESTING.md](TESTING.md) | 贡献者、评审者 |
 | 确定目录和文件归属 | [REPOSITORY-GUIDE.md](REPOSITORY-GUIDE.md) | 所有贡献者 |
 | 编写中文主文档与英文摘要 | [DOCUMENTATION-I18N.md](DOCUMENTATION-I18N.md) | 所有贡献者、Agent |
 | 摄取、评测、发布、验收和部署 | [OPERATIONS.md](OPERATIONS.md) | 操作员、维护者 |
+| 查看真实 SDK 运行、失败恢复和脱敏证据 | [DeepSeek Harness 治理演示](../../knowledge/3.workpanel/证据/2026-09-02-DeepSeek-Harness真实Agent治理演示.md) | 使用者、评审者、演示者 |
+| 用幻灯片了解架构、流程和 Agent 边界 | [当前 wpKnowledge 知识飞轮方案](../../knowledge/2.wiki/设计/当前wpKnowledge知识飞轮方案.pptx) | 使用者、开发者、汇报者 |
 | 从旧 Runner 迁移 | [MIGRATION.md](MIGRATION.md) | 旧版本使用者 |
 | 本地预览或发布项目官网 | [site/README.md](../site/README.md) | 维护者 |
 

@@ -139,6 +139,42 @@ test('failed workflow resumes from the latest failed LangGraph checkpoint', asyn
   assert.ok(projections.some((projection) => projection.nodeId === 'code' && projection.status === 'COMPLETED'));
 });
 
+test('parallel sibling completion cannot hide a recoverable node failure', async () => {
+  let failOracleOnce = true;
+  const calls: string[] = [];
+  const infrastructure = await createDomainKnowledgeInfrastructure({
+    checkpoint: { kind: 'memory' },
+    prompts: { getPromptAddon: () => '' },
+    observer: { record: () => undefined },
+    executor: {
+      async execute(input) {
+        calls.push(input.nodeId);
+        if (input.nodeId === 'oracle_validation' && failOracleOnce) {
+          failOracleOnce = false;
+          throw new Error('transient oracle toolchain failure');
+        }
+        if (input.nodeId === 'code') await new Promise((resolve) => setTimeout(resolve, 30));
+        if (input.nodeId === 'workflow_router') return { detail: 'ready', route: 'PASS' };
+        return { detail: `${input.nodeId} complete` };
+      },
+    },
+  });
+  const handle = await infrastructure.engine.start({
+    runId: 'parallel-resumable-graph', maxIterations: 2, workerCount: 0,
+  });
+  const failed = await infrastructure.engine.wait(handle.runId);
+
+  assert.equal(failed.executionStatus, 'FAILED');
+  assert.equal(failed.route, 'FAILED');
+  assert.match(failed.error ?? '', /oracle toolchain/);
+
+  await infrastructure.engine.resume(handle.runId);
+  const completed = await infrastructure.engine.wait(handle.runId);
+  assert.equal(completed.executionStatus, 'COMPLETED');
+  assert.equal(completed.route, 'PASS');
+  assert.equal(calls.filter((node) => node === 'oracle_validation').length, 2);
+});
+
 test('candidate quality iteration skips code generation for the rejected iteration', async () => {
   const calls: Array<{ nodeId: string; iteration: number }> = [];
   const infrastructure = await createDomainKnowledgeInfrastructure({

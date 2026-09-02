@@ -165,7 +165,8 @@ function renderOverview() {
           <li><span>Registry / CAS</span>${badge('VERIFIED', '可用')}</li>
           <li><span>自动 Workflow</span>${badge('LOW_CONFIDENCE', state.capabilities?.automatedWorkflow ? '已启用' : '尚未接入')}</li>
           <li><span>受信项目评测</span>${badge('VERIFIED', '可用')}</li>
-          <li><span>敌对代码隔离</span>${badge('FAILED', '未实现')}</li>
+          <li><span>Agent 源码隔离</span>${badge(state.capabilities?.agentSourceIsolation === 'bubblewrap' ? 'VERIFIED' : 'LOW_CONFIDENCE', state.capabilities?.agentSourceIsolation === 'bubblewrap' ? 'BUBBLEWRAP' : '未证明')}</li>
+          <li><span>敌对代码执行隔离</span>${badge('FAILED', '未实现')}</li>
         </ul>
       </section>
     </div>
@@ -220,7 +221,7 @@ function renderRunWorkspace(snapshot) {
       <button class="back-button" data-run-back>← Runs</button>
       <div class="run-title-row">
         <div><p class="eyebrow">${escapeHtml(shortId(run.runId, 28))}</p><h2>${escapeHtml(run.moduleId)}</h2><p class="subtitle">Policy ${escapeHtml(run.policyId)} · 更新于 ${escapeHtml(formatDate(run.updatedAt))}</p></div>
-        <div class="run-title-actions">${badge(run.state)}<button class="secondary-button" data-refresh-run="${escapeHtml(run.runId)}">刷新</button></div>
+        <div class="run-title-actions">${badge(run.state)}<a class="secondary-button" href="/api/v1/runs/${encodeURIComponent(run.runId)}/demo-report" download>导出 Demo</a><button class="secondary-button" data-refresh-run="${escapeHtml(run.runId)}">刷新</button></div>
       </div>
       <ol class="run-stepper">${steps}</ol>
       ${['ITERATING', 'ROLLING_BACK', 'LOW_CONFIDENCE', 'FAILED', 'CANCELLED'].includes(run.state) ? `<div class="state-callout ${run.state.toLowerCase().replaceAll('_', '-')}"><b>当前分支：${escapeHtml(run.state)}</b><span>第 ${escapeHtml(run.iteration + 1)} 轮 · 详情以事件与 Gate 证据为准</span></div>` : ''}
@@ -377,6 +378,8 @@ function renderSettings() {
         <div><dt>Project evaluator</dt><dd>${badge('CANDIDATE', 'TRUSTED SOURCE ONLY')}</dd></div>
         <div><dt>Hostile code isolation</dt><dd>${badge('FAILED', 'NOT AVAILABLE')}</dd></div>
         <div><dt>Automatic workflow</dt><dd>${badge('LOW_CONFIDENCE', capabilities.automatedWorkflow ? 'AVAILABLE' : 'PLANNED')}</dd></div>
+        <div><dt>Agent prompt transport</dt><dd>${badge(capabilities.agentPromptTransport === 'sdk-stdio-json-rpc' ? 'VERIFIED' : 'CANDIDATE', capabilities.agentPromptTransport || 'UNKNOWN')}</dd></div>
+        <div><dt>Agent source isolation</dt><dd>${badge(capabilities.agentSourceIsolation === 'bubblewrap' ? 'VERIFIED' : 'LOW_CONFIDENCE', capabilities.agentSourceIsolation || 'UNKNOWN')}</dd></div>
       </dl></section>
       <section class="panel full-span"><p class="eyebrow">PRODUCTIZATION</p><h2>当前能力说明</h2><div class="notice"><b>Run 工作台当前为可观察性界面。</b><p>固定源码验收具备两轮自动编排；通用 Workflow Command API 尚未完成，因此“创建自动 Run”不会调用裸 transition 模拟自动化。</p></div></section>
     </div>`

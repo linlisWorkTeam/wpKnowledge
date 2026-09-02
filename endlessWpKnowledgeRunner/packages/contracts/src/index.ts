@@ -110,6 +110,20 @@ export interface AgentProvider {
   run(request: AgentRequest, signal?: AbortSignal): Promise<Record<string, unknown>>;
 }
 
+export interface AgentWorkspaceView {
+  workspaceRoot: string;
+  readablePaths: string[];
+}
+
+export interface AgentWorkspaceProvider {
+  materialize(input: {
+    isolationKey: string;
+    role: string;
+    sourceRoot: string;
+    readablePaths: string[];
+  }): Promise<AgentWorkspaceView>;
+}
+
 export interface SandboxResult {
   exitCode: number;
   stdoutRef: ArtifactRef;

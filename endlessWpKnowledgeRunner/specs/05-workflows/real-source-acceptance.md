@@ -10,7 +10,7 @@
 - 验收从 `git archive <fixed-commit>` 得到仓库外快照，不要求当前分支退回旧 commit，不修改参考工作区，也不继承未跟踪文件。
 - 模块薄切片使用 `src/chat/mentions.ts`、公开 `Member` 契约和仓库自己的 `src/chat/mentions.test.ts`。
 - Agent 输出使用版本化 Schema 校验后才进入 CAS；可复验场景允许确定性 Scenario Provider，报告必须明确它不是在线 GLM 质量证明。
-- 真实 Provider 演示使用 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`。质量不合格的候选先反馈给下一轮 DocGen并跳过 CodeAgent；Schema/进程错误可在同一 `runId/thread_id` 上从失败 task checkpoint 恢复。
+- 真实 Provider 演示使用 `WP_FLYWHEEL_AGENT_PROVIDER=deepseek-harness`，通过官方 SDK、角色工作区与 Bubblewrap 运行；旧 Headless 入口只作迁移对照。质量不合格的候选先反馈给下一轮 DocGen 并跳过 CodeAgent；Schema/进程错误可在同一 `runId/thread_id` 上从失败 task checkpoint 恢复。
 
 ## 两轮闭环
 
@@ -26,7 +26,7 @@
 
 ## 信任边界
 
-ohMyWorkPanel 是同组织的受信源码。进程 Adapter 负责 argv 固定、禁用 shell、工作目录边界、wall time、输出上限和取消，但不把本地子进程宣称为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。
+ohMyWorkPanel 是同组织的受信源码。Agent Adapter 通过 SDK stdin、角色工作区、Bubblewrap、wall time、输出上限和取消约束模型进程；ProjectEvaluator 另外负责固定 argv、禁用 shell、临时工作区与进程树终止。两者不能合并解释为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。
 
 ## 完成证据
 

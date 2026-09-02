@@ -102,7 +102,7 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
       const controller = new AbortController();
       controllers.set(runId, controller);
       let config = graphConfig(runId, 100, controller.signal);
-      if (current.executionStatus === 'FAILED') {
+      if (current.executionStatus === 'FAILED' || (current.route === 'FAILED' && current.error)) {
         const failedCheckpoint = await this.failedCheckpoint(runId);
         config = retryConfig(
           runId,
@@ -140,11 +140,12 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
       const snapshot = await this.graph.getState(graphConfig(runId));
       const state = snapshot.values as InfrastructureState;
       if (!state.runId) throw new Error(`WORKFLOW_NOT_FOUND: ${runId}`);
+      const settledFailure = !this.running.has(runId) && state.route === 'FAILED' && Boolean(state.error);
       return {
         runId,
         executionStatus: this.running.has(runId) || state.executionStatus === 'PENDING'
           ? 'RUNNING'
-          : state.executionStatus,
+          : settledFailure ? 'FAILED' : state.executionStatus,
         currentNode: state.currentNode,
         iteration: state.iteration,
         maxIterations: state.maxIterations,

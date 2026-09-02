@@ -28,6 +28,7 @@
 | AC-ARCH-001 | Given 替代假 Provider/Store/Workflow Adapter，When 跑契约套件，Then Domain/Application 不变且测试通过。 |
 | AC-ARCH-002 | Given 内嵌 domain-knowledge LangGraph runtime，When 扫描依赖并执行图，Then SDK 只存在于 infrastructure，且 Run、知识、评测和发布事实只写 wpKnowledge Registry。 |
 | AC-OBS-002 | Given 一个自动 Run，When LangGraph 节点开始、完成或失败，Then Console 可按 runId 读取节点、角色、轮次、尝试和时间投影，且不读取 graph checkpoint。 |
+| AC-OBS-003 | Given 一个成功或失败的自动 Run，When 执行 `workflow-report --run`，Then 报告按 runId 导出 Registry 事实、脱敏 Agent 摘要并逐一校验引用的 CAS Artifact，且注入审计文件的 Prompt/凭据字段不会出现在报告中。 |
 | AC-AGENT-003 | Given 七个固定 Agent，When 查看和修改配置，Then 全部契约可查，只有受信操作者能改 `promptAddon`，任何职责、Schema、拓扑、输入输出或工具字段均拒绝。 |
 | AC-LANG-001 | Given 非 C++ 假插件，When 运行发现与标准化契约测试，Then 核心成功且通用消息无 C/C++ 专属字段。 |
 | AC-LANG-002 | Given C++ 示例及 CPU/内存/超时/进程树攻击，When 沙箱执行，Then正常结果标准化、超限终止并审计。 |

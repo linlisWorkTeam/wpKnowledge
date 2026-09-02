@@ -67,6 +67,9 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     assert.equal(capabilities.writeEnabled, true);
     assert.equal(capabilities.automatedWorkflow, true);
     assert.equal(capabilities.langGraphInfrastructure, true);
+    assert.equal(capabilities.agentPromptTransport, 'in-process-fixture');
+    assert.equal(capabilities.agentSourceIsolation, 'not-proven');
+    assert.equal(capabilities.hostileCodeIsolation, false);
 
     const agents = await (await fetch(`${base}/api/v1/agents`)).json();
     assert.equal(agents.agents.length, 7);
@@ -137,9 +140,19 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
     assert.equal(snapshot.evaluations[0].decision.outcome, 'PASS');
     assert.equal(snapshot.latestDecision.decisionId, decision.decisionId);
     assert.equal(snapshot.versions[0].status, 'VERIFIED');
+    assert.equal(snapshot.publications.length, 1);
+    assert.equal(snapshot.publications[0].versionId, payload.version.versionId);
     assert.ok(snapshot.events.length >= 7);
     assert.deepEqual(snapshot.events.map((record: { eventSeq: number }) => record.eventSeq),
       snapshot.events.map((_: unknown, index: number) => index + 1));
+
+    const demoResponse = await fetch(`${base}/api/v1/runs/${encodeURIComponent(runId)}/demo-report`);
+    assert.equal(demoResponse.status, 200);
+    assert.match(demoResponse.headers.get('content-disposition') ?? '', /attachment/);
+    const demoReport = await demoResponse.json();
+    assert.equal(demoReport.snapshot.run.runId, runId);
+    assert.equal(demoReport.snapshot.publications.length, 1);
+    assert.equal(demoReport.artifactIntegrity.failed.length, 0);
 
     const eventTail = await (await fetch(
       `${base}/api/v1/runs/${encodeURIComponent(runId)}/events?after=2`,
