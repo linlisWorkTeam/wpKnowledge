@@ -1,4 +1,7 @@
 # endlessWpKnowledgeRunner 飞轮实现分析
+# endlessWpKnowledgeRunner 飞轮实现分析（历史基线）
+
+> 历史说明（2026-09-02）：本文研究的是 2026-08-22 的 Python 原型。该实现已被规范驱动的 TypeScript 分层核心取代，文中的 `fw.py`、`fwrunner/` 与 `dsh/fw-plugin.js` 仅用于理解演进过程，不代表当前代码结构或运行能力。
 
 ## 研究信息
 

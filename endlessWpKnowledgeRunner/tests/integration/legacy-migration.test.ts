@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
-import { migrateLegacyOkf } from '../../src/infrastructure/migration/legacy-okf/index.ts';
+import { migrateLegacyOkf, parseLegacyCard } from '../../src/infrastructure/migration/legacy-okf/index.ts';
 import { createTestComposition, GOOD_BODY } from '../helpers/fixture.ts';
 
 test('legacy verified cards migrate as candidates requiring behavioral verification', async () => {
@@ -38,4 +38,17 @@ test('legacy migration records a repository-relative fallback source', async () 
   } finally {
     fixture.dispose();
   }
+});
+
+test('legacy parser keeps thematic breaks in Markdown body content', () => {
+  const card = parseLegacyCard('---\nname: thematic-break\n---\n\n前文\n\n---\n\n后文\n');
+  assert.equal(card.metadata.name, 'thematic-break');
+  assert.equal(card.body, '前文\n\n---\n\n后文');
+});
+
+test('legacy parser rejects unterminated frontmatter instead of treating it as body', () => {
+  assert.throws(
+    () => parseLegacyCard('---\nname: broken\nbody without closing delimiter\n'),
+    /LEGACY_CARD_INVALID: unterminated YAML frontmatter/,
+  );
 });

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import test from 'node:test';
@@ -12,6 +13,7 @@ const script = readFileSync(`${siteRoot}/app.js`, 'utf8');
 const release = JSON.parse(readFileSync(`${siteRoot}/release.json`, 'utf8')) as {
   schemaVersion: number;
   releaseId: string;
+  assetVersion: string;
   contentCommit: string;
   evidenceRunId: string;
   siteRoot: string;
@@ -86,9 +88,21 @@ test('public release marker binds the site to reviewed content and live evidence
   assert.equal(release.schemaVersion, 1);
   assert.match(release.releaseId, /^sdk-demo-\d{4}-\d{2}-\d{2}$/);
   assert.match(release.contentCommit, /^[a-f0-9]{40}$/);
+  assert.match(release.assetVersion, /^\d{8}-\d+$/);
   assert.match(release.evidenceRunId, /^[a-f0-9-]{36}$/);
   assert.equal(release.siteRoot, siteRoot);
   assert.ok(html.includes(release.evidenceRunId.slice(0, 8)), 'site must render the evidence Run');
+  for (const asset of ['mark.svg', 'styles.css', 'app.js']) {
+    assert.ok(html.includes(`./${asset}?v=${release.assetVersion}`), `${asset} must use the release asset version`);
+  }
+  const ancestor = spawnSync('git', ['merge-base', '--is-ancestor', release.contentCommit, 'HEAD'], {
+    encoding: 'utf8', shell: false, windowsHide: true,
+  });
+  assert.equal(ancestor.status, 0, 'release contentCommit must be an ancestor of the checked-out revision');
+  const siteDiff = spawnSync('git', [
+    'diff', '--quiet', release.contentCommit, '--', siteRoot, `:(exclude)${siteRoot}/release.json`,
+  ], { encoding: 'utf8', shell: false, windowsHide: true });
+  assert.equal(siteDiff.status, 0, 'release contentCommit must bind every public site asset');
 });
 
 test('project site exposes human and Agent onboarding without weakening trust gates', () => {
@@ -198,10 +212,10 @@ test('project site and Console implement separate light and dark themes', () => 
     assert.ok(frontendSpec.toLowerCase().includes(dark), `Spec misses dark ${name} token ${dark}`);
     assert.ok(frontendSpec.toLowerCase().includes(light), `Spec misses light ${name} token ${light}`);
   }
-  assertReadablePalette(siteDark, ['text', 'muted', 'cyan', 'green', 'amber', 'violet', 'danger'], 'site dark');
-  assertReadablePalette(siteLight, ['text', 'muted', 'cyan', 'green', 'amber', 'violet', 'danger'], 'site light');
-  assertReadablePalette(consoleDark, ['text', 'muted', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console dark');
-  assertReadablePalette(consoleLight, ['text', 'muted', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console light');
+  assertReadablePalette(siteDark, ['text', 'muted', 'faint', 'cyan', 'green', 'amber', 'violet', 'danger'], 'site dark');
+  assertReadablePalette(siteLight, ['text', 'muted', 'faint', 'cyan', 'green', 'amber', 'violet', 'danger'], 'site light');
+  assertReadablePalette(consoleDark, ['text', 'muted', 'faint', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console dark');
+  assertReadablePalette(consoleLight, ['text', 'muted', 'faint', 'accent', 'success', 'warning', 'governance', 'danger'], 'Console light');
 });
 
 test('write-token setup is discoverable while local secrets remain ignored', () => {
@@ -241,6 +255,11 @@ test('Pages workflow deploys the static directory only for an Actions source', (
   });
   const sourceStep = steps.find((step) => step.id === 'pages-source');
   assert.match(sourceStep?.run ?? '', /\/repos\/\$\{GITHUB_REPOSITORY\}\/pages/);
+  assert.match(sourceStep?.run ?? '', /--fail-with-body/);
+  assert.match(sourceStep?.run ?? '', /jq -er '\.build_type'/);
+  assert.match(sourceStep?.run ?? '', /jq -er '\.source\.branch'/);
+  assert.match(sourceStep?.run ?? '', /current_source_branch.*!=.*main/);
+  assert.doesNotMatch(sourceStep?.run ?? '', /\|\| echo legacy/);
   assert.doesNotMatch(sourceStep?.run ?? '', /--request PUT/);
   assert.match(sourceStep?.run ?? '', /deploy=false/);
   const configureStep = steps.find((step) => step.uses === 'actions/configure-pages@v6');
@@ -255,4 +274,13 @@ test('Pages workflow deploys the static directory only for an Actions source', (
   assert.equal(deployStep?.if, "steps.pages-source.outputs.deploy == 'true'");
   assert.equal(existsSync('LICENSE'), true);
   assert.match(readFileSync('LICENSE', 'utf8'), /MIT License/);
+});
+
+test('Console sets a restrictive content security policy', () => {
+  const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
+  assert.match(consoleHtml, /Content-Security-Policy/);
+  assert.match(consoleHtml, /default-src 'self'/);
+  assert.match(consoleHtml, /connect-src 'self'/);
+  assert.match(consoleHtml, /object-src 'none'/);
+  assert.match(consoleHtml, /frame-ancestors 'none'/);
 });

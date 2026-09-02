@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createHash, randomUUID } from 'node:crypto';
 import { mkdirSync, readFileSync, realpathSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DeepSeekHarness } from '@deepseek-ai/dsh-sdk-client';
 import type { DeepSeekHarnessOptions } from '@deepseek-ai/dsh-sdk-client';
@@ -161,7 +161,10 @@ function extractJsonCandidates(stdout: string): Record<string, unknown>[] {
 function canonicalWorkspace(requested: string, allowedRoots: string[]): string {
   const workspace = realpathSync(resolve(requested));
   const allowed = allowedRoots.map((root) => realpathSync(resolve(root)));
-  if (!allowed.some((root) => workspace === root || workspace.startsWith(`${root}/`))) {
+  if (!allowed.some((root) => {
+    const pathFromRoot = relative(root, workspace);
+    return pathFromRoot === '' || (!pathFromRoot.startsWith('..') && !isAbsolute(pathFromRoot));
+  })) {
     throw new Error('DSH_AGENT_WORKSPACE_DENIED');
   }
   return workspace;

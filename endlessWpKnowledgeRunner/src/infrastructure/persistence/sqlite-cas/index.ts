@@ -1,5 +1,5 @@
 import {
-  closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync,
+  chmodSync, closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync,
   renameSync, unlinkSync, writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -27,6 +27,16 @@ function parse<T>(value: unknown): T {
 
 function ensureParent(path: string): void {
   mkdirSync(dirname(path), { recursive: true });
+}
+
+function syncParentDirectory(path: string): void {
+  if (process.platform === 'win32') return;
+  const handle = openSync(dirname(path), 'r');
+  try {
+    fsyncSync(handle);
+  } finally {
+    closeSync(handle);
+  }
 }
 
 export class LocalCasArtifactStore implements ArtifactStore {
@@ -64,6 +74,8 @@ export class LocalCasArtifactStore implements ArtifactStore {
         if (!existsSync(target)) throw error;
         unlinkSync(temporary);
       }
+      if (process.platform !== 'win32') chmodSync(target, 0o400);
+      syncParentDirectory(target);
       assertInvariant(await this.verify(ref), `CAS verification failed after commit: ${ref.artifactId}`);
       return ref;
     } finally {

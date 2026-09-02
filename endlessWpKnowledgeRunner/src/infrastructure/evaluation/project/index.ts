@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { spawn, spawnSync } from 'node:child_process';
 import {
-  existsSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync,
+  existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import {
@@ -387,6 +387,11 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
           break;
         }
       }
+      const generatedFilesIntact = Object.entries(generatedFileDigests).every(([path, expectedDigest]) => {
+        const generatedPath = pathInside(workspace, path);
+        return existsSync(generatedPath) && digest(readFileSync(generatedPath)) === expectedDigest;
+      });
+      if (!generatedFilesIntact) prepareFailed = true;
       if (!prepareFailed) {
         for (const command of input.commands) {
           const repetitions = command.repetitions ?? 1;
@@ -427,7 +432,7 @@ export class TrustedProjectEvaluator implements ProjectEvaluator {
         },
         toolchain,
         toolchainFingerprint: `sha256:${digest(JSON.stringify(toolchain))}`,
-        generatedFileDigests,
+        generatedFileDigests, generatedFilesIntact,
         passed, testsPassed, testsTotal, stability, infrastructureFailure, results,
       };
       const evidenceRef = await this.artifacts.put(Buffer.from(JSON.stringify(evidence, null, 2)), 'application/json');

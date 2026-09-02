@@ -67,9 +67,29 @@ async function body(request: IncomingMessage): Promise<Record<string, unknown>> 
     if (size > 1_048_576) throw new Error('PAYLOAD_TOO_LARGE');
     chunks.push(bytes);
   }
-  const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(Buffer.concat(chunks).toString('utf8') || '{}');
+  } catch {
+    throw new Error('PAYLOAD_INVALID');
+  }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('PAYLOAD_INVALID');
   return parsed as Record<string, unknown>;
+}
+
+export function mapHttpError(error: unknown): { status: number; body: { error: string; message?: string } } {
+  const message = error instanceof Error ? error.message : String(error);
+  const code = message.split(':', 1)[0] || 'INTERNAL_ERROR';
+  if (code === 'PAYLOAD_TOO_LARGE') return { status: 413, body: { error: code } };
+  if (code === 'METHOD_NOT_ALLOWED') return { status: 405, body: { error: code } };
+  if (code.endsWith('_NOT_FOUND')) return { status: 404, body: { error: code } };
+  if (/(?:_ALREADY_RUNNING|_TERMINAL|_CONFLICT)$/.test(code)) {
+    return { status: 409, body: { error: code, message } };
+  }
+  if (/(?:_INVALID|_DENIED|_REQUIRED|_UNSUPPORTED)$/.test(code)) {
+    return { status: 400, body: { error: code, message } };
+  }
+  return { status: 500, body: { error: 'INTERNAL_ERROR' } };
 }
 
 export function createKnowledgeServer(input: {
@@ -335,8 +355,8 @@ export function createKnowledgeServer(input: {
       }
       send(response, 404, { error: 'NOT_FOUND' });
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      send(response, message === 'PAYLOAD_TOO_LARGE' ? 413 : 400, { error: message });
+      const mapped = mapHttpError(error);
+      send(response, mapped.status, mapped.body);
     }
   });
   server.on('close', composition.close);

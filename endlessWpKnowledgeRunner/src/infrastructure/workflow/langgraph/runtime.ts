@@ -22,6 +22,7 @@ function retryConfig(
   runId: string,
   checkpointConfig: Record<string, unknown>,
   signal: AbortSignal,
+  recursionLimit: number,
 ) {
   const configurable = checkpointConfig.configurable;
   return {
@@ -30,7 +31,7 @@ function retryConfig(
       ...(configurable && typeof configurable === 'object' ? configurable : {}),
       thread_id: runId,
     },
-    recursionLimit: 100,
+    recursionLimit,
     signal,
   };
 }
@@ -101,13 +102,15 @@ export async function createDomainKnowledgeInfrastructure(options: DomainKnowled
       if (['COMPLETED', 'STOPPED', 'CANCELLED'].includes(current.executionStatus)) return current;
       const controller = new AbortController();
       controllers.set(runId, controller);
-      let config = graphConfig(runId, 100, controller.signal);
+      const recursionLimit = Math.max(100, current.maxIterations * 30);
+      let config = graphConfig(runId, recursionLimit, controller.signal);
       if (current.executionStatus === 'FAILED' || (current.route === 'FAILED' && current.error)) {
         const failedCheckpoint = await this.failedCheckpoint(runId);
         config = retryConfig(
           runId,
           failedCheckpoint as Record<string, unknown>,
           controller.signal,
+          recursionLimit,
         );
       }
       const promise = this.graph.invoke(null as never, config) as Promise<InfrastructureState>;

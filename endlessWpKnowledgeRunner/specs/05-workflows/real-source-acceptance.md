@@ -14,6 +14,8 @@
 
 ## 两轮闭环
 
+`runRealSourceFlow` 是固定两轮、要求首轮失败并产出纠正意见的验收基线，不是生产编排入口；生产运行统一进入 `AutomatedProjectWorkflowService` 与 LangGraph。两者复用领域门禁、内容寻址存储、评测器和发布事务，但验收基线故意要求非空 `correction`，生产复核在无需修订时允许 `correction: null`。新增运行能力不得复制到验收基线，除非本规范同时增加相应验收语义。
+
 1. 在未改动快照执行模块参考门禁，失败则停止，避免把坏基线升级为 oracle。
 2. DocGen 生成第一版知识，CodeAgent 只接收知识与公开接口，在 fresh 副本写入第一版实现。
 3. 独立 EvalRunner 以 `shell=false` 和固定 argv 执行真实模块测试。预期第一版失败，并把退出码及有界 stdout/stderr 保存为不可变证据。

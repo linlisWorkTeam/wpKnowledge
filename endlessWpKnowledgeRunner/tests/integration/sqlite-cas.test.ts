@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, statSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { createEvent, type DomainEventType } from '../../src/domain/index.ts';
@@ -13,6 +13,7 @@ test('CAS deduplicates immutable content and detects corruption', async () => {
     assert.deepEqual(first, second);
     const path = join(fixture.runtimeDir, 'cas', 'sha256', first.sha256.slice(0, 2), first.sha256);
     assert.equal(existsSync(path), true);
+    if (process.platform !== 'win32') assert.equal(statSync(path).mode & 0o777, 0o400);
     writeFileSync(path, 'corrupt');
     assert.equal(await fixture.artifacts.verify(first), false);
   } finally {

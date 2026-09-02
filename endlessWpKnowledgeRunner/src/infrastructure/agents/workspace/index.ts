@@ -68,7 +68,13 @@ export class LocalAgentWorkspace implements AgentWorkspaceProvider {
       throw new Error('AGENT_WORKSPACE_SOURCE_DENIED');
     }
     const readablePaths = [...new Set(input.readablePaths.map(safeRelativePath))].sort();
-    const viewRoot = join(this.workspaceRoot, digest(input.isolationKey).slice(0, 32));
+    const viewIdentity = JSON.stringify({
+      isolationKey: input.isolationKey,
+      role: input.role,
+      sourceRoot,
+      readablePaths,
+    });
+    const viewRoot = join(this.workspaceRoot, digest(viewIdentity).slice(0, 32));
     await mkdir(viewRoot, { recursive: true, mode: 0o700 });
     const files: { path: string; sha256: string; bytes: number }[] = [];
     for (const path of readablePaths) {

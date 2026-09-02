@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { createKnowledgeServer, resolveServerBinding } from '../../src/interfaces/runner/server.ts';
+import { createKnowledgeServer, mapHttpError, resolveServerBinding } from '../../src/interfaces/runner/server.ts';
 import { GOOD_BODY } from '../helpers/fixture.ts';
 
 test('server binding defaults to config and supports explicit deployment overrides', () => {
@@ -25,6 +25,19 @@ test('server binding defaults to config and supports explicit deployment overrid
   );
 });
 
+test('HTTP errors distinguish client failures without exposing unexpected internals', () => {
+  assert.deepEqual(mapHttpError(new Error('PAYLOAD_INVALID')), {
+    status: 400, body: { error: 'PAYLOAD_INVALID', message: 'PAYLOAD_INVALID' },
+  });
+  assert.deepEqual(mapHttpError(new Error('WORKFLOW_ALREADY_RUNNING: run-1')), {
+    status: 409,
+    body: { error: 'WORKFLOW_ALREADY_RUNNING', message: 'WORKFLOW_ALREADY_RUNNING: run-1' },
+  });
+  assert.deepEqual(mapHttpError(new Error('database path D:\\secret failed')), {
+    status: 500, body: { error: 'INTERNAL_ERROR' },
+  });
+});
+
 test('HTTP adapter rejects missing credentials and accepts authenticated candidates', async () => {
   const runtimeDir = mkdtempSync(join(tmpdir(), 'wp-server-'));
   const instance = createKnowledgeServer({ runtimeDir, writeToken: 'test-secret' });
@@ -41,6 +54,13 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
       method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
     });
     assert.equal(denied.status, 401);
+    const malformed = await fetch(`${base}/api/v1/ingest`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-secret' },
+      body: '{',
+    });
+    assert.equal(malformed.status, 400);
+    assert.deepEqual(await malformed.json(), { error: 'PAYLOAD_INVALID', message: 'PAYLOAD_INVALID' });
     const accepted = await fetch(`${base}/api/v1/ingest`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: 'Bearer test-secret' },

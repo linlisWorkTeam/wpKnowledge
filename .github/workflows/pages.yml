@@ -38,16 +38,22 @@ jobs:
         run: |
           set -euo pipefail
           pages_api="https://api.github.com/repos/${GITHUB_REPOSITORY}/pages"
-          current_build_type="$(
-            curl --silent --show-error \
+          pages_config="$(
+            curl --fail-with-body --silent --show-error \
               --header "Accept: application/vnd.github+json" \
               --header "Authorization: Bearer ${GH_TOKEN}" \
               --header "X-GitHub-Api-Version: 2022-11-28" \
-              "${pages_api}" | jq -r '.build_type // "legacy"' 2>/dev/null || echo legacy
+              "${pages_api}"
           )"
+          current_build_type="$(jq -er '.build_type' <<<"${pages_config}")"
           if [ "${current_build_type}" = "workflow" ]; then
             echo "deploy=true" >> "${GITHUB_OUTPUT}"
             exit 0
+          fi
+          current_source_branch="$(jq -er '.source.branch' <<<"${pages_config}")"
+          if [ "${current_source_branch}" != "main" ]; then
+            echo "::error::Pages legacy source branch must be main, got ${current_source_branch}."
+            exit 1
           fi
           echo "deploy=false" >> "${GITHUB_OUTPUT}"
           echo "::notice::Pages Source is ${current_build_type}; the legacy Jekyll publisher will render the root compatibility entrypoint."

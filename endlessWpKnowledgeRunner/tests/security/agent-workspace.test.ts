@@ -67,3 +67,25 @@ test('role workspace rejects source symlinks when the host permits creating them
     rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('reusing an isolation key with a different allowlist cannot expose stale files', async () => {
+  const root = mkdtempSync(join(tmpdir(), 'wp-agent-view-reuse-'));
+  const source = join(root, 'source');
+  mkdirSync(source);
+  writeFileSync(join(source, 'first.txt'), 'first');
+  writeFileSync(join(source, 'second.txt'), 'second');
+  try {
+    const provider = new LocalAgentWorkspace({ workspaceRoot: join(root, 'views'), allowedSourceRoots: [source] });
+    const first = await provider.materialize({
+      isolationKey: 'same-key', role: 'review', sourceRoot: source, readablePaths: ['first.txt'],
+    });
+    const second = await provider.materialize({
+      isolationKey: 'same-key', role: 'review', sourceRoot: source, readablePaths: ['second.txt'],
+    });
+    assert.notEqual(first.workspaceRoot, second.workspaceRoot);
+    assert.equal(existsSync(join(second.workspaceRoot, 'first.txt')), false);
+    assert.equal(readFileSync(join(second.workspaceRoot, 'second.txt'), 'utf8'), 'second');
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

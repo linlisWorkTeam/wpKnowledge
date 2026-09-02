@@ -193,10 +193,10 @@ async function copyText(text) {
 
 document.querySelectorAll('[data-copy-target]').forEach((button) => {
   button.addEventListener('click', async () => {
-    const selector = button.dataset.copyTarget;
-    const source = selector ? document.querySelector(selector) : null;
-    if (!source) return;
     try {
+      const selector = button.dataset.copyTarget;
+      const source = selector ? document.querySelector(selector) : null;
+      if (!source) return;
       await copyText(source.textContent.trim());
       showToast(button.dataset.copyLabel || '内容已复制');
     } catch {
@@ -210,14 +210,20 @@ const revealItems = document.querySelectorAll('.reveal');
 if (reducedMotion || !('IntersectionObserver' in window)) {
   revealItems.forEach((item) => item.classList.add('visible'));
 } else {
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach((entry) => {
-      if (!entry.isIntersecting) return;
-      entry.target.classList.add('visible');
-      observer.unobserve(entry.target);
-    });
-  }, { threshold: .12 });
-  revealItems.forEach((item) => observer.observe(item));
+  try {
+    root.classList.add('reveal-enabled');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add('visible');
+        observer.unobserve(entry.target);
+      });
+    }, { threshold: .12 });
+    revealItems.forEach((item) => observer.observe(item));
+  } catch {
+    root.classList.remove('reveal-enabled');
+    revealItems.forEach((item) => item.classList.add('visible'));
+  }
 }
 
 document.querySelectorAll('[data-year]').forEach((element) => {

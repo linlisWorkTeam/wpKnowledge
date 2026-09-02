@@ -216,6 +216,11 @@ function assertIncrementalRevision(base: string, revised: string, knowledgePath:
   if (before.section === after.section) throw new Error(`KNOWLEDGE_CORRECTION_NOT_APPLIED: ${knowledgePath}`);
 }
 
+/**
+ * Deterministic two-iteration acceptance baseline. Production runs use
+ * AutomatedProjectWorkflowService; this explicit path stays small so tests can
+ * prove the failure/correction/publication contract without graph scheduling.
+ */
 export async function runRealSourceFlow(input: {
   scenario: RealSourceScenario;
   service: KnowledgeFlywheelService;

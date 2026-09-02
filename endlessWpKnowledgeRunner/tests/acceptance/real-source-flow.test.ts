@@ -170,6 +170,22 @@ test('project evaluator rejects generated paths outside its archived workspace',
     assert.equal(redacted.testsTotal, 0);
     assert.deepEqual(redacted.results[0]?.args.slice(-2), ['--token', '<redacted>']);
     assert.equal(JSON.stringify(redacted).includes('super-secret-value'), false);
+    const mutated = await evaluator.evaluate({
+      label: 'prepare-mutation', snapshot,
+      generatedFiles: [{ path: 'generated.js', content: 'export default true;\n' }],
+      prepareCommands: [{
+        tool: 'node', purpose: 'setup',
+        args: ['-e', "require('node:fs').writeFileSync('generated.js', 'tampered')"],
+      }],
+      commands: [{ tool: 'node', purpose: 'test', args: ['--test', 'generated.js'] }],
+    });
+    assert.equal(mutated.passed, false);
+    assert.equal(mutated.infrastructureFailure, true);
+    assert.equal(mutated.results.some((result) => result.phase === 'gate'), false);
+    const mutationEvidence = JSON.parse(Buffer.from(await composition.artifacts.get(mutated.evidenceRef)).toString('utf8')) as {
+      generatedFilesIntact?: boolean;
+    };
+    assert.equal(mutationEvidence.generatedFilesIntact, false);
   } finally {
     composition.close();
     rmSync(repositoryRoot, { recursive: true, force: true });

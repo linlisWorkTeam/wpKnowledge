@@ -174,7 +174,13 @@ function validateMarkdown(): number {
     for (const match of text.matchAll(link)) {
       const target = match[1].split('#', 1)[0];
       if (!target || target.includes('://') || target.startsWith('mailto:')) continue;
-      invariant(statSafe(resolve(dirname(path), target)), `Broken link in ${path.slice(specRoot.length + 1)}: ${match[1]}`);
+      let decodedTarget: string;
+      try {
+        decodedTarget = decodeURIComponent(target);
+      } catch {
+        throw new Error(`Invalid encoded link in ${path.slice(specRoot.length + 1)}: ${match[1]}`);
+      }
+      invariant(statSafe(resolve(dirname(path), decodedTarget)), `Broken link in ${path.slice(specRoot.length + 1)}: ${match[1]}`);
     }
   }
   const requirements: string[] = [];

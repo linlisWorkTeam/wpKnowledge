@@ -359,3 +359,19 @@ test('DeepSeek Harness provider denies workspaces outside the deployment allowli
     rmSync(denied, { recursive: true, force: true });
   }
 });
+
+test('DeepSeek Harness provider accepts a nested workspace on the host path platform', async () => {
+  const allowed = mkdtempSync(join(tmpdir(), 'wp-dsh-agent-nested-'));
+  const workspace = join(allowed, 'run', 'agent');
+  mkdirSync(workspace, { recursive: true });
+  const script = join(allowed, 'fake-dsh.mjs');
+  writeFileSync(script, 'process.stdout.write(JSON.stringify({ answer: "nested" }));\n');
+  try {
+    const provider = new DeepSeekHarnessHeadlessAgent({
+      command: process.execPath, args: [script], allowedWorkspaceRoots: [allowed],
+    });
+    assert.deepEqual(await provider.run(request(workspace)), { answer: 'nested' });
+  } finally {
+    rmSync(allowed, { recursive: true, force: true });
+  }
+});

@@ -9,7 +9,7 @@
   --line-soft: rgba(91, 111, 136, .2);
   --text: #eef2f7;
   --muted: #9aa8ba;
-  --faint: #65758a;
+  --faint: #8192a8;
   --cyan: #71d4ff;
   --cyan-strong: #27b6f6;
   --green: #76efbd;
@@ -35,7 +35,7 @@
   --line-soft: rgba(72, 94, 112, .14);
   --text: #17212b;
   --muted: #586b7d;
-  --faint: #748594;
+  --faint: #5d7184;
   --cyan: #07769f;
   --cyan-strong: #006f9e;
   --green: #087c58;
@@ -433,8 +433,8 @@ button:focus-visible {
 .copy-toast { position: fixed; z-index: 90; left: 50%; bottom: 28px; transform: translateX(-50%); padding: 10px 16px; border: 1px solid rgba(117, 231, 186, .4); border-radius: 8px; background: #10251f; color: #85e8c1; box-shadow: var(--shadow); font-size: .7rem; }
 
 
-.reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
-.reveal.visible { opacity: 1; transform: none; }
+.reveal-enabled .reveal { opacity: 0; transform: translateY(20px); transition: opacity .7s ease, transform .7s ease; }
+.reveal-enabled .reveal.visible { opacity: 1; transform: none; }
 
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 4px rgba(117, 231, 186, .07); }
