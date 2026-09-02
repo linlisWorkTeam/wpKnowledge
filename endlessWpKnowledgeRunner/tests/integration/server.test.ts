@@ -65,12 +65,38 @@ test('HTTP adapter rejects missing credentials and accepts authenticated candida
 
     const capabilities = await (await fetch(`${base}/api/v1/capabilities`)).json();
     assert.equal(capabilities.writeEnabled, true);
-    assert.equal(capabilities.automatedWorkflow, false);
+    assert.equal(capabilities.automatedWorkflow, true);
+    assert.equal(capabilities.langGraphInfrastructure, true);
+
+    const agents = await (await fetch(`${base}/api/v1/agents`)).json();
+    assert.equal(agents.agents.length, 7);
+    assert.deepEqual(agents.agents.map((agent: { agentId: string }) => agent.agentId), [
+      'orchestrator', 'doc-gen', 'doc-worker', 'test-gen', 'code', 'check', 'review',
+    ]);
 
     const authHeaders = { 'content-type': 'application/json', authorization: 'Bearer test-secret' };
     const post = (path: string, input: Record<string, unknown>) => fetch(`${base}${path}`, {
       method: 'POST', headers: authHeaders, body: JSON.stringify(input),
     });
+    const configuredAgent = await fetch(`${base}/api/v1/agents/doc-gen/prompt`, {
+      method: 'PUT', headers: authHeaders, body: JSON.stringify({ promptAddon: '优先写清适用边界。' }),
+    });
+    assert.equal(configuredAgent.status, 200);
+    const configuredAgentPayload = await configuredAgent.json();
+    assert.equal(configuredAgentPayload.promptAddon, '优先写清适用边界。');
+    assert.equal(configuredAgentPayload.revision, 1);
+    const deniedAgentMutation = await fetch(`${base}/api/v1/agents/doc-gen/prompt`, {
+      method: 'PUT', headers: authHeaders,
+      body: JSON.stringify({ promptAddon: 'ok', tools: ['Bash'] }),
+    });
+    assert.equal(deniedAgentMutation.status, 400);
+    assert.match(JSON.stringify(await deniedAgentMutation.json()), /only promptAddon/);
+    const deniedPromptType = await fetch(`${base}/api/v1/agents/doc-gen/prompt`, {
+      method: 'PUT', headers: authHeaders,
+      body: JSON.stringify({ promptAddon: { text: 'not a string' } }),
+    });
+    assert.equal(deniedPromptType.status, 400);
+    assert.match(JSON.stringify(await deniedPromptType.json()), /must be a string/);
     const createdRun = await post('/api/v1/runs', { moduleId: 'server-card', policyId: 'local-v1' });
     assert.equal(createdRun.status, 201);
     const runId = String((await createdRun.json()).runId);

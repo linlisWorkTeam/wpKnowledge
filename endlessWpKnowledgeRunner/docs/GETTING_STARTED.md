@@ -2,6 +2,13 @@
 
 本指南有两条路径。你可以自己运行命令，也可以把后面的 Prompt 交给 Agent，让它完成环境检查、安装、验证和启动。两条路径都不会伪造评测证据或自动发布 `VERIFIED` 知识。
 
+<details lang="en">
+<summary>English summary</summary>
+
+Install Git, Node.js 24+ and npm. Run `npm ci`, `npm run typecheck`, `npm run validate:specs` and `npm test`, then initialize the local runtime with `npm run knowledge -- init`. Start the read-only Console with `npm run knowledge:serve`. An Agent may perform these setup steps, but it must not weaken tests, fabricate evidence or manually turn `CANDIDATE` into `VERIFIED`.
+
+</details>
+
 ## 路径 A：使用者自己配置
 
 ### 1. 准备环境
@@ -85,7 +92,7 @@ npm run knowledge -- query --q "workpanel"
 npm run knowledge:serve
 ```
 
-浏览器打开 <http://127.0.0.1:4174>。Console 提供 Overview、Runs、Knowledge、Governance、Evidence 和 Settings 视图，默认只读。
+浏览器打开 <http://127.0.0.1:4174>。Console 提供 Overview、Runs、Knowledge、Governance、Evidence、Agents 和 Settings 视图，默认只读。Agents 页面会列出七个固定角色的职责、输入输出、工具权限和基础提示词；Run 详情会显示从 LangGraph 投影而来的节点状态，而不是直接读取 checkpoint 数据库。
 
 若仅在受信本机测试 feedback 写入：
 
@@ -95,7 +102,26 @@ WP_KNOWLEDGE_WRITE_TOKEN='<local-secret>' npm run knowledge:serve
 
 不要把 token 提交到仓库，也不要在公网明文 HTTP 上启用写操作。公网只读部署和 TLS 要求见[运维手册](OPERATIONS.md#dashboard-and-api)。
 
-### 7. 下一步
+### 7. 运行固定 ohMyWorkPanel 自动流程
+
+准备一个包含验收场景固定 commit 的 ohMyWorkPanel 本地仓库，然后运行：
+
+```bash
+npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
+```
+
+命令会创建 wpKnowledge `FlywheelRun`，以内嵌 LangGraph 执行全部 Agent 节点，并等待失败迭代、独立评测和发布结束。另一个终端打开 Console，就能按同一 `runId` 查看节点状态。当前 Agent provider 是可重复的 fixture；这条路径证明整合和治理约束，不证明 live 模型质量。
+
+查看 Agent 或为 DocGen 追加一段受信提示词：
+
+```bash
+npm run knowledge -- agents
+npm run knowledge -- set-agent-prompt --agent doc-gen --prompt "优先写清适用条件和失败边界"
+```
+
+提示词配置需要与写 API 相同的受信操作边界。它只能维护 `promptAddon`，不能替换基础提示词、节点职责、Schema、拓扑或工具权限。
+
+### 8. 下一步
 
 - 想理解用户完整使用路径：阅读[用户用例与交互时序](../specs/05-workflows/user-use-cases.md)。
 - 想完成真实评测与发布：阅读[行为评测与发布](OPERATIONS.md#behavioral-evaluation-and-publication)。

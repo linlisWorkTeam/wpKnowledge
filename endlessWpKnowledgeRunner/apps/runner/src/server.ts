@@ -5,7 +5,7 @@ import { extname, join, resolve } from 'node:path';
 import { timingSafeEqual } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
-import { createComposition } from './composition.ts';
+import { createComposition, loadOhMyWorkPanelScenario } from './composition.ts';
 import { ConsoleReadModel } from './console-read-model.ts';
 
 export interface ServerBinding {
@@ -107,7 +107,9 @@ export function createKnowledgeServer(input: {
       if (request.method === 'GET' && url.pathname === '/api/v1/capabilities') {
         send(response, 200, {
           writeEnabled: Boolean(writeToken),
-          automatedWorkflow: false,
+          automatedWorkflow: true,
+          langGraphInfrastructure: true,
+          agentPromptCustomization: 'promptAddon-only',
           trustedProjectEvaluation: true,
           hostileCodeIsolation: false,
           authentication: writeToken ? 'bearer' : 'disabled',
@@ -147,6 +149,14 @@ export function createKnowledgeServer(input: {
           send(response, 200, { runId, events });
           return;
         }
+        if (child === 'workflow-nodes') {
+          send(response, 200, { runId, nodes: snapshot.workflowNodes ?? [] });
+          return;
+        }
+        if (child === 'workflow-status') {
+          send(response, 200, await (await composition.automatedWorkflow()).status(runId));
+          return;
+        }
         if (child) {
           send(response, 404, { error: 'NOT_FOUND' });
           return;
@@ -157,6 +167,10 @@ export function createKnowledgeServer(input: {
       if (request.method === 'GET' && url.pathname === '/api/v1/knowledge') {
         const statuses = (url.searchParams.get('status') ?? '').split(',').filter(Boolean);
         send(response, 200, { knowledge: composition.service.listKnowledgeVersions(statuses.length ? statuses : undefined) });
+        return;
+      }
+      if (request.method === 'GET' && url.pathname === '/api/v1/agents') {
+        send(response, 200, { agents: composition.agents.list() });
         return;
       }
       if (request.method === 'GET' && url.pathname.startsWith('/api/v1/knowledge/')) {
@@ -187,7 +201,7 @@ export function createKnowledgeServer(input: {
         ));
         return;
       }
-      if (request.method === 'POST' && url.pathname.startsWith('/api/v1/')) {
+      if ((request.method === 'POST' || request.method === 'PUT') && url.pathname.startsWith('/api/v1/')) {
         if (!writeToken) {
           send(response, 503, { error: 'WRITE_API_DISABLED', message: 'Set WP_KNOWLEDGE_WRITE_TOKEN to enable mutations.' });
           return;
@@ -197,6 +211,50 @@ export function createKnowledgeServer(input: {
           return;
         }
         const payload = await body(request);
+        if (url.pathname.startsWith('/api/v1/agents/') && url.pathname.endsWith('/prompt')) {
+          if (request.method !== 'PUT') throw new Error('METHOD_NOT_ALLOWED: Agent prompt updates require PUT');
+          const encodedAgentId = url.pathname.slice('/api/v1/agents/'.length, -'/prompt'.length);
+          const agentId = decodeURIComponent(encodedAgentId);
+          const keys = Object.keys(payload);
+          if (keys.length !== 1 || keys[0] !== 'promptAddon') {
+            throw new Error('AGENT_CUSTOMIZATION_DENIED: only promptAddon may be changed');
+          }
+          if (typeof payload.promptAddon !== 'string') {
+            throw new Error('AGENT_CUSTOMIZATION_DENIED: promptAddon must be a string');
+          }
+          send(response, 200, composition.agents.updatePromptAddon(
+            agentId as never,
+            payload.promptAddon,
+          ));
+          return;
+        }
+        if (request.method !== 'POST') throw new Error('METHOD_NOT_ALLOWED');
+        if (url.pathname === '/api/v1/run-commands/start') {
+          const profile = String(payload.profile ?? 'ohmyworkpanel');
+          if (profile !== 'ohmyworkpanel') throw new Error(`WORKFLOW_PROFILE_UNSUPPORTED: ${profile}`);
+          const repositoryRoot = String(payload.repositoryRoot ?? '').trim();
+          if (!repositoryRoot) throw new Error('ARGUMENT_REQUIRED: repositoryRoot');
+          const workflow = await composition.automatedWorkflow();
+          send(response, 202, await workflow.start(
+            loadOhMyWorkPanelScenario(repositoryRoot),
+            {
+              policyId: String(payload.policyId ?? composition.config.publicationGate.policyId),
+              maxIterations: Number(payload.maxIterations ?? composition.config.publicationGate.maxIterations),
+              workerCount: Number(payload.workerCount ?? 1),
+            },
+          ));
+          return;
+        }
+        if (url.pathname === '/api/v1/run-commands/resume') {
+          send(response, 202, await (await composition.automatedWorkflow()).resume(String(payload.runId ?? '')));
+          return;
+        }
+        if (url.pathname === '/api/v1/run-commands/cancel') {
+          const runId = String(payload.runId ?? '');
+          await (await composition.automatedWorkflow()).cancel(runId);
+          send(response, 200, { runId, executionStatus: 'CANCELLED' });
+          return;
+        }
         if (url.pathname === '/api/v1/ingest') {
           send(response, 201, await composition.service.ingestCandidate({
             moduleId: String(payload.moduleId ?? ''),

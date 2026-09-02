@@ -4,7 +4,7 @@ import { isAbsolute, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { migrateLegacyOkf } from '../../../packages/adapters/legacy-okf/src/index.ts';
 import type { ArtifactRef, RunState } from '../../../packages/domain/src/index.ts';
-import { createComposition } from './composition.ts';
+import { createComposition, loadOhMyWorkPanelScenario } from './composition.ts';
 
 interface ParsedArgs {
   command: string;
@@ -66,6 +66,12 @@ function help(): void {
   process.stdout.write(`  transition --run ID --state STATE\n`);
   process.stdout.write(`  evaluate --run ID --version ID --tests-passed N --tests-total N --stability 1 --evidence-file PATH\n`);
   process.stdout.write(`  publish --run ID --version ID --decision ID\n`);
+  process.stdout.write(`  workflow-run --repository PATH [--workers 1 --max-iterations 3]\n`);
+  process.stdout.write(`  workflow-resume --run ID\n`);
+  process.stdout.write(`  workflow-status --run ID\n`);
+  process.stdout.write(`  workflow-cancel --run ID\n`);
+  process.stdout.write(`  agents\n`);
+  process.stdout.write(`  set-agent-prompt --agent ID --prompt TEXT\n`);
   process.stdout.write(`  status\n`);
 }
 
@@ -192,6 +198,48 @@ export async function main(argv = process.argv.slice(2)): Promise<void> {
     }
     if (args.command === 'status') {
       jsonOutput({ ...composition.service.status(), runtimeDir: composition.runtimeDir });
+      return;
+    }
+    if (args.command === 'agents') {
+      jsonOutput({ agents: composition.agents.list() });
+      return;
+    }
+    if (args.command === 'set-agent-prompt') {
+      jsonOutput(composition.agents.updatePromptAddon(
+        required(args, 'agent') as never,
+        option(args, 'prompt'),
+      ));
+      return;
+    }
+    if (args.command === 'workflow-run') {
+      const workflow = await composition.automatedWorkflow();
+      const handle = await workflow.start(
+        loadOhMyWorkPanelScenario(required(args, 'repository')),
+        {
+          policyId: option(args, 'policy', composition.config.publicationGate.policyId),
+          maxIterations: numberOption(args, 'max-iterations', composition.config.publicationGate.maxIterations),
+          workerCount: numberOption(args, 'workers', 1),
+        },
+      );
+      jsonOutput({ event: 'started', ...handle });
+      jsonOutput(await workflow.wait(handle.runId));
+      return;
+    }
+    if (args.command === 'workflow-resume') {
+      const workflow = await composition.automatedWorkflow();
+      const handle = await workflow.resume(required(args, 'run'));
+      jsonOutput({ event: 'resumed', ...handle });
+      jsonOutput(await workflow.wait(handle.runId));
+      return;
+    }
+    if (args.command === 'workflow-status') {
+      jsonOutput(await (await composition.automatedWorkflow()).status(required(args, 'run')));
+      return;
+    }
+    if (args.command === 'workflow-cancel') {
+      const runId = required(args, 'run');
+      await (await composition.automatedWorkflow()).cancel(runId);
+      jsonOutput({ runId, executionStatus: 'CANCELLED' });
       return;
     }
     throw new Error(`COMMAND_UNKNOWN: ${args.command}`);

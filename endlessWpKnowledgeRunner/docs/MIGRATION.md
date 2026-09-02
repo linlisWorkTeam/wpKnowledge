@@ -1,16 +1,25 @@
-# Migration from `endlessWpKnowledgeRunner`
+# 从旧版 Runner 迁移
 
-## What changed
+> 中文是本文默认语言。命令、目录和状态值保留英文。
 
-The old Python system mixed ingestion, document scoring, state, storage, feedback, scheduling, DSH shell execution and Dashboard writes. It also encoded state in directories/frontmatter and promoted high-scoring documents directly to `verified`.
+<details lang="en">
+<summary>English summary</summary>
 
-The replacement separates those responsibilities into domain, application, port and adapter packages. SQLite/CAS is now canonical runtime state. `knowledge/` remains a Git-reviewed source and import format.
+The TypeScript runtime replaces the former Python runner with separated domain, application and adapter layers. Legacy cards are imported as `CANDIDATE`, even when their old frontmatter said `verified`; only new behavioral evidence and a `PASS` decision may publish a `VERIFIED` version.
 
-## One-time import
+</details>
 
-1. Keep the existing `knowledge/` tree under version control.
-2. Use an empty runtime directory or back up `.workpanel/`.
-3. Run:
+## 主要变化
+
+旧 Python 系统把摄取、文档评分、状态、存储、反馈、调度、DSH shell 执行和 Dashboard 写操作放在一起，还通过目录和 frontmatter 表示状态。文档分数足够高时，它会直接把内容提升为 `verified`。
+
+新实现把这些职责拆到 domain、application、port 和 adapter。SQLite/CAS 是当前运行时事实源；`knowledge/` 继续作为经 Git 评审的资料和导入格式。
+
+## 一次性导入
+
+1. 保留现有 `knowledge/` 目录，并确保它受版本控制。
+2. 使用空的运行目录，或先备份 `.workpanel/`。
+3. 在仓库根目录运行：
 
 ```powershell
 npm install
@@ -18,16 +27,16 @@ npm run knowledge -- migrate-legacy --root knowledge
 npm run knowledge -- status
 ```
 
-The importer uses the maintained `yaml` package. It imports cards from `knowledge/concepts/` and `knowledge/drafts/`, preserves old status/version metadata, and sets `requiresBehavioralVerification: true`. A former `verified` card remains `CANDIDATE` until a new run supplies real execution evidence and receives a PASS decision.
+导入器使用维护中的 `yaml` 包，读取 `knowledge/concepts/` 和 `knowledge/drafts/`。它会保留旧状态与版本元数据，并写入 `requiresBehavioralVerification: true`。旧卡片即使标过 `verified`，导入后仍是 `CANDIDATE`；只有新 Run 提供真实执行证据并获得 `PASS`，才能发布。
 
-The import is idempotent: `moduleId + body artifact` resolves to the existing KnowledgeVersion on replay.
+导入操作是幂等的：同一 `moduleId + body artifact` 再次导入时，会返回既有 `KnowledgeVersion`。
 
-## Verified publication
+## 发布 VERIFIED 版本
 
-Create a run, advance it to `EVALUATING`, attach an immutable test report, then publish using its PASS decision. See `OPERATIONS.md` for the command sequence.
+创建 Run，将它推进到 `EVALUATING`，绑定不可变测试报告，再使用对应的 `PASS` 决定发布。完整命令见[运维手册](OPERATIONS.md)。
 
-## Rollback
+## 回滚
 
-Before cutover, preserve the old Git commit and runtime directory. The new runtime is isolated under `.workpanel/`; deleting that local directory returns the repository to a pre-import runtime state without modifying `knowledge/`.
+切换前请保留旧 Git commit 和运行目录。新运行时的数据单独放在 `.workpanel/`；删除这个本地目录即可回到导入前的运行状态，不会修改 `knowledge/`。
 
-Do not restore the former `verified` meaning after rollback. It represented document-quality acceptance, not behavioral verification.
+回滚后也不要恢复旧 `verified` 语义。旧状态只代表文档质量验收，不代表行为已经验证。

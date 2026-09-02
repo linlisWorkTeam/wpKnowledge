@@ -2,6 +2,15 @@
 
 > 让工程经验先经过真实执行，再进入可复用的知识库。
 
+<details lang="en">
+<summary>English summary</summary>
+
+wpKnowledge is an evidence-driven Knowledge Flywheel. Candidate knowledge is bound to provenance, exercised through generated implementations, evaluated independently and published only when the deterministic Gate returns `PASS`. The embedded LangGraph layer controls Agent execution; wpKnowledge remains authoritative for business state, evidence, knowledge versions and publication.
+
+Quick start: install Node.js 24+, run `npm ci`, `npm run typecheck`, `npm run validate:specs`, `npm test`, then `npm run knowledge:serve`.
+
+</details>
+
 [![CI](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml/badge.svg)](https://github.com/linlisWorkTeam/wpKnowledge/actions/workflows/ci.yml)
 
 [项目网站](https://linlisworkteam.github.io/wpKnowledge/) · [快速上手](endlessWpKnowledgeRunner/docs/GETTING_STARTED.md) · [Spec](endlessWpKnowledgeRunner/specs/README.md) · [参与贡献](CONTRIBUTING.md)
@@ -18,7 +27,7 @@
 | 输入是什么？ | Markdown 知识候选、固定 commit 的受信项目源码、Agent 生成物和独立评测报告。 |
 | 输出是什么？ | CAS 中的不可变工件、SQLite 中可追踪的 Run/Event、Correction、GateDecision 与幂等发布回执。 |
 | 用户怎么使用？ | 通过 CLI 初始化/摄取/查询，通过 Web Console 查看运行、知识、治理和证据。 |
-| Agent 会自动学习吗？ | 工作流支持失败归因、结构化 Correction、增量修订和重新生成；当前通用自动 Run 入口仍由受信 Orchestrator 驱动，不允许浏览器或普通 Agent 绕过 Gate 自行发布。 |
+| Agent 会自动学习吗？ | 内嵌 LangGraph 会驱动失败归因、Correction、增量修订和 fresh 再生成；当前固定 ohMyWorkPanel 路径使用 deterministic fixture，不允许浏览器或普通 Agent 绕过 Gate 自行发布。 |
 | 当前安全边界？ | 固定源码验收只面向受信代码；它限制命令、环境、时间和输出，但不是敌对代码的 OS 沙箱。 |
 
 ## 工作方式
@@ -36,7 +45,7 @@ flowchart LR
     F -->|ROLLBACK / STOPPED| I[Stop with evidence]
 ```
 
-这里的核心约束是：Agent 可以提出知识、生成代码、分析失败并修订候选，但不能把自己的判断直接升级为发布权限。状态变更、评测证据和发布都由共享 Application Service、Registry 与确定性 Gate 管理。
+这里的核心约束是：Agent 可以提出知识、生成代码、分析失败并修订候选，但不能把自己的判断直接升级为发布权限。`endlessWpKnowledgeRunner/infrastructure/domain-knowledge` 以内嵌 LangGraph 负责节点、并行、循环和恢复；状态变更、评测证据和发布仍由 wpKnowledge 的共享 Application Service、Registry 与确定性 Gate 管理。
 
 ## 五分钟开始
 
@@ -79,7 +88,7 @@ npm run knowledge -- query --q "workpanel"
 npm run knowledge:serve
 ```
 
-打开 <http://127.0.0.1:4174>。默认是只读模式；如需提交 feedback，可在受信本机设置 `WP_KNOWLEDGE_WRITE_TOKEN` 后启动。公网部署、TLS 和监听地址要求见[运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md#dashboard-and-api)。
+打开 <http://127.0.0.1:4174>。默认是只读模式；Console 可以查看全部固定 Agent 和 LangGraph 节点投影。设置 `WP_KNOWLEDGE_WRITE_TOKEN` 后，受信操作者可启动固定 ohMyWorkPanel 自动 Run、提交 feedback，或只修改 Agent 的追加提示词；职责、输入输出、拓扑和工具权限不可配置。公网部署、TLS 和监听地址要求见[运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md#dashboard-and-api)。
 
 ## 按角色阅读
 
@@ -91,6 +100,7 @@ npm run knowledge:serve
 | 理解产品界面和权限边界 | [前台产品设计](endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md) |
 | 理解架构和知识生命周期 | [架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md) |
 | 修改代码或 Spec | [贡献指南](CONTRIBUTING.md)与[开发指南](endlessWpKnowledgeRunner/docs/DEVELOPMENT.md) |
+| 编写或翻译文档 | [文档语言与 I18n 约定](endlessWpKnowledgeRunner/docs/DOCUMENTATION-I18N.md) |
 | 知道文件应该放在哪里 | [仓库目录规则](endlessWpKnowledgeRunner/docs/REPOSITORY-GUIDE.md) |
 | 运行分层测试 | [测试策略](endlessWpKnowledgeRunner/docs/TESTING.md) |
 | 部署、验收或排障 | [运维手册](endlessWpKnowledgeRunner/docs/OPERATIONS.md) |
@@ -105,7 +115,7 @@ npm run knowledge:serve
 
 ```text
 wpKnowledge/
-├── endlessWpKnowledgeRunner/ # 当前 Knowledge Flywheel：代码、Spec、测试、Web、验收、文档
+├── endlessWpKnowledgeRunner/ # 当前 Knowledge Flywheel：治理上层、内嵌工作流基础设施、Web、Spec 与测试
 ├── knowledge/                # Git 可评审的研究资料与旧 OKF 输入
 ├── mvp-flywheel/             # 历史 Python MVP，仅作演进对照
 ├── .github/                  # CI 与协作模板
@@ -130,8 +140,8 @@ npm test
 
 ## 当前成熟度与限制
 
-- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等 checkpoint、确定性 Gate、原子发布、旧 OKF 迁移、只读优先的产品控制台、无 shell 的 DSH HTTP 适配器，以及固定 commit 的 ohMyWorkPanel 两轮真实源码验收。
-- 尚未宣称完成：敌对代码 OS 级隔离、通用浏览器自动 Run、完整 RBAC、多节点高可用，以及 live GLM/DeepSeek 模型质量证明。
+- 已实现：TypeScript 六边形核心、SQLite Registry、Artifact CAS、幂等业务 checkpoint、确定性 Gate、原子发布、内嵌 domain-knowledge/LangGraph、七类 Agent 与节点前台投影、promptAddon-only 配置、无 shell 的 DSH HTTP 适配器，以及固定 commit 的 ohMyWorkPanel 两轮自动验收。
+- 尚未宣称完成：敌对代码 OS 级隔离、任意项目/候选的通用自动 Run、完整 RBAC、多节点高可用、完整崩溃注入，以及 live GLM/DeepSeek 模型质量证明。
 - `mvp-flywheel/` 只用于历史对照；旧 `score`、`eval`、`harvest` 语义已明确拒绝，避免形成第二套发布权威。
 
 ## License

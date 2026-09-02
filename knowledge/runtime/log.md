@@ -1,3 +1,7 @@
+# 旧版 Runner 历史运行日志
+
+> 以下内容是机器生成的原始记录，字段名保留英文，仅供迁移与审计参考。它不代表当前 TypeScript Runtime 的发布事实。
+
 [2026-08-22T01:36:40+08:00] ingest:verified concept=workpanel-connecter status=verified score=93.0 score=93.0 gate=pass
 [2026-08-22T01:36:40+08:00] index rebuilt concept=workpanel-connecter score=93.0 status=verified
 [2026-08-22T01:37:10+08:00] ingest:verified concept=okf-knowledge-format status=verified score=87.9 score=87.9 gate=pass

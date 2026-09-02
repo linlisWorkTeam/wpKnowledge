@@ -1,6 +1,6 @@
 # Knowledge Flywheel 前台产品设计
 
-**状态：Accepted，MVP 实现中｜版本：0.2.0｜日期：2026-09-01**
+**状态：Accepted；固定 ohMyWorkPanel 自动路径已实现，通用项目向导仍在规划｜版本：0.3.1｜日期：2026-09-02**
 
 本文定义 `endlessWpKnowledgeRunner` 从只读知识 Dashboard 演进为 Knowledge Flywheel 产品控制台的用户体验、信息架构、交互边界、接口需求和验收标准。本组件的领域状态、Gate、安全和发布语义以同一组件内的[规范总入口](../README.md)为准；前台不得创造第二套状态或发布权威。
 
@@ -82,6 +82,7 @@ endlessWpKnowledgeRunner/
 ├── acceptance/            # 固定源码验收 fixture
 ├── apps/runner/src/       # CLI、HTTP、composition 与 Console read model
 ├── docs/                  # 架构、运维、迁移
+├── infrastructure/        # 相对独立的 domain-knowledge LangGraph runtime
 ├── packages/              # 领域、端口、应用与适配器
 ├── specs/                 # 产品、需求、工作流、Schema 与验收规范
 ├── site/                  # 双主题 GitHub Pages 项目官网
@@ -121,12 +122,18 @@ Knowledge Flywheel
 │   ├── Artifact 检索
 │   ├── EvaluationReport
 │   └── Publication receipt
+├── Agents
+│   ├── Agent 目录与固定契约
+│   ├── 当前 Provider / 运行健康
+│   └── 追加提示词定制
 └── Settings
     ├── Policy
     ├── Project / source roots
     ├── Agent Provider
     └── EvalRunner / Sandbox 状态
 ```
+
+`Agents` 不是工作流画布编辑器。节点名称、职责、依赖、输入输出 Schema、可读写范围和工具权限来自服务端固定定义，只读展示。治理模式下仅可修改 `promptAddon`；前台不得提交任意 Agent 类型、Provider 类名、节点边或 Schema。
 
 ## 5. 全局界面框架
 
@@ -139,6 +146,7 @@ Knowledge Flywheel
 │ Knowledge    │                                                            │
 │ Governance 3 │                    页面主内容                              │
 │ Evidence     │                                                            │
+│ Agents       │                                                            │
 │ Settings     │                                                            │
 │              │                                                            │
 ├──────────────┴────────────────────────────────────────────────────────────┤
@@ -330,6 +338,27 @@ sequenceDiagram
 
 前台刷新或断线重连后，必须先读取 Run snapshot，再从最后 `event_seq` 续订事件；不得通过前端本地状态猜测 Run 进度。
 
+### 7.1 查看和定制 Agent
+
+```mermaid
+sequenceDiagram
+    actor Operator as 平台维护者
+    participant UI as Agents 页面
+    participant API as wpKnowledge API
+    participant Registry as Agent 配置存储
+    participant WF as LangGraph infrastructure
+
+    Operator->>UI: 打开 Agent 目录
+    UI->>API: GET /api/v1/agents
+    API-->>UI: 固定定义 + 当前 promptAddon + 节点状态摘要
+    Operator->>UI: 修改追加提示词
+    UI->>API: PUT /api/v1/agents/:agentId/prompt
+    API->>Registry: 校验长度并审计保存
+    Registry-->>API: 配置版本
+    API-->>UI: 更新后的 Agent 视图
+    Note over API,WF: 新提示词只影响后续节点执行，不改职责、输入输出或拓扑
+```
+
 ## 8. 视觉系统
 
 ### 8.1 风格
@@ -418,7 +447,7 @@ sequenceDiagram
 | `POST /api/v1/evaluate` | 录入受信报告 | 只供受信操作端，不作为普通 UI 流程 |
 | `POST /api/v1/publish` | 发布 | 由 Workflow/Publisher 调用，不暴露普通按钮 |
 
-### 11.2 产品化前必须新增
+### 11.2 目标 API（固定场景已落地的子集）
 
 | API | 需求 |
 |---|---|
@@ -431,11 +460,15 @@ sequenceDiagram
 | `GET /api/v1/artifacts/:artifactId` | 按权限返回元数据或受控内容。 |
 | `GET /api/v1/governance` | 返回需要人类处理的条目和允许动作。 |
 | `GET /api/v1/policies` | 返回可选择的固化策略及解释。 |
-| `POST /api/v1/run-commands/start` | 校验输入后创建并启动自动工作流。 |
-| `POST /api/v1/run-commands/cancel` | 幂等取消并传播到 Agent/EvalRunner。 |
+| `POST /api/v1/run-commands/start` | 已实现固定 ohMyWorkPanel profile；通用来源/策略向导和命令幂等键仍待完成。 |
+| `POST /api/v1/run-commands/cancel` | 已实现取消传播和业务状态同步；请求级幂等审计仍待强化。 |
+| `POST /api/v1/run-commands/resume` | 已实现按同一 runId/thread_id 从 graph checkpoint 恢复。 |
 | `POST /api/v1/run-commands/retry` | 根据治理决议创建新 Run 或合法重试失败节点。 |
 | `POST /api/v1/governance/:id/resolve` | 记录受控治理决议，不直接篡改 Gate 或发布记录。 |
 | `GET /api/v1/event-stream` | SSE 推送事件；断线后使用 `event_seq` 续传。 |
+| `GET /api/v1/agents` | 已实现全部固定 Agent 定义和追加提示词；Provider 健康仍待接入。 |
+| `PUT /api/v1/agents/:agentId/prompt` | 已实现；只更新受限 `promptAddon`，需要写 token，拒绝职责、Schema、权限或拓扑字段。 |
+| `GET /api/v1/runs/:runId/workflow-nodes` | 已实现 LangGraph 节点执行投影，不暴露 checkpoint 私有数据。 |
 
 所有列表接口必须有稳定排序、游标分页和上限；所有 Command 必须包含幂等键并返回关联 `runId/eventId`。
 
@@ -456,6 +489,10 @@ sequenceDiagram
 | KF-UI-011 | P1 | 知识消费者可以在不获得发布权限的情况下查询和反馈。 | AC-UI-011 |
 | KF-UI-012 | P1 | 界面必须满足键盘导航、可见焦点、语义标签和非纯颜色状态表达。 | AC-UI-012 |
 | KF-UI-013 | P1 | 项目官网和本地 Console 必须提供深色/浅色主题，首次跟随系统、允许手动切换并独立保存偏好；主题切换不得持久化治理凭据或改变领域状态。 | AC-UI-013 |
+| KF-UI-014 | P0 | Agents 页面必须显示全部 Agent 的固定职责、输入输出、基础提示词和追加提示词；每次 Run 中的 Agent 节点状态在 Run 工作台显示。 | AC-UI-014 |
+| KF-UI-015 | P0 | 治理模式只能修改 Agent 的追加提示词；服务端必须拒绝任何拓扑、职责、Schema、Provider 实现或权限替换。 | AC-UI-015 |
+| KF-UI-016 | P0 | Run 工作台必须显示 LangGraph 节点投影，并明确区分执行状态与 FlywheelRun 业务状态。 | AC-UI-016 |
+| KF-UI-017 | P1 | 项目官网和 Console 的默认语言必须是中文；官网关键产品摘要应提供带 `lang="en"` 语义的英文版本，代码标识符、API 和状态值不得翻译。 | AC-UI-017 |
 
 ### 12.1 验收场景
 
@@ -474,32 +511,37 @@ sequenceDiagram
 | AC-UI-011 | Given只读知识消费者，When查询并提交 feedback，Then反馈被记录但知识状态和 GateDecision 不变。 |
 | AC-UI-012 | Given仅键盘和屏幕阅读器，When完成查询并打开 Run Gate，Then焦点顺序、名称、状态和错误均可感知。 |
 | AC-UI-013 | Given 系统主题为浅色、无已保存偏好，When 首次打开官网或 Console，Then 使用浅色 token；When 用户切换深色并刷新，Then 主题保持且页面没有保存治理 token、发出写请求或改变 Run 状态。 |
+| AC-UI-014 | Given 已启动或未启动工作流，When 打开 Agents 页面和 Run 工作台，Then 七类 Agent 均可查阅，固定契约与可编辑提示词分离，节点状态按 runId 展示。 |
+| AC-UI-015 | Given 有效写 token，When 保存 promptAddon，Then 后续执行使用该值并产生审计；When 请求包含 role、inputs、outputs、tools 或 edges，Then 服务端拒绝。 |
+| AC-UI-016 | Given LangGraph 正在运行，When 打开 Run 工作台，Then 页面从 wpKnowledge 节点投影显示 pending/running/completed/failed，不把 graph route 当成知识发布状态。 |
+| AC-UI-017 | Given 中文或英文读者打开项目官网，When 阅读首屏，Then 页面默认显示完整中文叙述，并能展开关键英文摘要；页面语言、英文区域和状态/API 标识具有正确语义。 |
 
 ## 13. 实施阶段
 
-### Phase 1：知识控制台完善
+### Phase 1：架构与事实源收敛
 
-- 建立全局 Shell 和导航。
-- 完善知识目录、状态解释、反馈、版本血缘和 Diff。
-- 明确只读模式与写入关闭状态。
+- 将 domain-knowledge 迁入独立 infrastructure 目录并接入 WorkflowEngine 端口。
+- 固化 FlywheelRun、GraphState、GenerationKey、graph checkpoint 和双 Gate 的所有权。
+- 建立 Agent 定义、提示词覆盖和节点执行投影的 Registry Schema。
 
-### Phase 2：Run 可观察性
+### Phase 2：ohMyWorkPanel 自动垂直切片
 
-- 新增 Run snapshot、事件、节点、评测和 Gate 查询 API。
-- 实现 Run 列表、Run 工作台、Evidence Drawer 和断线恢复。
-- 此阶段只观察现有 Run，不开放高风险控制。
+- 以固定 commit 的 ohMyWorkPanel 场景启动真实 LangGraph。
+- 打通候选知识、首轮失败、Review、增量修订、fresh Code generation、真实 ProjectEvaluator 和 wpKnowledge 发布事务。
+- 用 GenerationKey 防止 graph checkpoint 边界重放外部副作用。
 
-### Phase 3：自动 Run 与治理
+### Phase 3：Agent Studio 与节点可观察性
 
-- 增加高层 Start/Cancel/Retry Command API。
-- 接入通用 Workflow Service 自动编排。
-- 实现治理队列、Correction Diff 和受控重试。
+- 新增 Agents 页面、固定 Agent 定义查询和受限 promptAddon 编辑。
+- 在 Run 工作台展示 LangGraph 节点执行投影。
+- 增加高层 Start/Resume/Cancel API，不向产品 UI 暴露裸状态转换。
 
-### Phase 4：生产强化
+### Phase 4：配套材料与生产强化
 
-- 接入真实 AgentProvider 和 Provider 健康状态。
+- 同步 GitHub Pages、快速入门、架构、运维、测试和仓库目录文档。
+- 接入真实 AgentRunner 和 Provider 健康状态；Scenario 只留在验收 profile。
 - 在安全隔离能力完成后开放对应语言项目执行。
-- 增加审计导出、权限细分、可访问性和大规模数据性能验证。
+- 增加崩溃注入、审计导出、权限细分、可访问性和大规模数据性能验证。
 
 不得在 Phase 2 用前端连续调用 `transition/evaluate/publish` 模拟自动 Orchestrator。自动化必须存在于服务端 Workflow Service，页面只负责命令和观察。
 
@@ -513,7 +555,9 @@ sequenceDiagram
 | Quality / Behavioral Gate 区分 | Implemented MVP：分区展示并解释 `ACCEPTED` 不等于 `VERIFIED`；版本 Diff 仍待实现 |
 | Feedback UI | Implemented：使用仅驻留页面内存的 bearer token，明确反馈不改变发布状态 |
 | Run 列表与工作台 | Implemented MVP：新增 Run 列表、snapshot、顺序事件、checkpoint、评测和 Gate API/UI |
-| 自动 Run 启动 | Planned：固定场景已有自动流，通用 CLI/API 尚未编排 |
+| 自动 Run 启动 | Implemented fixed profile：CLI/API/Console 可启动固定 ohMyWorkPanel LangGraph 流程；任意项目的通用来源/策略向导仍在规划 |
+| Agent 目录与定制 | Implemented：七个固定角色可查，只有 `promptAddon` 可在治理模式修改并形成 revision/audit |
+| LangGraph 节点投影 | Implemented：Run 工作台从 wpKnowledge Registry 显示节点、Agent、轮次、attempt 与状态，不读取 graph checkpoint |
 | 实时事件 | Partial：已提供 `after=event_seq` 增量查询，SSE 和自动重连尚未实现 |
 | Correction / Diff | Partial：固定场景有 Correction 和范围校验，尚无通用查询/UI |
 | Governance | Partial：已从终态 Run 形成只读队列，治理决议 Command API 尚未实现 |

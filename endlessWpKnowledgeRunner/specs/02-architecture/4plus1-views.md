@@ -7,24 +7,25 @@
 ## 逻辑视图
 
 - **Domain**：Run、Module、Artifact、KnowledgeVersion、EvaluationReport、Correction、GateDecision。
-- **Application**：工作流节点、权限策略、发布策略、幂等协调器。
+- **Application**：知识用例、工作流阶段执行器、权限策略、发布策略、幂等协调器。
 - **Ports**：Agent、Workflow、Artifact、Knowledge、Sandbox、LanguagePlugin。
-- **Adapters**：LangGraph/候选 Temporal、DSH/进程 Provider、GLM、SQLite/CAS、C++ 插件。
+- **Infrastructure**：相对独立的 `domain-knowledge` LangGraph 图、并行/循环、SQLite Checkpointer、固定 Agent 定义。
+- **Adapters**：DSH/进程 Provider、GLM、SQLite/CAS、项目评测和 C++ 插件。
 
-依赖方向为 `Adapters → Ports ← Application → Domain`；Domain 不导入 SDK 或语言专属类型。
+依赖方向为 `Infrastructure/Adapters → Ports ← Application → Domain`；Domain 和 Application 不导入 LangGraph SDK 或语言专属类型。LangGraph `GraphState` 只保存执行控制，`FlywheelRun`、KnowledgeVersion、EvaluationReport 和 Publication 仍由 wpKnowledge Registry 保存。
 
 ## 进程视图
 
-V1 为本地单控制进程，最多五个隔离 Agent worker；编译和测试在短生命周期沙箱进程树执行。Artifact 先写临时对象并校验摘要，再原子提交；checkpoint 只在节点输入输出已持久化后推进。取消从 Run 向 worker 和沙箱传播。
+V1 为本地单控制进程。LangGraph 在进程内编排节点、fan-out、迭代和恢复；编译和测试在短生命周期受信执行进程树中运行。Artifact 先写临时对象并校验摘要，再原子提交；graph checkpoint 只记录执行控制，业务副作用另由 GenerationKey、Registry 事务和 publication key 去重。取消从 Run 向 worker 和执行器传播。
 
 ## 开发视图
 
-计划实现单元：`packages/domain`、`packages/application`、`packages/contracts`、`packages/adapters/*`、`plugins/languages/*`、`apps/runner`、`tests/{contract,integration,acceptance}`。TypeScript 是平台基线；插件可调用外部工具链，但只能返回通用 Schema。
+实现单元：`packages/domain`、`packages/application`、`packages/contracts`、`packages/adapters/*`、`infrastructure/domain-knowledge`、`apps/runner`、`web`、`tests/{contract,integration,acceptance}`。TypeScript 是平台基线；基础设施与插件可调用 SDK 或外部工具链，但只能通过通用契约进入上层。
 
 ## 物理视图
 
-V1 部署在个人电脑：runner + SQLite checkpoint/run registry + 本地文件 CAS + 受限沙箱。网络默认关闭，仅 Agent Provider 可经显式出口访问内部 GLM。生产扩展可替换远程 Artifact/Knowledge Store，但不改变端口。
+V1 部署在个人电脑：runner + wpKnowledge SQLite Registry + LangGraph SQLite Checkpointer + 本地文件 CAS + 受信项目执行器。两套 SQLite 用同一 `runId` 关联，但只有 Registry 是业务事实源。网络默认关闭，仅 Agent Provider 可经显式出口访问内部 GLM。生产扩展可替换 Provider、Artifact/Knowledge Store，但不改变端口或 Agent 节点契约。
 
 ## 约束验证
 
-架构测试扫描 `packages/domain` 禁止 `dsh`、`langgraph`、`temporal`、编译器 AST 包依赖；语言插件契约测试使用非 C++ 假插件证明核心无语言假设。
+架构测试扫描 `packages/domain` 和 `packages/application`，禁止 LangGraph SDK 穿透，并检查只有 `infrastructure/domain-knowledge` 持有 StateGraph；该模块不得持有 KnowledgeVersion、Publication、HTTP 或 Console 实现。语言插件契约测试使用非 C++ 假插件证明核心无语言假设。

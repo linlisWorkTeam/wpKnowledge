@@ -101,6 +101,34 @@ test('project site exposes human and Agent onboarding without weakening trust ga
   }
 });
 
+test('documentation surfaces are Chinese-first with semantic English summaries', () => {
+  const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
+  assert.match(html, /<html lang="zh-CN">/);
+  assert.match(consoleHtml, /<html lang="zh-CN">/);
+  assert.match(html, /<meta property="og:locale" content="zh_CN">/);
+  assert.match(html, /<meta property="og:locale:alternate" content="en_US">/);
+  assert.match(html, /<details class="i18n-summary" lang="en">/);
+  assert.match(html, /<summary>English summary<\/summary>/);
+  assert.match(css, /\.i18n-summary/);
+});
+
+test('site and Console expose the embedded workflow boundary and prompt-only Agent customization', () => {
+  const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
+  const consoleScript = readFileSync('endlessWpKnowledgeRunner/web/app.js', 'utf8');
+  const frontendSpec = readFileSync('endlessWpKnowledgeRunner/specs/04-product/frontend-product-design.md', 'utf8');
+
+  assert.match(html, /domain-knowledge/);
+  assert.match(html, /LangGraph/);
+  assert.match(html, /Agent 只能追加提示词/);
+  assert.match(consoleHtml, /data-page="agents"/);
+  assert.match(consoleScript, /\/api\/v1\/agents/);
+  assert.match(consoleScript, /promptAddon/);
+  assert.match(consoleScript, /workflowNodes/);
+  assert.match(frontendSpec, /KF-UI-014/);
+  assert.match(frontendSpec, /KF-UI-015/);
+  assert.match(frontendSpec, /KF-UI-016/);
+});
+
 test('project site and Console implement separate light and dark themes', () => {
   const consoleHtml = readFileSync('endlessWpKnowledgeRunner/web/index.html', 'utf8');
   const consoleCss = readFileSync('endlessWpKnowledgeRunner/web/styles.css', 'utf8');

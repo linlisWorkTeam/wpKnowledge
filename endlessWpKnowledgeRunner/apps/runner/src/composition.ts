@@ -2,8 +2,14 @@ import { readFileSync } from 'node:fs';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
-  DeterministicQualityPolicy, KnowledgeFlywheelService, KnowledgeQueryService,
+  AgentCatalogService, AutomatedProjectWorkflowService, DeterministicQualityPolicy,
+  KnowledgeFlywheelService, KnowledgeQueryService, OhMyWorkPanelWorkflowExecutor,
+  RegistryWorkflowObserver,
 } from '../../../packages/application/src/index.ts';
+import type { AutomatedProjectScenario } from '../../../packages/application/src/index.ts';
+import { DOMAIN_KNOWLEDGE_AGENT_DEFINITIONS } from '../../../infrastructure/domain-knowledge/src/index.ts';
+import { createDomainKnowledgeInfrastructure } from '../../../infrastructure/domain-knowledge/src/index.ts';
+import { TrustedProjectEvaluator } from '../../../packages/adapters/project-eval/src/index.ts';
 import {
   LocalCasArtifactStore, SQLiteFlywheelRepository,
 } from '../../../packages/adapters/sqlite-cas/src/index.ts';
@@ -27,6 +33,12 @@ export interface WorkpanelConfig {
 const moduleDirectory = dirname(fileURLToPath(import.meta.url));
 export const componentRoot = resolve(moduleDirectory, '../../..');
 export const defaultRepositoryRoot = resolve(componentRoot, '..');
+
+export function loadOhMyWorkPanelScenario(repositoryRoot: string): AutomatedProjectScenario {
+  const scenarioPath = join(componentRoot, 'acceptance', 'ohmyworkpanel', 'scenario.json');
+  const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8')) as Omit<AutomatedProjectScenario, 'repositoryRoot'>;
+  return { ...scenario, repositoryRoot: resolve(repositoryRoot) };
+}
 
 export function loadWorkpanelConfig(repositoryRoot = defaultRepositoryRoot): WorkpanelConfig {
   const configPath = process.env.WP_FLYWHEEL_CONFIG
@@ -76,6 +88,31 @@ export function createComposition(input: {
   });
   const query = new KnowledgeQueryService(artifacts, repository);
   const scanner = new SourceScanner(repositoryRoot, repository);
+  const agents = new AgentCatalogService({
+    definitions: DOMAIN_KNOWLEDGE_AGENT_DEFINITIONS,
+    repository,
+    clock: input.clock,
+  });
+  const workflowObserver = new RegistryWorkflowObserver(repository, input.clock);
+  let automatedWorkflowPromise: Promise<AutomatedProjectWorkflowService> | null = null;
+  const automatedWorkflow = () => {
+    automatedWorkflowPromise ??= (async () => {
+      const executor = new OhMyWorkPanelWorkflowExecutor({
+        service,
+        evaluator: new TrustedProjectEvaluator(artifacts),
+        assetRoot: join(componentRoot, 'acceptance', 'ohmyworkpanel'),
+      });
+      const infrastructure = await createDomainKnowledgeInfrastructure({
+        executor,
+        observer: workflowObserver,
+        prompts: { getPromptAddon: (agentId) => agents.getPromptAddon(agentId) },
+        checkpoint: { kind: 'sqlite', filename: join(runtimeDir, 'workflow', 'checkpoints.sqlite') },
+        clock: input.clock,
+      });
+      return new AutomatedProjectWorkflowService(service, infrastructure.engine);
+    })();
+    return automatedWorkflowPromise;
+  };
   return {
     repositoryRoot,
     runtimeDir,
@@ -85,6 +122,9 @@ export function createComposition(input: {
     service,
     query,
     scanner,
+    agents,
+    workflowObserver,
+    automatedWorkflow,
     close: () => repository.close(),
   };
 }

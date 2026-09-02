@@ -21,10 +21,12 @@
 6. EvalRunner 依次执行 `pnpm test`、`pnpm build` 与 `cargo test --no-default-features --lib`。全部命令退出码为零、无超时且证据完整时，Gate 才能 PASS。
 7. Run 必须先进入 REVIEWING，再由确定性 Gate 进入 PUBLISHING；原子发布只验证第二版，重复发布返回同一 receipt。
 
+自动化整合验收使用 `infrastructure/domain-knowledge` 的真实 StateGraph 执行同一两轮语义，并要求七个 Agent 均留下节点投影。LangGraph 的 `pass` 路由只调度 publication 阶段，最终 `VERIFIED` 和 receipt 仍由 wpKnowledge Publication Gate 与 Registry 事务产生。
+
 ## 信任边界
 
 ohMyWorkPanel 是同组织的受信源码。进程 Adapter 负责 argv 固定、禁用 shell、工作目录边界、wall time、输出上限和取消，但不把本地子进程宣称为敌对代码沙箱。任一来源不受信、命令不在场景 allowlist、路径逃逸、符号链接写目标或资源能力不足时必须拒绝执行；敌对 C++ 仍由 `AC-LANG-002` 单独验收。
 
 ## 完成证据
 
-验收报告至少包含：runId、两版 knowledge version、Correction、参考/失败/最终门禁结果、工具链版本、每条 argv、工作区摘要、CAS ArtifactRef、GateDecision、publication receipt、事件序列、执行日期与证据边界。人工验收报告保存到 `knowledge/3.workpanel/证据/`，自动化测试使用组件内的最小仓库 fixture 验证同一编排语义。
+验收报告至少包含：runId、两版 knowledge version、Correction、参考/失败/最终门禁结果、工具链版本、每条 argv、工作区摘要、CAS ArtifactRef、GateDecision、publication receipt、事件序列、LangGraph 节点投影、执行日期与证据边界。人工验收报告保存到 `knowledge/3.workpanel/证据/`，自动化测试使用组件内的最小仓库 fixture 验证同一编排语义。

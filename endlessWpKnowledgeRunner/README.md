@@ -2,6 +2,13 @@
 
 `endlessWpKnowledgeRunner` 是 wpKnowledge 当前 Knowledge Flywheel 的完整组件根目录。运行代码、产品控制台、Spec、验收 fixture、测试和运行文档在这里共同演进；仓库根目录只保留工作区入口和跨项目协作文件。
 
+<details lang="en">
+<summary>English summary</summary>
+
+This directory is the complete Knowledge Flywheel component. It contains the TypeScript runtime, embedded LangGraph infrastructure, Console, specs, acceptance fixtures and tests. wpKnowledge owns governance and publication; `domain-knowledge` owns workflow execution. The current automated ohMyWorkPanel path uses deterministic Agent fixtures and must not be presented as live-model quality evidence.
+
+</details>
+
 ## 它负责什么
 
 - 把 Markdown 或项目经验摄取为带来源的 `CANDIDATE`；
@@ -11,7 +18,7 @@
 - 只在证据完整且通过 Gate 时原子发布 `VERIFIED` 知识；
 - 通过 CLI、HTTP API、Web Console 和 DSH Adapter 暴露同一个应用核心。
 
-Agent 可以自动参与生成和失败后的知识迭代，但没有自行发布权限。通用自动 Run 仍由受信 Orchestrator 驱动，Web Console 当前以观察和受保护的 feedback 为主。
+内嵌的 `domain-knowledge` LangGraph runtime 负责 Agent 节点、并行、循环和恢复；wpKnowledge 仍负责 Run、KnowledgeVersion、评测、发布和审计。Console 会展示七类 Agent 与每个节点的实时投影，受信操作者只能追加提示词，不能改节点职责、输入输出、拓扑或工具权限。当前自动路径以固定 ohMyWorkPanel 场景和 deterministic Agent fixture 验证整合，不把它冒充为 live 模型质量。
 
 ## 从哪里开始
 
@@ -33,6 +40,7 @@ endlessWpKnowledgeRunner/
 ├── acceptance/ohmyworkpanel/ # 固定 commit 的真实源码验收 fixture
 ├── apps/runner/src/          # CLI、HTTP Server、Console read model、composition
 ├── docs/                     # 上手、架构、开发、测试、运维与迁移
+├── infrastructure/           # 相对独立的 domain-knowledge LangGraph runtime
 ├── packages/                 # domain、contracts、application、adapters
 ├── specs/                    # 唯一规范性事实源
 ├── site/                     # GitHub Pages 项目官网
@@ -56,6 +64,14 @@ npm run knowledge:serve
 ```
 
 打开 <http://127.0.0.1:4174>。详细步骤和预期结果见[快速上手](docs/GETTING_STARTED.md)。
+
+要启动固定 ohMyWorkPanel 自动工作流，并在 Console 查看 LangGraph 节点：
+
+```bash
+npm run knowledge -- workflow-run --repository /path/to/ohMyWorkPanel
+```
+
+源仓库必须包含验收场景固定的 commit；该命令会等待工作流到达终态。Agent 清单和受限提示词配置可通过 `agents`、`set-agent-prompt` 命令或 Console 的 Agents 页面查看。
 
 项目官网与本地 Console 分开维护。运行 `npm run site:serve` 可以在 <http://127.0.0.1:4175> 预览静态官网；它不会连接 Registry 或暴露治理能力。
 
