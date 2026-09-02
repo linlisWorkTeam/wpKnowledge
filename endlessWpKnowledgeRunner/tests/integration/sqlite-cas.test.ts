@@ -143,13 +143,13 @@ test('expired checkpoint lease can be reclaimed while the stale owner is fenced 
     });
     assert.equal(original.retryCount, 0);
     assert.throws(() => fixture.repository.claimCheckpoint({
-      ...original, retryCount: 1, updatedAt: '2026-09-02T00:04:59.999Z',
+      ...original, retryCount: 1, updatedAt: '2026-09-02T00:14:59.999Z',
     }), /checkpoint is already running/);
     const reclaimed = fixture.repository.claimCheckpoint({
-      ...original, retryCount: 1, updatedAt: '2026-09-02T00:05:00.000Z',
+      ...original, retryCount: 1, updatedAt: '2026-09-02T00:15:00.000Z',
     });
     assert.equal(reclaimed.retryCount, 1);
-    const staleEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:05:01.000Z');
+    const staleEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:15:01.000Z');
     assert.throws(
       () => fixture.repository.commitCheckpoint(generationKey, 0, [], staleEvent, staleEvent.occurredAt),
       /checkpoint is not running/,
@@ -158,7 +158,7 @@ test('expired checkpoint lease can be reclaimed while the stale owner is fenced 
       () => fixture.repository.failCheckpoint(generationKey, 0, staleEvent, staleEvent.occurredAt),
       /checkpoint is not running/,
     );
-    const winnerEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:05:02.000Z');
+    const winnerEvent = createEvent(run.runId, 'NodeCompleted', { generationKey }, '2026-09-02T00:15:02.000Z');
     const committed = fixture.repository.commitCheckpoint(
       generationKey, 1, [], winnerEvent, winnerEvent.occurredAt,
     );

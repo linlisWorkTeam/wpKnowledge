@@ -98,7 +98,7 @@ export class SQLiteFlywheelRepository implements FlywheelRepository {
 
   constructor(databasePath: string, options: { checkpointLeaseMs?: number } = {}) {
     this.databasePath = databasePath;
-    this.checkpointLeaseMs = options.checkpointLeaseMs ?? 300_000;
+    this.checkpointLeaseMs = options.checkpointLeaseMs ?? 900_000;
     assertInvariant(
       Number.isSafeInteger(this.checkpointLeaseMs) && this.checkpointLeaseMs > 0,
       'checkpoint lease must be a positive integer',

@@ -341,6 +341,9 @@ export class DeepSeekHarnessSdkAgent implements AgentProvider {
       };
       signal?.addEventListener('abort', abort, { once: true });
     });
+    // Keep the deadline rejection observed even if the SDK throws before
+    // Promise.race can attach its own handler.
+    void deadline.catch(() => undefined);
     // A retried graph node must get a fresh conversation. Durable idempotency
     // belongs to the workflow checkpoint/CAS layer; reusing a completed DSH
     // session can settle immediately without producing a new assistant turn.
