@@ -86,7 +86,7 @@ test('GitHub Pages site is self-contained and project-path safe', () => {
 
 test('public release marker binds the site to reviewed content and live evidence', () => {
   assert.equal(release.schemaVersion, 1);
-  assert.match(release.releaseId, /^sdk-demo-\d{4}-\d{2}-\d{2}$/);
+  assert.match(release.releaseId, /^sdk-demo-\d{4}-\d{2}-\d{2}-[a-f0-9]{7}$/);
   assert.match(release.contentCommit, /^[a-f0-9]{40}$/);
   assert.match(release.assetVersion, /^\d{8}-\d+$/);
   assert.match(release.evidenceRunId, /^[a-f0-9-]{36}$/);

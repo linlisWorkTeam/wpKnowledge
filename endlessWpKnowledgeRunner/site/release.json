@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "releaseId": "sdk-demo-2026-09-02",
+  "releaseId": "sdk-demo-2026-09-02-519d432",
   "assetVersion": "20260902-2",
-  "contentCommit": "42d46bdbff5d1f19516cf9b9e248821fc68e861e",
+  "contentCommit": "519d432d307d2a3c615f2aad1d878b432db95eeb",
   "evidenceRunId": "5503b6bc-0350-4b53-98cc-6fbf3a13aaa9",
   "siteRoot": "endlessWpKnowledgeRunner/site"
 }
