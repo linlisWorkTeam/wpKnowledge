@@ -18,6 +18,7 @@ WorkPanel 架构、实现分析、规划和评审证据。
 - [WorkPanel 综合分析报告](调研/WorkPanel综合分析报告.md)
 - [2026-08-31 P0-A 知识飞轮可行性评审](调研/2026-08-31-P0-A知识飞轮可行性评审.md)
 - [2026-09-01 PR #11 知识飞轮交付测评](调研/2026-09-01-PR11知识飞轮交付测评.md)
+- [2026-09-02 endlessWpKnowledgeRunner 综合项目测评](调研/2026-09-02-endlessWpKnowledgeRunner综合项目测评.md)
 - [2026-09-02 本机 Codex Connecter Provider 接入验收](调研/2026-09-02-本机Codex-Connecter-Provider接入验收.md)
 - [Connecter P0-P3 修改计划](规划/Connecter%20P0-P3修改计划.md)
 - [ohMyWorkPanel 前台风格一致性评估](调研/2026-08-23-ohMyWorkPanel-frontend-style-consistency.md)
@@ -29,6 +30,7 @@ WorkPanel 架构、实现分析、规划和评审证据。
 - [2026-08-31 P0-A 评审证据](证据/2026-08-31-P0-A评审证据.md)
 - [2026-09-01 PR #11 开发复验记录](证据/2026-09-01-PR11开发复验记录.md)
 - [2026-09-01 ohMyWorkPanel 真实源码验收](证据/2026-09-01-ohMyWorkPanel真实源码验收.md)
+- [2026-09-02 endlessWpKnowledgeRunner 领域分层与中文界面验收](证据/2026-09-02-endlessWpKnowledgeRunner领域分层与中文界面验收.md)
 - [2026-09-02 本机 Codex Provider 联调证据](证据/2026-09-02-本机Codex-Provider联调证据.md)
 
 ## 对外交流文档

@@ -6,6 +6,14 @@
 
 最后更新：2026-09-02。
 
+## 2026-09-02 更新：领域分层与前台收口
+
+`endlessWpKnowledgeRunner` 的运行时代码已经从三个并列源码根收敛到 `src/{domain,application,infrastructure,interfaces}`。这次调整没有改变知识发布权：领域与应用层仍持有运行、评测和发布语义，工作流、持久化、评测器和智能体只是端口实现，命令行与服务接口只负责交互和组合。
+
+控制台和项目官网的用户可见文案已统一为自然中文，固定标题 `WORKPANEL · KNOWLEDGE FLYWHEEL` 保留。写入令牌不再只有“未配置”的报错：仓库提供 `.env.example`，启动脚本自动读取被忽略的 `.env.local`，设置页给出完整配置与重启说明。未配置时写入仍默认拒绝。
+
+最新验证为：规范校验 36 个一级阻塞需求完成追踪；自动化测试 74 项中 72 项通过、0 项失败、2 项按平台能力跳过；ohMyWorkPanel 固定提交闭环参考 1/1、首轮 0/1、最终 295/295，并发布已验证知识。完整评价与证据见 [endlessWpKnowledgeRunner 综合项目测评](2026-09-02-endlessWpKnowledgeRunner综合项目测评.md)和[领域分层与中文界面验收记录](../证据/2026-09-02-endlessWpKnowledgeRunner领域分层与中文界面验收.md)。
+
 ## Connecter Remote Provider 验收更新
 
 Windows 本机 Codex 已通过单一 Connecter Host 接入 ECS ohMyWorkPanel canary，完成群任务创建、跨站路由、runner 执行、签名结果回程和单条 Agent 回复闭环。正式结论见[本机 Codex 通过 Connecter Host 接入 ECS WorkPanel](2026-09-02-本机Codex-Connecter-Provider接入验收.md)，原始命令与 ID 见[联调证据](../证据/2026-09-02-本机Codex-Provider联调证据.md)。该结果不外推为多 Host HA 或生产发布完成。
@@ -32,10 +40,10 @@ wpKnowledge 的 Knowledge Flywheel 已从“只有 P0-A 规格和多套旧实现
 | 层 | 当前实现 | 维护边界 |
 |---|---|---|
 | Domain | Run 状态机、ArtifactRef、EvaluationReport、GateDecision、事件、确定性 Gate | 无数据库、SDK、模型或语言依赖 |
-| Contracts | ArtifactStore、Repository、AgentProvider、ProjectEvaluator、Sandbox、LanguagePlugin | 只定义端口 |
-| Application | ingest、quality、query、checkpoint、evaluate、publish、两轮 project flow | 只依赖 Domain 与 Contracts |
-| Adapters | SQLite/CAS、Legacy OKF、Source Scan、DSH、Scenario Agent、Trusted Project Eval | 具体 I/O 和外部系统 |
-| Entry points | CLI、HTTP、Dashboard、endlessWpKnowledgeRunner facade | 不拥有独立领域状态 |
+| Application ports | ArtifactStore、Repository、AgentProvider、ProjectEvaluator、Sandbox、LanguagePlugin | 只定义端口 |
+| Application services | ingest、quality、query、checkpoint、evaluate、publish、两轮 project flow | 只依赖 Domain 与 Ports |
+| Infrastructure | SQLite/CAS、Legacy OKF、Source Scan、DSH、Scenario Agent、Trusted Project Eval、LangGraph | 具体 I/O 和外部系统 |
+| Interfaces | CLI、HTTP、Dashboard、DSH adapter、endlessWpKnowledgeRunner facade | 不拥有独立领域状态 |
 
 核心不变量：
 

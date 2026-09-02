@@ -159,7 +159,7 @@ npm run knowledge -- set-agent-prompt --agent doc-gen --prompt "优先写清适�
    WP_FLYWHEEL_HOME=.workpanel npm run knowledge:serve
    检查 http://127.0.0.1:4174/health，并确认首页可访问。
 7. 除非我明确要求公网访问，否则只监听 127.0.0.1。不要设置 WP_KNOWLEDGE_WRITE_TOKEN，不要把 token、数据库、CAS 或 .workpanel 提交到 Git。
-8. 不得把 CANDIDATE 手工改成 VERIFIED，不得调用已退休的 score、eval 或 harvest，也不得把 deterministic fixture 写成 live 模型质量证明。
+8. 不得手工把候选状态改成已验证，不得调用已经退休的评分、评测或摄取命令，也不得把确定性夹具写成真实模型质量证明。
 9. 最后报告：实际 Node/npm 版本、运行过的检查及结果、服务 PID、访问地址、运行目录、git status，以及仍未解决的问题。若服务无法启动，保留完整错误摘要并给出下一步。
 ```
 
