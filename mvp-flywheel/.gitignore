@@ -1,7 +1,0 @@
-# 编译产物
-*.o
-*.out
-native_test_*
-__pycache__/
-*.pyc
-.venv/
