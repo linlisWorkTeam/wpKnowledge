@@ -3,37 +3,31 @@
 <details lang="en">
 <summary>English summary</summary>
 
-Do not disclose exploitable details, credentials or tokens in public issues or pull requests. The Console is read-only by default. `WP_KNOWLEDGE_WRITE_TOKEN` is a trusted-operator boundary, not full RBAC, and must not be exposed over plain public HTTP. The trusted evaluator limits commands and resources but is not an OS sandbox for hostile code.
+Do not publish secrets, credentials, personal data or exploitable details in this content repository. Report vulnerabilities privately through GitHub Security. Runtime security issues belong to domain-knowledge; knowledge and evidence must be redacted before review.
 
 </details>
 
-## 支持范围
+## 本仓库的安全范围
 
-当前项目处于 P0-B 实现验证阶段，安全修复面向默认分支和维护者明确指定的活动开发分支。历史 `mvp-flywheel/` 不作为受支持的生产运行时；如问题只存在于历史实现，报告中请明确标注。
+wpKnowledge 保存知识与证据，不运行 Agent、API 或评测任务。Knowledge Flywheel 的执行安全、鉴权、隔离和依赖漏洞由 [domain-knowledge](https://github.com/linlisWorkTeam/domain-knowledge) 负责。
 
-## 报告漏洞
+本仓主要关注两类风险：
 
-请不要在公开 Issue、PR、讨论区或知识文档中提交未修复漏洞的完整复现、凭据、访问令牌或可直接利用的代码。
+- 文档、截图或日志泄露密钥、令牌、个人信息、内部地址和外部登录态；
+- 公开材料包含尚未修复、可直接利用的漏洞细节。
 
-优先使用仓库 Security 页面提供的私密漏洞报告入口。若该入口尚未启用，请只创建一个不含漏洞细节的公开 Issue，请求维护者提供私密联系方式；在私密渠道建立前不要发送利用细节。
+## 报告问题
 
-报告中建议包含：
+请优先使用仓库 Security 页面提供的私密漏洞报告入口。不要在公开 Issue、PR、讨论区或知识文档中提交凭据、完整复现或可直接利用的代码。若私密入口尚未启用，只创建不含细节的公开 Issue，请维护者提供私密联系方式。
 
-- 受影响的 commit、命令、API 或组件；
-- 最小复现条件和预期/实际行为；
-- 数据、权限和可利用范围；
-- 已知的临时缓解方式；
-- 是否已经向第三方披露。
+报告中可包含受影响仓库与 commit、问题范围、最小复现条件、潜在影响和临时缓解方式。若问题属于运行时，请同时指出对应的 `domain-knowledge` 路径或版本。
 
-项目当前不承诺固定响应 SLA。维护者确认问题后，应先限制暴露面、保留证据并给出协调披露计划，再公开修复细节。
+## 提交证据前
 
-## 已知信任边界
+- 用占位符替换 API key、Token、Cookie 和账号信息；
+- 删除与结论无关的用户数据、绝对路径和完整环境变量；
+- 截图裁掉浏览器会话、终端凭据和个人信息；
+- 只保留验证结论所需的最小日志片段；
+- 不提交 SQLite、CAS、Checkpoint、`.workpanel/` 或模型供应商登录态。
 
-- `WP_KNOWLEDGE_WRITE_TOKEN` 是受信操作员边界，不是完整的用户/资源/动作 RBAC。不要在公网明文 HTTP 上启用写 API。
-- Web Console 默认只读。写入未配置 token 时 fail closed；浏览器中的治理 token 只应在受信会话使用。
-- 固定项目验收会限制工具白名单、环境变量、路径、时间和输出，但子进程仍共享宿主机内核。它不能执行敌对或来源不明的代码。
-- 通用 `evaluate` 接口摄取评测报告，不自行证明报告来自独立执行环境。操作员必须验证评测器和证据来源。
-- `.workpanel/` 包含本地 Registry 和 CAS 运行数据。应限制文件权限、备份并避免提交到 Git。
-- DSH Adapter 只能访问配置的 HTTP API，不应获得 shell 或直接发布权限。
-
-更详细的数据、执行和发布边界见[数据边界 Spec](endlessWpKnowledgeRunner/specs/09-security/data-boundaries.md)与[架构说明](endlessWpKnowledgeRunner/docs/ARCHITECTURE.md#security-boundary)。
+曾经暴露过的凭据不能靠删除文件恢复安全，应立即吊销并轮换。

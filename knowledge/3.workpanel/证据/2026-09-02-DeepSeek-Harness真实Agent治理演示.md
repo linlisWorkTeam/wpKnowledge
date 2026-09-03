@@ -173,7 +173,7 @@ Run `5503b6bc-0350-4b53-98cc-6fbf3a13aaa9` 从一个新的运行目录启动。D
 
 ## 复现入口
 
-部署参数见 [`endlessWpKnowledgeRunner/deploy/deepseek-harness/README.md`](../../../endlessWpKnowledgeRunner/deploy/deepseek-harness/README.md)。推荐入口：
+部署参数见 [`domain-knowledge/deploy/deepseek-harness/README.md`](https://github.com/linlisWorkTeam/domain-knowledge/blob/main/deploy/deepseek-harness/README.md)。推荐入口：
 
 ```bash
 export OPENCODE_GO_API_KEY='<runtime-secret>'

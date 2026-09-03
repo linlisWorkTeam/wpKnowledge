@@ -1,4 +1,4 @@
-# Python and local browser/test artifacts
+# Local editor and test artifacts
 **/__pycache__/
 *.py[cod]
 .playwright-cli/
@@ -7,7 +7,7 @@
 knowledge/**/*.tmp
 knowledge/**/*.write-*
 
-# Knowledge flywheel local runtime
+# Knowledge Flywheel runtime belongs in domain-knowledge
 .workpanel/
 *.sqlite
 *.sqlite-shm
