@@ -1,6 +1,6 @@
 # 知识索引（OKF bundle）
 
-> 这是已经退役的 endlessWpKnowledgeRunner 生成的旧索引，只用于保留迁移证据，不是新 Runtime 的注册表。当前状态请以 `npm run knowledge -- status` 和 Dashboard 为准。
+> 这是已经退役的 endlessWpKnowledgeRunner 生成的旧索引，只用于保留迁移证据，不是新 Runtime 的注册表。当前运行状态请到 [domain-knowledge](https://github.com/linlisWorkTeam/domain-knowledge) 的 CLI 或 Console 查询。
 
 ## 已验证概念
 
@@ -19,7 +19,7 @@
 ## 来源索引
 
 - `knowledge/5.ohMySocialPanel/调研/05-可行性分析.md` <- ai-emotional-value-entertainment-market
-- `packages/application/src/index.ts` <- flywheel-livemode (legacy concept superseded by checkpointed workflow)
+- `src/application/services/index.ts` <- flywheel-livemode (legacy concept superseded by checkpointed workflow)
 - `knowledge/2.wiki/研究/知识格式/Knowledge Catalog与OKF知识格式.md` <- okf-knowledge-format
 - `knowledge/3.workpanel/作者随笔/下一代OMP，或者说ohMyAGI/08-概念：soul在ohMyAGI中的位置.md` <- omp-soul
 - `knowledge/3.workpanel/调研/WorkPanel Connecter愿景符合度与可扩展性评审.md` <- workpanel-connecter
