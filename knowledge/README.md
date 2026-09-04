@@ -11,6 +11,7 @@
 | `3.workpanel/` | WorkPanel 架构、调研和证据 | [README](3.workpanel/README.md) |
 | `4.workpanelConnecter/` | Connecter 设计与证据 | [README](4.workpanelConnecter/README.md) |
 | `5.ohMySocialPanel/` | ohMySocialPanel 专题 | [README](5.ohMySocialPanel/README.md) |
+| `6.domain-knowledge/` | domain-knowledge 可信知识治理分析 | [README](6.domain-knowledge/README.md) |
 
 `inbox/`、`drafts/`、`concepts/`、`history/`、`runtime/` 与 [旧索引](index.md) 是历史 Knowledge Flywheel 留下的内容。它们现在只用于迁移和追溯，不是仍在 Git 中运行的状态机，也不会自动获得新平台的 `VERIFIED` 权限。
 
