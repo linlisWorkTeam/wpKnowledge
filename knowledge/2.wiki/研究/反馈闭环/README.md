@@ -16,3 +16,5 @@
 | [CRITIC 工具交互式自我纠错](CRITIC工具交互式自我纠错.md) | 外部工具纠错 |
 | [大语言模型自调试](大语言模型自调试.md) | 解释与执行反馈 |
 | [Reflexion 语言强化学习 Agent](Reflexion语言强化学习Agent.md) | 反思记忆 |
+| [DGM 开放进化自我改进 Agent](DGM开放进化自我改进Agent.md) | 归档与父代选择 ⭐ |
+| [GEPA 反思式提示词进化](GEPA反思式提示词进化.md) | 候选互补选择与消融 ⭐ |

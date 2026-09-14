@@ -13,3 +13,4 @@
 | [DocAgent 自动代码文档生成](DocAgent自动代码文档生成.md) | 多 Agent 协作文档生成 |
 | [大语言模型与 API 文档](大语言模型与API文档.md) | 文档注入效果与限制 |
 | [RepoAgent 仓库级代码文档生成](RepoAgent仓库级代码文档生成.md) | 拓扑序和增量更新 |
+| [EGO-Prompt 领域知识进化](EGO-Prompt领域知识进化.md) | 知识图结构与受约束修改算子 ⭐ |
