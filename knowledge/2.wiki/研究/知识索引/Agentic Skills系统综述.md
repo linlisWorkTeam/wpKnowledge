@@ -105,5 +105,5 @@ flowchart LR
 
 - docs/knowledge-format.md — 知识形态定义（可对照技能定义要素升级）
 - [Cannbot知识库插件.md](Cannbot知识库插件.md) — 知识运营插件：生产→治理→消费→反馈（与生命周期 7 阶段对应）
-- [../反馈闭环/EvolveR经验驱动的自进化Agent.md](../反馈闭环/EvolveR经验驱动的自进化Agent.md) — 经验生命周期：经历→反思→抽象→沉淀→复用（另一视角的同类框架）
+- [../知识飞轮/EvolveR经验驱动的自进化Agent.md](../知识飞轮/EvolveR经验驱动的自进化Agent.md) — 经验生命周期：经历→反思→抽象→沉淀→复用（另一视角的同类框架）
 - [skillos.md 候选](../候选论文池.md) — SkillOS: Learning Skill Curation（技能策展的自动化实现）
