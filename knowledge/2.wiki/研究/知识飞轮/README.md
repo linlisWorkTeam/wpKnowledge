@@ -10,6 +10,7 @@
 |---|---|---|
 | [CheckAgent](CheckAgent/README.md) | 比较原始源码与生成实现、指出有依据的差异 | 5 |
 | [TestGenAgent](TestGenAgent/README.md) | 从原始源码与公开接口生成测试、执行证据可信性 | 5 |
+| [读取源码](读取源码/README.md) | DocGen 与 TestGen 怎么读三十万行源码而不丢信息、不爆上下文 | 7 |
 
 ## 参考价值总览
 
