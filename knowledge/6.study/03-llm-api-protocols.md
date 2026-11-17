@@ -131,21 +131,200 @@ Responses 的 `status: "completed"` 表示这次响应生成完成，应用可�
 Anthropic 官方的缓存统计采用另一套口径。用量里的 `input_tokens` 是未计入缓存读写的输入部分，`cache_read_input_tokens` 是读缓存的 token，`cache_creation_input_tokens` 是写缓存的 token。启用缓存时，三项相加才是完整输入量。  
 [Anthropic · Messages API](https://platform.claude.com/docs/en/api/messages/create) · [Anthropic · 停止原因](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons) · [Anthropic · 缓存用量](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
 
-## choices 怎么生成
+## 一次天气查询怎么跑完
 
-以常见的自回归语言模型为例。输入被转成 token 之后，模型为下一个位置上的候选 token 打分。推理引擎按解码策略选出一个，把它接到已有序列，再继续下一步。
+用户只问了一句「上海今天的天气怎么样？」。Agent 先把问题和工具定义发给模型，收到工具调用后执行查询，再发第二次模型请求。下面沿用 Qwen2.5 + vLLM 的 Chat Completions 接口。天气结果为模拟数据，响应省略了无关字段。
 
-比如给模型一个句子开头「单元测试主要用来」，下一步可能往「验证」这个方向接，也可能往「检查」这个方向接。下面用词来示意，实际计算按 token 进行。
+### 1. Agent 发请求并声明工具
 
-- **贪心解码（greedy decoding）**每一步取当前得分最高的 token。
-- **采样（sampling）**按调整后的概率抽取 token。`temperature` 可以改变概率分布的集中程度，`top_p` 可以限制采样范围。
+向 `POST /v1/chat/completions` 发送请求。工具定义里的 `name` 供程序查找已注册的函数，`description` 帮模型判断什么时候该用它，`tools[].function.parameters` 用 JSON Schema 描述函数接受什么参数。这里要求传入字符串类型的 `city`。`tool_choice: "auto"` 允许模型根据问题直接回答或提出工具调用。Chat Completions 也支持通过 `none`、`required` 或指定工具来进一步控制是否调用。
 
-一旦某一步选出的 token 不同，后面的输入序列也就不同了。这个差异可以让同一个问题得到两种措辞，甚至走向两种解法。  
-[Hugging Face · Generation with LLMs](https://huggingface.co/docs/transformers/v4.33.0/en/llm_tutorial) · [vLLM · SamplingParams](https://docs.vllm.ai/en/latest/api/vllm/sampling_params/)
+```json
+{
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
+  "messages": [
+    {
+      "role": "user",
+      "content": "上海今天的天气怎么样？"
+    }
+  ],
+  "tools": [
+    {
+      "type": "function",
+      "function": {
+        "name": "get_weather",
+        "description": "查询指定城市今天的天气",
+        "parameters": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "城市名，例如上海"
+            }
+          },
+          "required": [
+            "city"
+          ],
+          "additionalProperties": false
+        }
+      }
+    }
+  ],
+  "tool_choice": "auto"
+}
+```
 
-### n=2 时怎么返回两条回答？
+在 vLLM 中复现这个自动工具调用示例时，Qwen2.5 的 Hermes 风格模板可配合 `--enable-auto-tool-choice --tool-call-parser hermes` 使用。模板会把消息角色、工具描述和参数 schema 按模型熟悉的格式组织进输入。  
+[vLLM · 工具调用和 Qwen2.5 配置](https://docs.vllm.ai/en/stable/features/tool_calling/) · [OpenAI · 函数调用](https://developers.openai.com/api/docs/guides/function-calling)
 
-以我们前面用的 vLLM 兼容端点为例，可以在请求里加上 `n: 2`，要求服务基于同一个输入生成两个候选。下面是发给 `POST /v1/chat/completions` 的示例请求体：
+### choices 怎么生成
+
+模型为下一个位置的候选 token 打分。推理引擎可以选得分最高的 token（贪心解码），也可以按概率采样。`temperature` 可以调整概率分布的集中程度，`top_p` 可以限制采样范围。选中的 token 接回已有序列，参与下一步生成；生成的 token ID 再由解码器还原成文本或标记。
+
+每个 `choice` 对应一整条候选回复，`index` 是它在候选列表里的序号。API 服务把生成与解析结果填进 `choices[i].message`。我们先看一条候选里出现工具调用是什么样。
+
+### 有工具时要读什么
+
+Qwen2.5 可以生成下面这样的中间文本。这里把模型模板使用的回合结束标记也一并展示。
+
+```text
+<tool_call>
+{"name":"get_weather","arguments":{"city":"上海"}}
+</tool_call><|im_end|>
+```
+
+vLLM 的解析器识别 `<tool_call>`，提取函数名和参数，由 API 层放进 `message.tool_calls`。客户端收到的是下面这份 Chat Completions JSON。
+
+```json
+{
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": null,
+        "tool_calls": [
+          {
+            "id": "call_weather_1",
+            "type": "function",
+            "function": {
+              "name": "get_weather",
+              "arguments": "{\"city\":\"上海\"}"
+            }
+          }
+        ]
+      },
+      "finish_reason": "tool_calls"
+    }
+  ]
+}
+```
+
+| 字段 | 怎么理解 |
+| --- | --- |
+| `message.tool_calls` | 助手提出的工具请求列表。每个元素表示一次调用。 |
+| `tool_calls[].id` | API 响应中单次调用的标识。同名工具可以调用多次，回传结果时用 `tool_call_id` 匹配对应的 `id`。 |
+| `tool_calls[].type` | 示例值为 `function`，详细数据放在 `function` 对象里。 |
+| `function.name` | 注册的函数名，这里是 `get_weather`。 |
+| `function.arguments` | 解码外层响应 JSON 后，这个值仍是一段字符串。再解析一次会得到 `{"city":"上海"}`，执行前还要校验字段和值。 |
+
+此处 `content` 为 `null`。同一条消息也可能先说「我查一下」，再附带工具请求。程序应检查 `tool_calls`，并保留完整助手消息供下一轮使用。  
+[Qwen2.5 · Tokenizer 与聊天模板](https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct/blob/main/tokenizer_config.json) · [OpenAI · Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
+
+### finish_reason 什么时候是 stop
+
+推理引擎检查停止条件，API 层结合生成状态和解析结果填写 `finish_reason`。模型用哪个 token 来结束一轮，取决于模型和聊天模板。例如 Llama 3.1 的 `<|eot_id|>` 是轮次结束标记，Qwen2.5 的模板用 `<|im_end|>` 结束一条消息。这些标记属于模型自己的格式，客户端一般在响应字段里读取结束原因。
+
+| Chat Completions 值 | 什么时候会出现 |
+| --- | --- |
+| `stop` | 模型自然结束，例如生成 EOS 或轮次结束标记，也可以是命中了请求指定的停止序列。支持 `stop` 参数的端点可以接收 `{"stop":["[END]"]}`，输出命中该字符串时停止，按 OpenAI 的约定返回正文会去掉该字符串。 |
+| `length` | 达到生成长度上限，正文或工具参数可能被截断。 |
+| `tool_calls` | 这一轮的响应交回了工具调用请求。上例虽出现了 Qwen 的结束标记，API 仍可根据解析出的调用填 `tool_calls`。 |
+| `content_filter` | 服务因内容过滤省略了输出。 |
+| `function_call` | 旧的函数调用结束原因，已弃用。新接入通常读取 `tool_calls`。 |
+| `null` | 流式中间片段暂时没有结束原因，等对应候选的结束片段再判断。 |
+
+[Meta · Llama 3.1 消息格式](https://github.com/meta-llama/llama-models/blob/main/models/llama3_1/prompt_format.md) · [OpenAI · Chat Completions 流式事件](https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events) · [vLLM · 响应组装示例](https://docs.vllm.ai/en/v0.23.0/api/vllm/entrypoints/openai/chat_completion/serving/)
+
+### 2. Agent 执行工具并把结果交回模型
+
+Agent 解析 `arguments`，检查工具是否已注册、参数是否符合 schema、城市是否与用户请求一致，再执行 `get_weather(city="上海")`。假设工具返回上海多云，最高 24℃、最低 18℃。Agent 用同一个模型发第二次请求，`model`、`tools` 和 `tool_choice` 沿用首轮。第二次请求的 `messages` 如下：
+
+```json
+[
+  {
+    "role": "user",
+    "content": "上海今天的天气怎么样？"
+  },
+  {
+    "role": "assistant",
+    "content": null,
+    "tool_calls": [
+      {
+        "id": "call_weather_1",
+        "type": "function",
+        "function": {
+          "name": "get_weather",
+          "arguments": "{\"city\":\"上海\"}"
+        }
+      }
+    ]
+  },
+  {
+    "role": "tool",
+    "tool_call_id": "call_weather_1",
+    "content": "{\"city\":\"上海\",\"condition\":\"多云\",\"high_c\":24,\"low_c\":18}"
+  }
+]
+```
+
+最后一条的 `role: "tool"` 表明内容来自工具，`tool_call_id` 把结果关联到上一条助手消息的调用，`content` 是应用序列化后的工具结果。模型读到结果后，可以生成下面的最终回答：
+
+```json
+{
+  "choices": [
+    {
+      "index": 0,
+      "message": {
+        "role": "assistant",
+        "content": "上海今天多云，最高 24℃，最低 18℃。"
+      },
+      "finish_reason": "stop"
+    }
+  ]
+}
+```
+
+第一轮的 `tool_calls` 让 Agent 继续执行。第二轮的 `stop` 表示这次生成已结束，Agent 可以在检查输出后把正文交给用户。  
+[OpenAI · Chat Completions 工具结果回传](https://developers.openai.com/api/docs/guides/function-calling)
+
+### Schema、训练和约束解码分别做什么
+
+| 层次 | 在天气例子里负责什么 |
+| --- | --- |
+| 请求与模板 | `tools[].function.parameters` 描述 `get_weather` 的参数。Chat Completions 的 `response_format` 可约束助手回答的结构，例如要求天气总结按给定 JSON Schema 输出。调用参数和最终回答可以各有一份 schema。 |
+| 模型训练 | 工具调用相关训练让模型更容易从工具描述和上下文判断要不要查天气、选哪个工具、从问题里取得城市。 |
+| 推理引擎 | 在已启用且服务支持的严格模式下，约束解码根据已生成的前缀和 schema，在每步采样前屏蔽会让输出无法继续满足约束的候选 token。 |
+| Agent | 校验解析后的参数、核对城市、执行工具，处理截断、拒绝或工具错误。 |
+
+以本例的 schema 为例，`{"city":"北京"}` 有必填字段，值也是字符串，结构校验能够通过。但用户问的是上海，Agent 仍要检查参数的业务含义。严格结构化输出需要端点、模型和 schema 同时受支持，并且要等输出正常完成。普通 JSON 模式和严格 schema 约束的支持范围也各有不同。  
+[OpenAI · Structured Outputs 原理](https://openai.com/index/introducing-structured-outputs-in-the-api/) · [OpenAI · Structured Outputs 用法](https://developers.openai.com/api/docs/guides/structured-outputs) · [vLLM · 工具调用约束](https://docs.vllm.ai/en/stable/features/tool_calling/)
+
+### 同一模型怎么适配不同 API
+
+服务端可以理解不同 API 的请求，再用聊天模板把消息、工具定义和工具结果转换成模型能读的输入。生成后，服务端可以把解析出的同一次天气调用封装成 Chat Completions 的 `message.tool_calls`、Responses 的 `function_call`，或 Anthropic Messages 的 `tool_use`。工具结果回传时也要转换对应的关联 ID。
+
+字段能够转换，功能还要看整条链路。模型要能产出工具调用，模板要能表示工具定义和历史，解析器要能识别模型使用的标记，服务端要实现对应的流式事件和严格 schema 约束。接入时按目标端点实际支持的能力来判断。  
+[vLLM · 兼容端点](https://docs.vllm.ai/en/latest/serving/online_serving/openai_compatible_server/) · [OpenAI · Responses 迁移指南](https://developers.openai.com/api/docs/guides/migrate-to-responses) · [Anthropic · Messages API](https://platform.claude.com/docs/en/api/messages/create)
+
+### 流式响应怎么读
+
+前面的例子一次收到完整 JSON。开启 `stream` 后，服务会陆续返回事件或片段，界面可以收到一点文本就显示一点。Chat Completions 的文本通常在 `choices[].delta.content`，Responses 有 `response.output_text.delta` 事件，Anthropic Messages 有包含 `text_delta` 的 `content_block_delta` 事件。工具参数也可能分成几段传过来，需要等对应调用收齐，再解析和执行。Chat Completions 的前几个片段里，`finish_reason` 可能是 `null`，要等候选结束时再判断。  
+[OpenAI · Chat Completions 流式事件](https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events) · [OpenAI · Responses 流式输出](https://developers.openai.com/api/docs/guides/streaming-responses) · [Anthropic · Messages 流式输出](https://platform.claude.com/docs/en/build-with-claude/streaming)
+
+#### n=2 时怎么返回两条回答？
+
+回到前面的单元测试示例，在 vLLM 兼容端点上，可以在请求里加上 `n: 2`，要求服务基于同一个输入生成两个候选。下面是发给 `POST /v1/chat/completions` 的示例请求体：
 
 ```json
 {
@@ -184,79 +363,4 @@ Anthropic 官方的缓存统计采用另一套口径。用量里的 `input_token
 `n` 要看端点和模型是否支持。OpenAI 的部分较新模型会拒绝显式传入 `n`，Responses API 也没有这个参数，需要多条候选时可以分开请求。Responses 的 `output` 数组表示一次响应中的消息、函数调用等不同项目。  
 [OpenAI · Chat Completions API](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) · [OpenAI · 迁移到 Responses API](https://developers.openai.com/api/docs/guides/migrate-to-responses)
 
-## 有工具时要读什么
-
-把问题换成「北京现在天气怎么样？」。假设你的程序在请求中声明了一个自定义工具 `get_weather`，请求参数 `tool_choice` 可以控制这一轮是否允许调用工具。`auto` 允许模型直接回答或请求工具，`none` 禁止调用，`required` 则要求调用至少一个工具，也可以指定工具名。下面是 Chat Completions 的示意响应。
-
-```json
-{
-  "choices": [
-    {
-      "index": 0,
-      "message": {
-        "role": "assistant",
-        "content": null,
-        "tool_calls": [
-          {
-            "id": "call_weather_1",
-            "type": "function",
-            "function": {
-              "name": "get_weather",
-              "arguments": "{\"city\":\"北京\"}"
-            }
-          }
-        ]
-      },
-      "finish_reason": "tool_calls"
-    }
-  ]
-}
-```
-
-| 字段 | 怎么理解 |
-| --- | --- |
-| `message.tool_calls` | 这条助手消息提出的工具请求列表。每个元素表示一次调用。 |
-| `tool_calls[].id` | 单次调用的标识。这里是 `call_weather_1`。同名工具可以被调用多次，回传结果时用 `tool_call_id` 对应各自的 `id`。 |
-| `tool_calls[].type` | 工具类型。示例是 `function`，因此这项调用的详细数据放在 `function` 对象里。 |
-| `tool_calls[].function.name` | 注册的函数名，这里是 `get_weather`。程序按名字查找已登记的工具。 |
-| `tool_calls[].function.arguments` | 模型生成的参数。外层 JSON 解码之后，它仍是一段字符串。再解析一次才能拿到 `{"city":"北京"}`，执行前还要校验字段和类型。 |
-
-应用查到天气后，将查询结果作为新的工具消息，带着对应的 `tool_call_id` 交回模型。模型再根据结果组织回答。
-
-这里的 `content` 是 `null`，因为这次回复只包含工具调用。有些回复也会同时带一段正文和工具请求，例如先说「我查一下」。**即使返回了文本，也要检查工具调用字段。** 一次 HTTP 请求成功，表示服务返回了这轮结果，用户的任务可能还要再走一轮。  
-[OpenAI · 函数调用与工具结果回传](https://developers.openai.com/api/docs/guides/function-calling)
-
-## finish_reason 什么时候是 stop
-
-推理服务会检查生成是否触发了结束条件，API 层把原因写进 `choices[i].finish_reason`。在 Chat Completions 里，返回 `stop` 最常见的两种情况是模型自然结束，或生成内容命中了请求指定的停止序列。
-
-**自然结束。** 假设你问「用一句话解释什么是单元测试」。模型生成正文后，下一步可能选出结束标记，例如 EOS（End of Sequence，序列结束）或模型定义的对话轮次结束标记。推理引擎识别这个特殊 token，结束当前序列，服务返回 `finish_reason: "stop"`。你在正文里通常看不到这个特殊 token。句号本身也可以被生成在段落中间，服务靠结束标记判断何时结束。  
-[Hugging Face · 自回归生成](https://huggingface.co/docs/transformers/v4.33.0/en/llm_tutorial) · [vLLM · 结束 token 与解码参数](https://docs.vllm.ai/en/latest/api/vllm/sampling_params/)
-
-**命中停止序列。** 在支持该参数的端点上，可以在请求里传入：
-
-```json
-{"stop": ["[END]"]}
-```
-
-如果模型这轮生成了 `单元测试用于验证代码单元的行为。[END]`，服务识别到 `[END]` 后就可以结束生成，`finish_reason` 同样是 `"stop"`。按 OpenAI Chat Completions 的约定，返回正文会去掉命中的停止序列。把 `[END]` 写在提示词里，可以用来告诉模型何时输出它。真正触发这个规则的是模型在**输出里**生成了它。不同端点和模型的参数支持范围以各自文档为准。  
-[OpenAI · Chat Completions 的 stop 参数](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) · [vLLM · 增量解码与停止字符串匹配](https://docs.vllm.ai/en/latest/api/vllm/v1/engine/detokenizer/)
-
-### 常见的结束原因
-
-| 这轮发生了什么 | Chat Completions 返回值 | Agent 怎么处理 |
-| --- | --- | --- |
-| 自然结束，或命中指定停止序列 | `stop` | 按任务验收输出。例如要求 JSON 时，仍要解析并校验 |
-| 达到生成长度上限 | `length` | 把输出当成可能有截断的内容，尤其要防止拿半截参数去调用工具 |
-| 这轮返回了自定义工具请求 | `tool_calls` | 读取 `message.tool_calls`，校验参数，执行后回传结果 |
-| 服务过滤了部分输出 | `content_filter` | 按应用的错误或提示逻辑处理 |
-
-可以把结束原因分两层来看。推理引擎知道序列是触发了结束条件，还是用完了生成预算。API 层会把这些结果组织成协议字段，也会根据消息内容处理工具调用。例如在 vLLM 的 Chat Completions 实现里，服务解析出工具调用后，可以把这一候选的结束原因标成 `tool_calls`。到这一步结束的是**本次模型生成**，查询天气、读取资料等操作仍由应用执行。  
-[OpenAI · Chat Completions 响应字段](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create) · [vLLM · Chat Completions 响应组装示例](https://docs.vllm.ai/en/v0.23.0/api/vllm/entrypoints/openai/chat_completion/serving/)
-
-## 流式响应怎么读
-
-前面的例子一次收到完整 JSON。开启 `stream` 后，服务会陆续返回事件或片段，界面可以收到一点文本就显示一点。Chat Completions 的文本通常在 `choices[].delta.content`，Responses 有 `response.output_text.delta` 事件，Anthropic Messages 有包含 `text_delta` 的 `content_block_delta` 事件。工具参数也可能分成几段传过来，需要等对应调用收齐，再解析和执行。Chat Completions 的前几个片段里，`finish_reason` 可能是 `null`，要等候选结束时再判断。  
-[OpenAI · Chat Completions 流式事件](https://developers.openai.com/api/reference/resources/chat/subresources/completions/streaming-events) · [OpenAI · Responses 流式输出](https://developers.openai.com/api/docs/guides/streaming-responses) · [Anthropic · Messages 流式输出](https://platform.claude.com/docs/en/build-with-claude/streaming)
-
-第一版 Agent 可以先用非流式的 Chat Completions，把 HTTP 请求和响应解析放在 `chat(messages)` 里。上层拿到正文、工具请求和结束状态，再决定要执行工具并回传，还是按任务要求交付结果。
+第一版 Agent 可以先用非流式 Chat Completions，把请求和响应解析放进 `chat(messages)`，再用上面的工具执行和结果回传跑完一次交互。
