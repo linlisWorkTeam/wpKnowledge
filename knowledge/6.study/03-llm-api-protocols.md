@@ -50,11 +50,14 @@
 
 ## 响应里有什么
 
-沿用前面的 Chat Completions 请求，问「用一句话解释什么是单元测试」。下面是一份非流式响应的示意，省略了和本节无关的字段。Token 数字仅用于展示格式。
+沿用前面的 Chat Completions 请求，问「用一句话解释什么是单元测试」。下面是一份非流式响应示意，时间戳和 token 数都只是示例。
 
 ```json
 {
   "id": "chatcmpl_example_1",
+  "object": "chat.completion",
+  "created": 1780000000,
+  "model": "Qwen/Qwen2.5-1.5B-Instruct",
   "choices": [
     {
       "index": 0,
@@ -62,6 +65,7 @@
         "role": "assistant",
         "content": "单元测试用来验证一个小的代码单元在给定输入下是否按预期工作。"
       },
+      "logprobs": null,
       "finish_reason": "stop"
     }
   ],
@@ -73,24 +77,59 @@
 }
 ```
 
-- **`choices[0].message.content`** 是可以展示给用户的正文。`choices` 是候选结果数组，示例里只有一个候选。
-- **`finish_reason`** 说明这次生成为什么停止。后面会展开它是怎么生成的。
-- **`usage`** 记录 token 用量。应用可以把它用在用量统计或成本估算里。
-- **`id`** 标识这次响应，记录日志时可以用它关联请求和响应。
+### 响应对象和候选消息
 
+| 字段 | 类型 | 怎么理解 |
+| --- | --- | --- |
+| `id` | 字符串 | 这份生成响应的标识。可以记入日志，便于定位某次生成。一份响应可能包含多个候选和工具调用，它们各有自己的编号或 ID。 |
+| `object` | 字符串 | 响应对象的类型。`chat.completion` 是完整响应，流式增量通常是 `chat.completion.chunk`。 |
+| `created` | 整数 | 响应的创建时间，Unix 时间戳，单位是秒。 |
+| `model` | 字符串 | 服务端报告的模型标识。接入层做日志或统计时，可以和请求里填的模型名一起记录。 |
+| `choices` | 数组 | 这次生成的候选回复。普通问答通常只有一项，支持多候选的端点可以返回多项。 |
+| `choices[].index` | 整数 | 从 0 开始的候选编号。流式时可以用它把属于同一候选的片段拼起来。 |
+| `choices[].message` | 对象 | 一条完整的助手消息，可能有正文、工具请求，或同时包含两者。 |
+| `message.role` | 字符串 | 消息的角色。这里是 `assistant`，表示这是助手生成的消息。多轮调用时可以把这条消息放回对话记录。 |
+| `message.content` | 字符串或 `null` | 助手的正文。只有工具请求时可能为 `null`，此时去读同一条消息的 `tool_calls`。 |
+| `message.refusal` | 可选字符串或 `null` | 模型返回的拒绝说明。程序可以单独展示或记录这段说明。 |
+| `choices[].finish_reason` | 字符串 | 此候选为什么结束。常见值有 `stop`、`length`、`tool_calls` 和 `content_filter`，后面有逐项说明。 |
+| `choices[].logprobs` | 对象或 `null` | 支持的模型在开启 `logprobs` 后，可以返回输出 token 的对数概率。里面的 `token` 是该位置生成的 token，`logprob` 是它的对数概率，`top_logprobs` 列出同一位置的备选 token 及其概率信息，`bytes` 可用于按原始 UTF-8 字节还原文本。这些分数描述单个 token 的生成概率，答案是否正确仍要单独判断。 |
+
+部分服务还会返回 `service_tier`，表示处理这次请求使用的服务档位。旧响应里也可能看到已弃用的 `system_fingerprint`，用于标识后端配置。兼容端点实际返回的可选字段以它自己的文档为准。  
 [OpenAI · Chat Completions 响应结构](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
 
-### 三种 API 的响应字段
+### usage 里的 token 怎么数
 
-| 你想读什么 | Chat Completions | OpenAI Responses | Anthropic Messages |
+| 字段 | 怎么理解 |
+| --- | --- |
+| `usage` | 这次请求的用量统计。它属于整个响应，和单个候选的 `finish_reason` 在不同层。 |
+| `usage.prompt_tokens` | 这轮输入使用的 token。输入可能包括用户消息、系统指令、对话历史和工具定义，所以通常比只数用户这一句得到的数字大。 |
+| `usage.completion_tokens` | 这轮生成使用的 token。文本、生成的工具参数以及模型内部推理都可能计入，具体以模型和接口的统计规则为准。 |
+| `usage.total_tokens` | 输入和输出 token 的合计。示例里是 `24 + 19 = 43`。 |
+| `usage.prompt_tokens_details.cached_tokens` | 输入中命中缓存的 token 数，是 `prompt_tokens` 的一部分。 |
+| `usage.completion_tokens_details.reasoning_tokens` | 输出中用于内部推理的 token 数，是 `completion_tokens` 的一部分。 |
+
+做用量统计时用总数，做成本估算时按供应商的输入、缓存命中和输出价格分别计算。缓存和推理明细属于已有的总数，计算 token 总量时无需再加一次。  
+[OpenAI · Chat Completions 用量字段](https://developers.openai.com/api/reference/resources/chat/subresources/completions/methods/create)
+
+### 换成 Responses 或 Messages 去哪里读
+
+| 要读取的信息 | Chat Completions | OpenAI Responses | Anthropic Messages |
 | --- | --- | --- | --- |
-| 用户能看到的文本 | `choices[].message.content` | 在 `output` 的消息项中找 `output_text` 内容块 | 在 `content` 中找 `text` 内容块 |
-| 自定义工具请求 | `choices[].message.tool_calls`，用 `id` 关联结果 | `output` 中的 `function_call` 项，用 `call_id` 关联结果 | `content` 中的 `tool_use` 块，回传时用 `tool_use_id` 对应它的 `id` |
-| 这一轮是否完成或截断 | `choices[].finish_reason`，如 `stop`、`length` | 看顶层 `status`，若为 `incomplete` 再看 `incomplete_details` | `stop_reason`，如 `end_turn`、`max_tokens` |
-| Token 用量 | `usage.prompt_tokens`、`usage.completion_tokens` | `usage.input_tokens`、`usage.output_tokens` | `usage.input_tokens`、`usage.output_tokens` |
+| 正文 | `choices[].message.content` | `output[].content[]` 中 `type: "output_text"` 的块，正文在 `text` | `content[]` 中 `type: "text"` 的块，正文在 `text` |
+| 工具请求 | `message.tool_calls[]` | `output[]` 中 `type: "function_call"` 的项 | `content[]` 中 `type: "tool_use"` 的块 |
+| 关联工具结果 | 请求里的 `tool_call_id` 对应调用的 `id` | 结果项 `function_call_output` 的 `call_id` 对应调用的 `call_id` | 结果块 `tool_result` 的 `tool_use_id` 对应调用的 `id` |
+| 生成状态 | 各候选的 `finish_reason` | 顶层 `status`，必要时读 `incomplete_details` 或 `error` | 顶层 `stop_reason`，自定义停止序列看 `stop_sequence` |
+| Token 用量 | `prompt_tokens`、`completion_tokens`、`total_tokens` | `input_tokens`、`output_tokens`、`total_tokens` | `input_tokens`、`output_tokens`，缓存输入单独列出 |
 
-OpenAI SDK 的 `response.output_text` 可以汇总 Responses 的正文。Responses 的 `status: "completed"` 表示这次响应生成完成。程序还要检查 `output`，确认里面是否有等待应用执行的 `function_call`。  
-[OpenAI · Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) · [Anthropic · Messages API](https://platform.claude.com/docs/en/api/messages/create) · [Anthropic · 停止原因](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons)
+**Responses 的 `output` 按项目类型解析。** 遍历 `output`，找到 `type: "message"` 的项，再到它的 `content` 数组里取 `output_text` 块。数组里还可能有 `reasoning` 项或 `function_call` 项，所以第一项的位置不能固定用来取正文。OpenAI SDK 的 `response.output_text` 会汇总正文，工具调用仍要从 `output` 读。函数调用项里的 `name` 是工具名，`arguments` 是 JSON 字符串，`call_id` 是回传结果用的关联键。
+
+Responses 的 `status: "completed"` 表示这次响应生成完成，应用可能还要执行工具。`incomplete` 表示响应未生成完整，可以看 `incomplete_details.reason` 了解原因，例如 `max_output_tokens`。`failed` 时查看 `error`。用量里的 `input_tokens_details.cached_tokens` 和 `output_tokens_details.reasoning_tokens` 分别是输入与输出的子项。  
+[OpenAI · Responses API](https://developers.openai.com/api/reference/resources/responses/methods/create) · [OpenAI · 迁移到 Responses](https://developers.openai.com/api/docs/guides/migrate-to-responses)
+
+**Messages 的 `content` 按内容块类型解析。** 顶层 `id` 标识助手消息，`role` 是 `assistant`，`model` 是模型标识。`text` 块里读 `text`，`tool_use` 块里读 `id`、`name` 和 `input`。这里的 `input` 已经是 JSON 对象，可以直接做参数校验。常见的 `stop_reason` 有 `end_turn`（自然结束）、`max_tokens`（到达生成上限）和 `tool_use`（提出了工具请求）。如果是 `stop_sequence`，同名字段 `stop_sequence` 会告诉你命中了哪段字符串。
+
+Anthropic 官方的缓存统计采用另一套口径。用量里的 `input_tokens` 是未计入缓存读写的输入部分，`cache_read_input_tokens` 是读缓存的 token，`cache_creation_input_tokens` 是写缓存的 token。启用缓存时，三项相加才是完整输入量。  
+[Anthropic · Messages API](https://platform.claude.com/docs/en/api/messages/create) · [Anthropic · 停止原因](https://platform.claude.com/docs/en/build-with-claude/handling-stop-reasons) · [Anthropic · 缓存用量](https://platform.claude.com/docs/en/build-with-claude/prompt-caching)
 
 ## choices 怎么生成
 
@@ -174,7 +213,15 @@ OpenAI SDK 的 `response.output_text` 可以汇总 Responses 的正文。Respons
 }
 ```
 
-这份响应里已经有了三样东西：**工具名** `get_weather`、**参数** `{"city":"北京"}`、**调用 ID** `call_weather_1`。在 Chat Completions 里，`arguments` 是一段 JSON 字符串，应用要先解析并校验它，再调用已经登记的工具。查询结果用 `tool_call_id` 对应原来的 `call_weather_1`，再回传给模型，模型再根据结果组织回答。
+| 字段 | 怎么理解 |
+| --- | --- |
+| `message.tool_calls` | 这条助手消息提出的工具请求列表。每个元素表示一次调用。 |
+| `tool_calls[].id` | 单次调用的标识。这里是 `call_weather_1`。同名工具可以被调用多次，回传结果时用 `tool_call_id` 对应各自的 `id`。 |
+| `tool_calls[].type` | 工具类型。示例是 `function`，因此这项调用的详细数据放在 `function` 对象里。 |
+| `tool_calls[].function.name` | 注册的函数名，这里是 `get_weather`。程序按名字查找已登记的工具。 |
+| `tool_calls[].function.arguments` | 模型生成的参数。外层 JSON 解码之后，它仍是一段字符串。再解析一次才能拿到 `{"city":"北京"}`，执行前还要校验字段和类型。 |
+
+应用查到天气后，将查询结果作为新的工具消息，带着对应的 `tool_call_id` 交回模型。模型再根据结果组织回答。
 
 这里的 `content` 是 `null`，因为这次回复只包含工具调用。有些回复也会同时带一段正文和工具请求，例如先说「我查一下」。**即使返回了文本，也要检查工具调用字段。** 一次 HTTP 请求成功，表示服务返回了这轮结果，用户的任务可能还要再走一轮。  
 [OpenAI · 函数调用与工具结果回传](https://developers.openai.com/api/docs/guides/function-calling)
